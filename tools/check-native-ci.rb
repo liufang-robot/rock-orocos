@@ -29,6 +29,7 @@ else
   errors << "native CI must install ripgrep for warning checks" unless contents.include?("ripgrep")
   errors << "native CI must install Autoproj through the wrapper" unless contents.include?("./tools/install-autoproj.sh")
   errors << "native CI must run Autoproj policy check" unless contents.include?("ruby tools/check-autoproj-policy.rb")
+  errors << "native CI must run package test workflow policy check" unless contents.include?("ruby tools/check-package-tests-ci.rb")
   errors << "native CI must bootstrap through the wrapper" unless contents.include?("./tools/bootstrap.sh --prefix")
   errors << "native CI must build through the wrapper" unless contents.include?("./tools/install.sh --prefix")
   errors << "native CI must validate the installed prefix" unless contents.include?("./tools/validate-install.sh --prefix")

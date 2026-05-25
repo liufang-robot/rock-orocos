@@ -1,45 +1,33 @@
-name: Native Toolchain Matrix
+name: Package Tests
 
 on:
   pull_request:
     paths:
-      - ".github/workflows/native-toolchain.yml"
       - ".github/workflows/package-tests.yml"
       - "autoproj/**"
       - "docs/src/SUMMARY.md"
-      - "docs/src/package-policy.md"
       - "docs/src/modernization-plan.md"
       - "docs/src/package-test-results.md"
-      - "docs/superpowers/**"
-      - "tools/**"
-  push:
-    branches:
-      - main
-    paths:
-      - ".github/workflows/native-toolchain.yml"
-      - ".github/workflows/package-tests.yml"
-      - "autoproj/**"
-      - "docs/src/SUMMARY.md"
-      - "docs/src/package-policy.md"
-      - "docs/src/modernization-plan.md"
-      - "docs/src/package-test-results.md"
-      - "docs/superpowers/**"
       - "tools/**"
   workflow_dispatch:
 
 jobs:
-  build:
-    name: Ubuntu ${{ matrix.ubuntu-version }} Native Build
+  package-test:
+    name: Ubuntu 22.04 ${{ matrix.package-test }}
     runs-on: ubuntu-24.04
     container:
-      image: ubuntu:${{ matrix.ubuntu-version }}
+      image: ubuntu:22.04
+    continue-on-error: true
 
     strategy:
       fail-fast: false
       matrix:
-        ubuntu-version:
-          - "22.04"
-          - "24.04"
+        package-test:
+          - utilmm
+          - log4cpp
+          - typelib-cxx
+          - rtt-core
+          - ocl-basic
 
     env:
       DEBIAN_FRONTEND: noninteractive
@@ -51,7 +39,7 @@ jobs:
         shell: bash
 
     steps:
-      - name: Install CI base dependencies
+      - name: Install CI base and test dependencies
         run: |
           set -euo pipefail
           apt-get update
@@ -68,10 +56,13 @@ jobs:
             libboost-program-options-dev \
             libboost-regex-dev \
             libboost-system-dev \
+            libboost-test-dev \
             libboost-thread-dev \
+            libcppunit-dev \
             libffi-dev \
             libncurses5-dev \
             libomniorb4-dev \
+            libreadline-dev \
             libxml2-dev \
             libxml-xpath-perl \
             lsb-release \
@@ -92,33 +83,20 @@ jobs:
       - name: Install Autoproj
         run: ./tools/install-autoproj.sh
 
-      - name: Check repository policy
-        run: |
-          ruby tools/check-autoproj-policy.rb
-          ruby tools/check-package-tests-ci.rb
-
       - name: Bootstrap workspace
         run: ./tools/bootstrap.sh --prefix "$OROCOS_ROCK_PREFIX"
 
       - name: Build and install toolchain
         run: ./tools/install.sh --prefix "$OROCOS_ROCK_PREFIX"
 
-      - name: Validate installed prefix
-        run: ./tools/validate-install.sh --prefix "$OROCOS_ROCK_PREFIX"
+      - name: Run package test subset
+        run: ./tools/test-package.sh --prefix "$OROCOS_ROCK_PREFIX" "${{ matrix.package-test }}"
 
-      - name: Check compiler warning budget
-        run: |
-          set -euo pipefail
-          if rg -n "warning:|deprecated|pragma message" "$OROCOS_ROCK_PREFIX"/toolchain/log/*-build.log; then
-            echo "compiler warning budget exceeded" >&2
-            exit 1
-          fi
-
-      - name: Upload Autoproj and package logs
+      - name: Upload package test logs
         if: failure()
         uses: actions/upload-artifact@v6
         with:
-          name: native-toolchain-logs-ubuntu-${{ matrix.ubuntu-version }}
+          name: package-test-logs-ubuntu-22.04-${{ matrix.package-test }}
           if-no-files-found: ignore
           path: |
             .autoproj/config.yml
@@ -128,3 +106,6 @@ jobs:
             .autoproj/remotes/**/*.osdeps
             ${{ env.OROCOS_ROCK_PREFIX }}/toolchain/log/*.log
             ${{ env.OROCOS_ROCK_PREFIX }}/toolchain/log/*-stamp
+            toolchain/tools/**/build/CMakeFiles/CMakeOutput.log
+            toolchain/tools/**/build/CMakeFiles/CMakeError.log
+            toolchain/tools/**/build/Testing/Temporary/*.log

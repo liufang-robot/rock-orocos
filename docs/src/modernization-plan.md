@@ -102,10 +102,11 @@ Package unit-test policy:
   gates
 - add package unit tests in a separate workflow first, with log artifacts and
   non-required status until the legacy test behavior is understood
-- start with lower-risk CTest packages such as `utilmm`, `log4cpp`, and
-  Typelib C++ tests
-- add `rtt` and `ocl` tests after separating core tests from CORBA, mqueue, and
-  runtime-sensitive tests
+- start with `utilmm`, `log4cpp`, Typelib C++ tests, the stable RTT core CTest
+  subset, and OCL timer/taskbrowser tests on Ubuntu 22.04
+- keep RTT CORBA/mqueue tests and broader OCL deployment, reporting, and logging
+  tests out of the required gate until their runtime assumptions are documented
+- record current package-test results in `docs/src/package-test-results.md`
 - run oroGen Ruby tests only after its test dependencies, including
   `flexmock/minitest`, are explicitly staged in CI
 

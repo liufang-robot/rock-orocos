@@ -12,6 +12,7 @@ validate_install_path = File.join(root, "tools", "validate-install.sh")
 ruby_tools_path = File.join(root, "tools", "install-ruby-tools.sh")
 common_path = File.join(root, "tools", "common.sh")
 native_ci_check_path = File.join(root, "tools", "check-native-ci.rb")
+package_tests_ci_check_path = File.join(root, "tools", "check-package-tests-ci.rb")
 cpp17_policy_check_path = File.join(root, "tools", "check-cpp17-policy.rb")
 
 expected_forks = {
@@ -124,6 +125,7 @@ else
 end
 
 errors << "tools/check-native-ci.rb: missing native CI policy check" unless File.file?(native_ci_check_path)
+errors << "tools/check-package-tests-ci.rb: missing package test CI policy check" unless File.file?(package_tests_ci_check_path)
 errors << "tools/check-cpp17-policy.rb: missing C++17 policy check" unless File.file?(cpp17_policy_check_path)
 
 unless install_script.include?('"$SCRIPT_DIR/install-ruby-tools.sh" --prefix "$PREFIX"')
