@@ -6,11 +6,6 @@ on:
       - ".github/workflows/native-toolchain.yml"
       - ".github/workflows/package-tests.yml"
       - "autoproj/**"
-      - "docs/src/SUMMARY.md"
-      - "docs/src/package-policy.md"
-      - "docs/src/modernization-plan.md"
-      - "docs/src/package-test-results.md"
-      - "docs/superpowers/**"
       - "tools/**"
   push:
     branches:
@@ -19,11 +14,6 @@ on:
       - ".github/workflows/native-toolchain.yml"
       - ".github/workflows/package-tests.yml"
       - "autoproj/**"
-      - "docs/src/SUMMARY.md"
-      - "docs/src/package-policy.md"
-      - "docs/src/modernization-plan.md"
-      - "docs/src/package-test-results.md"
-      - "docs/superpowers/**"
       - "tools/**"
   workflow_dispatch:
 

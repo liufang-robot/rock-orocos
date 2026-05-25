@@ -11,6 +11,7 @@ else
 
   errors << "native CI must run on pull requests" unless contents.include?("pull_request:")
   errors << "native CI must run on pushes to main" unless contents.include?("push:") && contents.include?("- main")
+  errors << "native CI must not run for docs-only changes" if contents.match?(/docs\//)
   errors << "native CI must define a Ubuntu version matrix" unless contents.include?("matrix:") && contents.include?("ubuntu-version:")
   %w[22.04 24.04].each do |version|
     errors << "native CI must cover Ubuntu #{version}" unless contents.include?(%("#{version}"))
