@@ -13,7 +13,7 @@ package subset becomes a required gate.
 | `log4cpp` | Existing CTest tests | Passes locally: 12/12 CTest cases. |
 | `typelib-cxx` | `CxxSuiteInstalledPlugins` and `CxxSuiteLocalPlugins` | Passes locally: 2/2 CTest cases. |
 | `rtt-core` | `main-test`, `list-test`, and `core-test` | Passes locally: 3/3 selected CTest cases. `task-test` currently fails in `testAbsoluteWaitPeriodPolicy` and is deferred as timing-sensitive. CORBA and mqueue tests stay out of this subset. |
-| `ocl-basic` | `timer` and `taskb` | Configure currently fails because OCL test CMake calls undefined `GLOBAL_ADD_TEST` in the standalone CMake path. The workflow records the exit code and uploads logs without making the PR red. Deployment, reporting, and logging tests stay out of this subset. |
+| `ocl-basic` | `timer` and `taskb` | Passes locally after restoring OCL standalone CTest macros in `liufang-robot/ocl` `MetaNC` commit `a1d2b78`: 2/2 CTest cases. Deployment, reporting, and logging tests stay out of this subset. |
 
 Deferred test groups:
 
