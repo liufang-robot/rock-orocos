@@ -9,11 +9,11 @@ package subset becomes a required gate.
 
 | Package test | Initial subset | Current status |
 |---|---|---|
-| `utilmm` | `Suite` CTest case from `utilmm_testsuite` | Builds locally, but the suite currently hangs on the Ubuntu 22.04 native workspace. CI runs it with a timeout and uploads CTest logs. |
+| `utilmm` | `Suite` CTest case from `utilmm_testsuite` | Builds locally, but the suite hangs on the native workspace. In CI it fails quickly in `test_shellexpand`; the workflow records the exit code and uploads logs without making the PR red. |
 | `log4cpp` | Existing CTest tests | Passes locally: 12/12 CTest cases. |
 | `typelib-cxx` | `CxxSuiteInstalledPlugins` and `CxxSuiteLocalPlugins` | Passes locally: 2/2 CTest cases. |
 | `rtt-core` | `main-test`, `list-test`, and `core-test` | Passes locally: 3/3 selected CTest cases. `task-test` currently fails in `testAbsoluteWaitPeriodPolicy` and is deferred as timing-sensitive. CORBA and mqueue tests stay out of this subset. |
-| `ocl-basic` | `timer` and `taskb` | Configure currently fails because OCL test CMake calls undefined `GLOBAL_ADD_TEST` in the standalone CMake path. Deployment, reporting, and logging tests stay out of this subset. |
+| `ocl-basic` | `timer` and `taskb` | Configure currently fails because OCL test CMake calls undefined `GLOBAL_ADD_TEST` in the standalone CMake path. The workflow records the exit code and uploads logs without making the PR red. Deployment, reporting, and logging tests stay out of this subset. |
 
 Deferred test groups:
 
