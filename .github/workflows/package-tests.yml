@@ -87,27 +87,16 @@ jobs:
         run: ./tools/install.sh --prefix "$OROCOS_ROCK_PREFIX"
 
       - name: Run package test subset
-        id: package-test
-        run: |
-          set +e
-          ./tools/test-package.sh --prefix "$OROCOS_ROCK_PREFIX" "${{ matrix.package-test }}" 2>&1 | tee "package-test-${{ matrix.package-test }}.log"
-          status="${PIPESTATUS[0]}"
-          echo "status=$status" >>"$GITHUB_OUTPUT"
-          echo "$status" >"package-test-${{ matrix.package-test }}.status"
-          if [ "$status" -ne 0 ]; then
-            echo "::warning::${{ matrix.package-test }} package test exited with status $status"
-          fi
-          exit 0
+        run: ./tools/test-package.sh --prefix "$OROCOS_ROCK_PREFIX" "${{ matrix.package-test }}" 2>&1 | tee "package-test-${{ matrix.package-test }}.log"
 
       - name: Upload package test logs
-        if: steps.package-test.outputs.status != '0'
+        if: failure()
         uses: actions/upload-artifact@v6
         with:
           name: package-test-logs-ubuntu-22.04-${{ matrix.package-test }}
           if-no-files-found: ignore
           path: |
             package-test-${{ matrix.package-test }}.log
-            package-test-${{ matrix.package-test }}.status
             .autoproj/config.yml
             .autoproj/env.yml
             .autoproj/installation-manifest

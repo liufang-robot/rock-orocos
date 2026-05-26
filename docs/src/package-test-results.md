@@ -3,13 +3,13 @@
 This page records the package-level test status while the workflow is
 experimental and non-required.
 
-The first package-test workflow runs on Ubuntu 22.04 only and uses
-`continue-on-error: true`. It is meant to classify legacy tests before any
-package subset becomes a required gate.
+The first package-test workflow runs on Ubuntu 22.04 only and keeps
+`continue-on-error: true` while legacy package tests are being classified.
+Package test steps now return their real exit status.
 
 | Package test | Initial subset | Current status |
 |---|---|---|
-| `utilmm` | `Suite` CTest case from `utilmm_testsuite` | Builds locally, but the suite hangs on the native workspace. In CI it fails quickly in `test_shellexpand`; the workflow records the exit code and uploads logs without making the PR red. |
+| `utilmm` | `Suite` CTest case from `utilmm_testsuite` | Passes locally after stabilizing shell expansion and socket tests in `liufang-robot/utilmm` `MetaNC` commit `f3399dc`: 1/1 CTest case. |
 | `log4cpp` | Existing CTest tests | Passes locally: 12/12 CTest cases. |
 | `typelib-cxx` | `CxxSuiteInstalledPlugins` and `CxxSuiteLocalPlugins` | Passes locally: 2/2 CTest cases. |
 | `rtt-core` | `main-test`, `list-test`, and `core-test` | Passes locally: 3/3 selected CTest cases. `task-test` currently fails in `testAbsoluteWaitPeriodPolicy` and is deferred as timing-sensitive. CORBA and mqueue tests stay out of this subset. |

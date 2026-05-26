@@ -19,9 +19,8 @@ else
     errors << "package tests must include #{package_test}" unless contents.include?("- #{package_test}")
   end
   errors << "package tests must run the shared package test wrapper" unless contents.include?("./tools/test-package.sh")
-  errors << "package tests must record package test status" unless contents.include?("status=$status") && contents.include?("GITHUB_OUTPUT")
-  errors << "package tests must warn instead of failing while experimental" unless contents.include?("::warning::") && contents.include?("exit 0")
-  errors << "package tests must upload diagnostic logs when package tests fail" unless contents.include?("actions/upload-artifact@v6") && contents.include?("steps.package-test.outputs.status != '0'")
+  errors << "package tests must return package test failures" if contents.include?("::warning::") || contents.include?("exit 0")
+  errors << "package tests must upload diagnostic logs when package tests fail" unless contents.include?("actions/upload-artifact@v6") && contents.include?("if: failure()")
   errors << "package tests must upload CTest logs" unless contents.include?("Testing/Temporary/*.log")
   errors << "package tests must upload CMake logs" unless contents.include?("CMakeOutput.log") && contents.include?("CMakeError.log")
   errors << "package tests must upload Autoproj package logs" unless contents.include?("toolchain/log/*.log")
