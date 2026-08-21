@@ -1,0 +1,181 @@
+schema_version: 1
+
+context:
+  version: "0.1.0"
+  build_number: 0
+
+recipe:
+  name: orocos-distribution
+  version: ${{ version }}
+
+source:
+  path: ../..
+  use_gitignore: true
+  filter:
+    include:
+      - autoproj/**
+      - packaging/source-lock.json
+      - packaging/conda/build-linux.sh
+      - packaging/conda/prepare-linux-prefix.sh
+      - packaging/conda/sanitize-linux-prefix.rb
+      - packaging/conda/test-runtime-linux.sh
+      - packaging/conda/test-dev-linux.sh
+      - tools/**
+
+outputs:
+  - staging:
+      name: orocos-linux-build
+    requirements:
+      build:
+        - ${{ compiler('c') }}
+        - ${{ compiler('cxx') }}
+        - cmake >=3.28,<4
+        - curl
+        - git >=2.45,<3
+        - make
+        - pkg-config >=0.29,<1
+        - ruby >=3.4,<3.5
+      host:
+        - boost-cpp >=1.84,<1.85
+        - castxml >=0.7,<0.8
+        - libffi >=3.4,<4
+        - libxml2-devel >=2.12,<3
+        - ncurses >=6.5,<7
+        - perl >=5.32,<6
+        - perl-xml-xpath >=1.48,<2
+        - python >=3.11,<3.15
+        - readline >=8.2,<9
+        - ruby >=3.4,<3.5
+        - xz >=5.6,<6
+        - zstd >=1.5,<2
+    build:
+      script:
+        file: build-linux.sh
+
+  - package:
+      name: orocos
+    inherit:
+      from: orocos-linux-build
+      run_exports: false
+    build:
+      number: ${{ build_number }}
+      files:
+        include:
+          - env.sh
+          - toolchain/bin/ctaskbrowser*
+          - toolchain/bin/deployer*
+          - toolchain/bin/rtt*
+          - toolchain/etc/**
+          - toolchain/lib/*.so*
+          - toolchain/lib/orocos/**
+          - toolchain/lib/typelib/**
+          - toolchain/share/orocos/**
+        exclude:
+          - toolchain/lib/ruby/**
+    requirements:
+      run:
+        - libboost >=1.84,<1.85
+        - libffi >=3.4,<4
+        - libgcc >=14
+        - libstdcxx >=14
+        - libxml2 >=2.12,<3
+        - ncurses >=6.5,<7
+        - readline >=8.2,<9
+        - xz >=5.6,<6
+        - zstd >=1.5,<2
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - env.sh
+              - toolchain/bin/deployer-opcua-gnulinux
+              - toolchain/lib/orocos/gnulinux/types/librtt-transport-mqueue-gnulinux.so
+            not_exists:
+              - dev-env.sh
+              - toolchain/include/orocos/rtt/RTT.hpp
+              - toolchain/lib/ruby/3.4.0/x86_64-linux/typelib_ruby.so
+      - script: test-runtime-linux.sh
+    about:
+      homepage: https://github.com/liufang-robot/rock-orocos
+      repository: https://github.com/liufang-robot/rock-orocos
+      documentation: https://liufang-robot.github.io/rock-orocos/
+      license: GPL-2.0-only
+      summary: Orocos RTT runtime with OCL, scripting, and native OPC UA tools
+      description: |
+        A relocatable Linux Orocos runtime containing RTT, OCL deployers,
+        scripting support, type transports, and the native OPC UA server and
+        TaskBrowser client. Install orocos-dev for headers and generators.
+
+  - package:
+      name: orocos-dev
+    inherit:
+      from: orocos-linux-build
+      run_exports: false
+    build:
+      number: ${{ build_number }}
+      files:
+        include:
+          - dev-env.sh
+          - toolchain/bin/*
+          - toolchain/gems/**
+          - toolchain/include/**
+          - toolchain/lib/*.a
+          - toolchain/lib/*.la
+          - toolchain/lib/cmake/**
+          - toolchain/lib/pkgconfig/**
+          - toolchain/lib/ruby/**
+          - toolchain/share/**
+        exclude:
+          - toolchain/bin/ctaskbrowser*
+          - toolchain/bin/deployer*
+          - toolchain/bin/rtt*
+          - toolchain/share/orocos/**
+    requirements:
+      run:
+        - ${{ pin_subpackage('orocos', exact=True) }}
+        - boost-cpp >=1.84,<1.85
+        - castxml >=0.7,<0.8
+        - cmake >=3.28,<4
+        - cxx-compiler >=1.11,<3
+        - libffi >=3.4,<4
+        - libxml2-devel >=2.12,<3
+        - pkg-config >=0.29,<1
+        - ruby >=3.4,<3.5
+        - zstd >=1.5,<2
+    tests:
+      - package_contents:
+          files:
+            exists:
+              - dev-env.sh
+              - toolchain/bin/orogen
+              - toolchain/bin/typegen
+              - toolchain/include/orocos/rtt/RTT.hpp
+              - toolchain/lib/cmake/orocos-rtt/orocos-rtt-config.cmake
+            not_exists:
+              - env.sh
+              - toolchain/bin/deployer-opcua-gnulinux
+      - script: test-dev-linux.sh
+    about:
+      homepage: https://github.com/liufang-robot/rock-orocos
+      repository: https://github.com/liufang-robot/rock-orocos
+      documentation: https://liufang-robot.github.io/rock-orocos/
+      license: GPL-2.0-only
+      summary: Orocos development SDK with OroGen and Typegen
+      description: |
+        Headers, CMake and pkg-config metadata, Ruby generator libraries,
+        OroGen, and Typegen for building Orocos components and typekits. The
+        exact matching orocos runtime is installed automatically.
+
+about:
+  homepage: https://github.com/liufang-robot/rock-orocos
+  repository: https://github.com/liufang-robot/rock-orocos
+  documentation: https://liufang-robot.github.io/rock-orocos/
+  license: GPL-2.0-only
+  summary: Standalone Orocos RTT runtime and development toolchain for Linux
+  description: |
+    A relocatable Orocos/Rock toolchain split into runtime and development
+    packages for Linux consumers.
+
+extra:
+  recipe-maintainers:
+    - liufang-robot
