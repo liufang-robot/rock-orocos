@@ -59,7 +59,7 @@ install_remote_gem() {
 
     GEM_HOME="$GEM_HOME_DIR" GEM_PATH="$GEM_HOME_DIR" \
         gem install --install-dir "$GEM_HOME_DIR" --bindir "$BIN_DIR" \
-        --no-document "${args[@]}" "$gem_name"
+        --env-shebang --no-document "${args[@]}" "$gem_name"
 }
 
 install_local_gem() {
@@ -76,7 +76,7 @@ install_local_gem() {
 
     GEM_HOME="$GEM_HOME_DIR" GEM_PATH="$GEM_HOME_DIR" \
         gem install --install-dir "$GEM_HOME_DIR" --bindir "$BIN_DIR" \
-        --local --no-document --ignore-dependencies "$gem_path"
+        --env-shebang --local --no-document --ignore-dependencies "$gem_path"
 
     if [ -d "$package_dir/bin" ]; then
         find "$package_dir/bin" -maxdepth 1 -type f ! -name '.*' -print | while read -r executable_path; do

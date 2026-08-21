@@ -13,6 +13,7 @@ function Get-OrocosWindowsExpectedSourceNames {
         "utilrb"
         "metaruby"
         "orogen"
+        "rock-package-set"
         "vcpkg"
     )
 }
@@ -33,6 +34,7 @@ function Get-OrocosWindowsExpectedRepositories {
         "utilrb" = "https://github.com/rock-core/tools-utilrb.git"
         "metaruby" = "https://github.com/rock-core/tools-metaruby.git"
         "orogen" = "https://github.com/$sourceOrganization/tools-orogen.git"
+        "rock-package-set" = "https://github.com/rock-core/package_set.git"
         "vcpkg" = "https://github.com/microsoft/vcpkg.git"
     }
 }

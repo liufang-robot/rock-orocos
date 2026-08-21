@@ -74,13 +74,28 @@ orocos_rock_require_file "$MQUEUE_TRANSPORT"
     orocos_rock_require_command pkg-config
     pkg-config --exists "rtt_opcua-$TARGET"
     pkg-config --exists "ocl-deployment-$TARGET"
+    case ":${TYPELIB_PLUGIN_PATH:-}:" in
+        *:"$OROCOS_PREFIX/toolchain/lib/typelib":*) ;;
+        *) orocos_rock_die "env.sh did not expose installed Typelib plugins" ;;
+    esac
 )
 
 (
+    export GEM_HOME="$PREFIX/.invalid-workspace-gem-home"
+    export GEM_PATH="$PREFIX/.invalid-workspace-gem-path"
     # shellcheck disable=SC1090
     . "$PREFIX/dev-env.sh"
+    if [ "$GEM_HOME" != "$OROCOS_PREFIX/toolchain/gems" ]; then
+        orocos_rock_die "dev-env.sh did not select the installed Ruby gem home"
+    fi
+    case ":$GEM_PATH:" in
+        *:"$PREFIX/.invalid-workspace-gem-path":*)
+            orocos_rock_die "dev-env.sh retained a workspace Ruby gem path"
+            ;;
+    esac
     orocos_rock_require_command orogen
     orocos_rock_require_command typegen
+    ruby -e 'require "typelib"; require "orogen"'
     orogen --help >/dev/null
     typegen --help >/dev/null
 )
