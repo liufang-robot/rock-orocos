@@ -1,7 +1,8 @@
 # Pixi And Conda Packages
 
-The Prefix.dev channel publishes two platform-native packages for
-`linux-64` and `win-64`.
+Release workflows are configured to publish `orocos` and `orocos-dev` for
+`linux-64` and `win-64` to Prefix.dev. A platform is installable after its
+release workflow has populated the corresponding channel subdirectory.
 
 | Package | Description | Choose it when |
 |---|---|---|
@@ -14,12 +15,20 @@ different runtime build.
 
 ## Automatic Pixi Activation
 
-Start from the complete
-[`examples/pixi-consumer`](../../examples/pixi-consumer/) example, or copy its
-`pixi.toml` and `scripts` directory into a downstream workspace. The manifest
-configures both platform wrappers:
+For a new downstream workspace, copy the complete
+[`examples/pixi-consumer`](https://github.com/liufang-robot/rock-orocos/tree/main/examples/pixi-consumer)
+example. For an existing workspace, merge the channel, platform, dependency,
+and activation entries below into its `pixi.toml`, then copy the example's
+`scripts` directory. Do not overwrite an existing manifest.
 
 ```toml
+[workspace]
+channels = ["https://prefix.dev/liufang-robot/orocos", "conda-forge"]
+platforms = ["linux-64", "win-64"]
+
+[dependencies]
+orocos-dev = "==0.1.0"
+
 [target.unix.activation]
 scripts = ["scripts/activate-orocos.sh"]
 
@@ -27,12 +36,13 @@ scripts = ["scripts/activate-orocos.sh"]
 scripts = ["scripts/activate-orocos.ps1"]
 ```
 
-When `orocos-dev` is installed, the wrappers prefer `dev-env.sh` on Unix or
-`Library\dev-env.ps1` on Windows. With the runtime-only `orocos` package, they
-choose `env.sh` or `Library\env.ps1`, respectively. The scripts set the paths
-described by the [Install Contract](./install-contract.md), are relocatable
-with the Conda environment, and do not require this repository's Autoproj
-workspace.
+Runtime-only users replace or remove `orocos-dev = "==0.1.0"` and add
+`orocos = "==0.1.0"` under `[dependencies]`. The wrappers remain unchanged:
+they prefer `dev-env.sh` on Unix or `Library\dev-env.ps1` on Windows when
+`orocos-dev` is installed, and otherwise choose `env.sh` or
+`Library\env.ps1` from `orocos`. The scripts set the paths described by the
+[Install Contract](./install-contract.md), are relocatable with the Conda
+environment, and do not require this repository's Autoproj workspace.
 
 Open the configured environment with:
 
@@ -88,7 +98,8 @@ A runtime-only environment uses
 
 ## Local Package Testing
 
-Package maintainers can build and index the local channel:
+Before public artifacts are available, package maintainers can build and index
+the local channel:
 
 ```bash
 pixi install --locked -e package

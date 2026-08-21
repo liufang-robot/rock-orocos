@@ -9,9 +9,11 @@ They do not depend on this repository's Autoproj checkout layout.
 
 ## Install With Pixi
 
-The complete [Pixi consumer example](./examples/pixi-consumer/) contains the
-Prefix.dev and conda-forge channels, `orocos-dev==0.1.0`, and automatic
-activation wrappers for both Unix and Windows targets. Start from that example:
+After artifacts for the current version and platform have been published, the
+complete [Pixi consumer example](https://github.com/liufang-robot/rock-orocos/tree/main/examples/pixi-consumer)
+provides the Prefix.dev and conda-forge channels, `orocos-dev==0.1.0`, and
+automatic activation wrappers for both Unix and Windows targets. Start from
+that example:
 
 ```bash
 cd examples/pixi-consumer
