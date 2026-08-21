@@ -84,9 +84,12 @@ else
     pixi.toml
     pixi.lock
   ]
-  [Array(pull_request["paths"]), Array(push["paths"])].each do |paths|
+  {
+    "pull requests" => Array(pull_request["paths"]),
+    "main pushes" => Array(push["paths"])
+  }.each do |trigger_name, paths|
     required_paths.each do |path|
-      errors << "Linux package CI must watch #{path}" unless paths.include?(path)
+      errors << "Linux package CI #{trigger_name} must watch #{path}" unless paths.include?(path)
     end
   end
 
