@@ -218,7 +218,16 @@ if !File.file?(consumer_path)
   errors << "missing tools/test-linux-conda-consumer.sh"
 else
   consumer = File.read(consumer_path)
-  %w[--force-reinstall dev-env.sh orogen typegen deployer-opcua-gnulinux TYPELIB_PLUGIN_PATH].each do |token|
+  %w[
+    --force-reinstall
+    dev-env.sh
+    orogen
+    typegen
+    deployer-opcua-gnulinux
+    TYPELIB_PLUGIN_PATH
+    OROCOS_PIXI_ACTIVATION_SCRIPT
+    activate-orocos.sh
+  ].each do |token|
     errors << "Linux consumer test must check #{token}" unless consumer.include?(token)
   end
 end

@@ -77,6 +77,7 @@ workflow_path = File.join(root, ".github", "workflows", "windows-packages.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe.yaml")
 staging_path = File.join(root, "tools", "prepare-windows-conda-release.ps1")
 consumer_path = File.join(root, "tools", "test-windows-conda-consumer.ps1")
+activation_path = File.join(root, "examples", "pixi-consumer", "scripts", "activate-orocos.ps1")
 errors = []
 
 unless File.file?(workflow_path)
@@ -302,13 +303,27 @@ else
     "an exact runtime build" => '"orocos==$($runtime.version)=$($runtime.build)"',
     "an exact development build" => '"orocos-dev==$($development.version)=$($development.build)"',
     "a clean Pixi package cache" => "PIXI_CACHE_DIR",
-    "the runtime activation contract" => "Library\\env.ps1",
-    "the development activation contract" => "Library\\dev-env.ps1",
+    "the shared Pixi activation selector" => "OROCOS_PIXI_ACTIVATION_SCRIPT",
+    "the project-relative PowerShell wrapper" => "activate-orocos.ps1",
     "OroGen" => "orogen --version",
     "Typegen" => "typegen --help",
     "the OPC UA deployer" => "deployer-opcua-win32.exe --check --no-consolelog"
   }.each do |contract, token|
     errors << "consumer smoke test must check #{contract}" unless consumer.include?(token)
+  end
+end
+
+unless File.file?(activation_path)
+  errors << "missing examples/pixi-consumer/scripts/activate-orocos.ps1"
+else
+  activation = File.read(activation_path)
+  {
+    "the runtime activation contract" => ['"Library"', '"env.ps1"'],
+    "the development activation contract" => ['"Library"', '"dev-env.ps1"']
+  }.each do |contract, tokens|
+    unless tokens.all? { |token| activation.include?(token) }
+      errors << "consumer activation wrapper must check #{contract}"
+    end
   end
 end
 

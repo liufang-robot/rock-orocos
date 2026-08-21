@@ -50,9 +50,15 @@ else {
     $channel = $ChannelUrl.TrimEnd("/")
 }
 
+$activationScript = (
+    Resolve-Path -LiteralPath (
+        Join-Path $PSScriptRoot "..\examples\pixi-consumer\scripts\activate-orocos.ps1"
+    )
+).Path
+
 $runtimeCommand = @'
 & {
-    . (Join-Path $env:CONDA_PREFIX 'Library\env.ps1')
+    . $env:OROCOS_PIXI_ACTIVATION_SCRIPT
     $developmentHeader = Join-Path $env:CONDA_PREFIX 'Library\include\orocos\rtt\RTT.hpp'
     if (Test-Path -LiteralPath $developmentHeader) {
         throw 'The runtime-only environment unexpectedly contains development headers.'
@@ -64,7 +70,7 @@ $runtimeCommand = @'
 
 $developmentCommand = @'
 & {
-    . (Join-Path $env:CONDA_PREFIX 'Library\dev-env.ps1')
+    . $env:OROCOS_PIXI_ACTIVATION_SCRIPT
     $developmentHeader = Join-Path $env:CONDA_PREFIX 'Library\include\orocos\rtt\RTT.hpp'
     if (-not (Test-Path -LiteralPath $developmentHeader -PathType Leaf)) {
         throw 'The development environment is missing the RTT headers.'
@@ -110,6 +116,11 @@ else {
 $cacheRoot = Join-Path $cacheParent ("orocos-package-consumer-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $cacheRoot | Out-Null
 $previousCache = [Environment]::GetEnvironmentVariable("PIXI_CACHE_DIR", "Process")
+$previousActivationScript = [Environment]::GetEnvironmentVariable(
+    "OROCOS_PIXI_ACTIVATION_SCRIPT",
+    "Process"
+)
+$env:OROCOS_PIXI_ACTIVATION_SCRIPT = $activationScript
 
 try {
     for ($attempt = 1; $attempt -le $Attempts; $attempt += 1) {
@@ -137,5 +148,11 @@ finally {
     }
     else {
         $env:PIXI_CACHE_DIR = $previousCache
+    }
+    if ($null -eq $previousActivationScript) {
+        Remove-Item Env:OROCOS_PIXI_ACTIVATION_SCRIPT -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:OROCOS_PIXI_ACTIVATION_SCRIPT = $previousActivationScript
     }
 }
