@@ -20,6 +20,7 @@ end
 root = File.expand_path("..", __dir__)
 agents_path = File.join(root, "AGENTS.md")
 readme_path = File.join(root, "README.md")
+pixi_manifest_path = File.join(root, "pixi.toml")
 repository_workflow_path = File.join(root, ".github", "workflows", "repository-policy.yml")
 docs_workflow_path = File.join(root, ".github", "workflows", "docs.yml")
 xenomai3_path = File.join(root, "docs", "src", "xenomai3-integration.md")
@@ -27,6 +28,20 @@ docs_src = File.join(root, "docs", "src")
 summary_path = File.join(docs_src, "SUMMARY.md")
 todo_dir = File.join(docs_src, "todo")
 errors = []
+
+if !File.file?(pixi_manifest_path)
+  errors << "missing pixi.toml"
+else
+  pixi_manifest = File.read(pixi_manifest_path)
+  package_dependencies = pixi_manifest[
+    /^\[feature\.package\.dependencies\]\s*$\n(.*?)(?=^\[|\z)/m, 1
+  ].to_s
+  %w[python zstd].each do |dependency|
+    unless package_dependencies.match?(/^#{Regexp.escape(dependency)}\s*=/)
+      errors << "Pixi package environment must explicitly depend on #{dependency}"
+    end
+  end
+end
 
 %w[docs/book docs/superpowers].each do |directory|
   tracked_files, git_status = Open3.capture2(

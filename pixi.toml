@@ -13,8 +13,10 @@ ruby = ">=3.4,<3.5"
 zstd = ">=1.5,<2"
 
 [feature.package.dependencies]
+python = ">=3.11,<3.15"
 rattler-build = ">=0.74,<0.75"
 rattler-index = ">=0.30,<0.31"
+zstd = ">=1.5,<2"
 
 [feature.package.tasks]
 package-render = { cmd = [
