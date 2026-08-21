@@ -1,0 +1,14 @@
+[workspace]
+name = "orocos-consumer"
+description = "Downstream Orocos project with automatic runtime or SDK activation"
+channels = ["https://prefix.dev/liufang-robot/orocos", "conda-forge"]
+platforms = ["linux-64", "win-64"]
+
+[dependencies]
+orocos-dev = "==0.1.0"
+
+[target.unix.activation]
+scripts = ["scripts/activate-orocos.sh"]
+
+[target.win.activation]
+scripts = ["scripts/activate-orocos.ps1"]
