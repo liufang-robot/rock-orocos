@@ -1,7 +1,7 @@
 [workspace]
 name = "orocos-rock"
 channels = ["conda-forge"]
-platforms = ["win-64"]
+platforms = ["win-64", "linux-64"]
 
 [dependencies]
 castxml = ">=0.7,<0.8"
@@ -56,8 +56,58 @@ package-build = { cmd = [
     "packaging/conda/output",
 ], depends-on = ["package-build-artifacts"], description = "Build, test, and index the Windows orocos and orocos-dev packages." }
 
+linux-package-render = { cmd = [
+    "rattler-build",
+    "build",
+    "--recipe",
+    "packaging/conda/recipe-linux.yaml",
+    "--output-dir",
+    "packaging/conda/output",
+    "--channel",
+    "conda-forge",
+    "--target-platform",
+    "linux-64",
+    "--render-only",
+    "--with-solve",
+], description = "Render and solve the Linux Orocos package recipe." }
+linux-package-build-artifacts = { cmd = [
+    "rattler-build",
+    "build",
+    "--recipe",
+    "packaging/conda/recipe-linux.yaml",
+    "--output-dir",
+    "packaging/conda/output",
+    "--channel",
+    "conda-forge",
+    "--target-platform",
+    "linux-64",
+    "--package-format",
+    "conda",
+    "--test",
+    "native",
+], description = "Build and test the Linux orocos and orocos-dev package artifacts." }
+linux-package-build = { cmd = [
+    "rattler-index",
+    "--force",
+    "--target-platform",
+    "linux-64",
+    "fs",
+    "packaging/conda/output",
+], depends-on = ["linux-package-build-artifacts"], description = "Build, test, and index the Linux orocos and orocos-dev packages." }
+
+[feature.docs.dependencies]
+mdbook = ">=0.5.0,<0.5.1"
+mdbook-mermaid = ">=0.17.1,<0.18"
+ruby = ">=3.4,<3.5"
+
+[feature.docs.tasks]
+docs-lint = { cmd = ["ruby", "tools/check-docs.rb"], description = "Validate the documentation structure and local links." }
+docs-build = { cmd = ["mdbook", "build", "docs"], depends-on = ["docs-lint"], description = "Validate and build the documentation site." }
+docs-serve = { cmd = ["mdbook", "serve", "docs", "--open"], depends-on = ["docs-lint"], description = "Serve the documentation site locally." }
+
 [environments]
 package = { features = ["package"], no-default-feature = true }
+docs = { features = ["docs"], no-default-feature = true }
 
 [activation.env]
 OROCOS_TARGET = "win32"

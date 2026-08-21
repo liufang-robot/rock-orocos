@@ -1,10 +1,17 @@
 [book]
 title = "orocos-rock"
+authors = ["orocos-rock maintainers"]
+description = "Standalone Orocos RTT runtime and development toolchain"
 language = "en"
 src = "src"
+
+[build]
+build-dir = "book"
 
 [preprocessor.mermaid]
 command = "mdbook-mermaid"
 
 [output.html]
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
+git-repository-url = "https://github.com/liufang-robot/rock-orocos"
+site-url = "/rock-orocos/"

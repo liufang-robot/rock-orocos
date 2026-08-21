@@ -1,4 +1,4 @@
-# Maintainer Guide
+# Maintaining The Toolchain
 
 This page is for people who maintain the `orocos-rock` dependency workspace.
 The maintainer's job is to produce one installed Orocos/Rock prefix that
@@ -29,6 +29,8 @@ The mdBook is the stable public documentation for the supported toolchain.
 - Do not commit workflow artifacts below `docs/superpowers/`, generated
   `docs/book/` output, temporary paths, or one-time execution transcripts.
 - Add every Markdown page below `docs/src/` to `SUMMARY.md`.
+- Build docs through `pixi run --locked -e docs docs-build`; pushes
+  to `main` publish the same checked output to GitHub Pages.
 
 Current source and the installed-prefix contract take precedence over stale
 design text.
@@ -37,7 +39,7 @@ design text.
 
 | Script | What it does | Main output |
 |---|---|---|
-| `tools/setup.sh` | User-facing wrapper that runs Autoproj install, bootstrap, install, and validation in order | A validated installed prefix |
+| `tools/setup.sh` | User-facing wrapper that runs Autoproj install, bootstrap, install, and validation in order; `--skip-osdeps` is reserved for controlled dependency environments | A validated installed prefix |
 | `tools/update.sh` | Fast-forwards the root and updates the complete configured Autoproj layout without building or installing | Updated source checkouts |
 | `tools/install-autoproj.sh` | Installs Autoproj into the current user's RubyGems area if `autoproj` is not already usable | User gem executables, usually under RubyGems' user bin directory |
 | `tools/bootstrap.sh` | Generates local Autoproj workspace config, runs `autoproj reconfigure`, and optionally installs OS dependencies | `.autoproj/config.yml`, `.autoproj/Gemfile`, `.autoproj/bin/*`, refreshed package-set state |
@@ -131,7 +133,7 @@ updates are not rolled back.
 
 | Script | Purpose | Variables it sets or prepends |
 |---|---|---|
-| `env.sh` | Runtime environment for deployer and installed components | `OROCOS_PREFIX`, `PATH`, `LD_LIBRARY_PATH`, `CMAKE_PREFIX_PATH`, `PKG_CONFIG_PATH`, `RTT_COMPONENT_PATH`, `OROCOS_TARGET` |
+| `env.sh` | Runtime environment for deployer and installed components | `OROCOS_PREFIX`, `PATH`, `LD_LIBRARY_PATH`, `CMAKE_PREFIX_PATH`, `PKG_CONFIG_PATH`, `RTT_COMPONENT_PATH`, `TYPELIB_PLUGIN_PATH`, `OROCOS_TARGET` |
 | `dev-env.sh` | Development environment for downstream builds and generators | Sources `env.sh`, then sets `GEM_HOME`, `GEM_PATH`, and `RUBYLIB` for installed Ruby generator tooling |
 
 `env.sh` and `dev-env.sh` prepend paths only when the target directory exists.
@@ -174,6 +176,8 @@ After changing CI policy, run:
 ruby tools/check-native-ci.rb
 ruby tools/check-package-tests-ci.rb
 ruby tools/check-windows-package-ci.rb
+ruby tools/check-linux-package-ci.rb
+ruby tools/check-docs.rb
 ```
 
 After a real install, run:
@@ -218,3 +222,7 @@ xeno-test -p 10
 
 See [Xenomai 3 Integration](./xenomai3-integration.md) for the RTT patch gates
 and target-machine validation guidance.
+
+Package construction, source locking, immutable artifacts, and OIDC release
+permissions are defined separately in
+[Packaging And Release](./release-guide.md).

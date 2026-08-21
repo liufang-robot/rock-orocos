@@ -20,6 +20,12 @@ The native Windows Pixi build uses `install/windows-msvc` by default and
 exports the same runtime/development split through `env.ps1` and
 `dev-env.ps1`.
 
+The published `orocos` and `orocos-dev` packages map the
+same split into a Pixi/Conda environment. On Linux, the scripts are installed
+at the environment root. On Windows, they are installed below
+`Library`. Package relocation may change the prefix location but not
+the behavior described here.
+
 ## Required Outputs
 
 The installed prefix must provide:
@@ -141,6 +147,7 @@ environment. At minimum, the script must:
 - expose the installed prefix through `CMAKE_PREFIX_PATH`
 - expose pkg-config metadata through `PKG_CONFIG_PATH`
 - expose Orocos plugin discovery paths for runtime tools
+- expose the installed Typelib loaders through `TYPELIB_PLUGIN_PATH`
 - expose the installed Ruby generator stack through `GEM_HOME`, `GEM_PATH`, or
   equivalent `RUBYLIB` setup
 - expose CMake config packages for installed internal toolchain dependencies,

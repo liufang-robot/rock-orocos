@@ -1,7 +1,8 @@
-# User Guide
+# User Workflows
 
-This page is for users who need to install and consume the Orocos/Rock
-toolchain.
+This page covers source installations, updates, shell activation, and
+deployment. For a workspace that only consumes the published toolchain, start
+with [Pixi And Conda Packages](./conda-packages.md).
 
 The normal local install prefix is:
 
@@ -50,6 +51,10 @@ no-update maintainer workflow in
 
 The GNU/Linux build also keeps CORBA disabled. Native remote access is provided
 by the OPC UA transport.
+
+When every dependency is already supplied by a controlled build environment,
+such as the Linux package recipe, `--skip-osdeps` prevents the setup
+wrapper from invoking the host package manager.
 
 ## Update Sources Without Building
 

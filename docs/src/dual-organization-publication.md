@@ -24,9 +24,13 @@ their upstream repositories in both organizations.
 | `liufang-robot/rock-orocos` | `liufang-robot/orocos` | `https://prefix.dev/liufang-robot/orocos` |
 | `OptimalCNC/rock-orocos` | `metanc/orocos` | `https://prefix.dev/metanc/orocos` |
 
-Both roots retain the manually published, non-prerelease GitHub Release gate.
-Each Prefix channel must authorize only its corresponding root repository and
-`windows-packages.yml` through Repository Access.
+The canonical `liufang-robot/orocos` channel authorizes only
+`liufang-robot/rock-orocos` and the exact
+`linux-packages.yml` and `windows-packages.yml` workflow
+files through Repository Access. The tracked workflows reject publication
+from the `OptimalCNC` mirror. Publishing `metanc/orocos`
+would require a separately reviewed organization-specific workflow and
+channel authorization; it is not enabled by the canonical configuration.
 
 ## Repository Matrix
 
