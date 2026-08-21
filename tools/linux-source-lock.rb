@@ -42,6 +42,7 @@ module OrocosRock
       PACKAGE_SET_NAME =>
         ".autoproj/remotes/git_https___github_com_rock_core_package_set_git"
     }.freeze
+    GENERATED_CHECKOUT_PATH_PREFIXES = %w[build/].freeze
     EXPECTED_REPOSITORIES =
       OrocosRock::SourceProvenance::FIRST_PARTY_REPOSITORIES.merge(
         OrocosRock::SourceProvenance::THIRD_PARTY_REPOSITORIES
@@ -179,6 +180,16 @@ module OrocosRock
         )
         unless tracked_changes.empty?
           raise "locked source #{name} has tracked changes: #{tracked_changes.lines.first.strip}"
+        end
+        untracked_files = capture_git(
+          expected_directory, "ls-files", "--others", "--exclude-standard"
+        ).lines.map(&:strip).reject(&:empty?)
+        unexpected_untracked = untracked_files.reject do |path|
+          GENERATED_CHECKOUT_PATH_PREFIXES.any? { |prefix| path.start_with?(prefix) }
+        end
+        unless unexpected_untracked.empty?
+          raise "locked source #{name} has unexpected untracked files: " \
+                "#{unexpected_untracked.first}"
         end
       end
     end

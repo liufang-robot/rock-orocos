@@ -134,6 +134,9 @@ end
 raise accepted.join("\n") unless accepted.empty?
 
 with_workspace do |root, lock_path|
+  build_output = File.join(root, CHECKOUT_PATHS.fetch("farbot"), "build")
+  FileUtils.mkdir_p(build_output)
+  File.write(File.join(build_output, "CMakeCache.txt"), "generated\n")
   output, status = run_lock("verify", lock_path, root)
   raise "canonical checkout layout failed verification: #{output}" unless status.success?
   unless output.include?("Verified 14 locked Linux build sources.")
@@ -171,6 +174,13 @@ end
 assert_verify_rejected("tracked dirt", "locked source farbot has tracked changes") do |root, _lock|
   checkout = File.join(root, CHECKOUT_PATHS.fetch("farbot"))
   File.write(File.join(checkout, "tracked.txt"), "dirty\n")
+end
+
+assert_verify_rejected(
+  "unexpected untracked file", "locked source farbot has unexpected untracked files"
+) do |root, _lock|
+  checkout = File.join(root, CHECKOUT_PATHS.fetch("farbot"))
+  File.write(File.join(checkout, "unexpected.txt"), "not locked\n")
 end
 
 puts "Linux source lock tests passed."
