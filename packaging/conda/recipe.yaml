@@ -88,6 +88,16 @@ outputs:
               - Library/dev-env.ps1
               - Library/include/orocos/rtt/RTT.hpp
       - script: test-runtime.ps1
+    about:
+      homepage: https://github.com/liufang-robot/rock-orocos
+      repository: https://github.com/liufang-robot/rock-orocos
+      documentation: https://liufang-robot.github.io/rock-orocos/
+      license: GPL-2.0-only
+      summary: Orocos RTT runtime with OCL and native OPC UA tools for Windows
+      description: |
+        A relocatable Windows Orocos runtime containing RTT, OCL deployers,
+        scripting support, type transports, and the native OPC UA server and
+        TaskBrowser client. Install orocos-dev for headers and generators.
 
   - package:
       name: orocos-dev
@@ -136,13 +146,27 @@ outputs:
         files:
           recipe:
             - test-data/**
+    about:
+      homepage: https://github.com/liufang-robot/rock-orocos
+      repository: https://github.com/liufang-robot/rock-orocos
+      documentation: https://liufang-robot.github.io/rock-orocos/
+      license: GPL-2.0-only
+      summary: Orocos development SDK with OroGen and Typegen for Windows
+      description: |
+        Headers, CMake and pkg-config metadata, the bundled dependency SDK,
+        Ruby generator libraries, OroGen, and Typegen for building Orocos
+        components and typekits. The matching orocos runtime is installed
+        automatically.
 
 about:
   homepage: https://github.com/liufang-robot/rock-orocos
   repository: https://github.com/liufang-robot/rock-orocos
-  documentation: https://github.com/liufang-robot/rock-orocos/tree/main/docs/src
+  documentation: https://liufang-robot.github.io/rock-orocos/
   license: GPL-2.0-only
   summary: Native Windows Orocos runtime and development toolchain
+  description: |
+    A relocatable Orocos/Rock toolchain split into runtime and development
+    packages for native Windows consumers.
 
 extra:
   recipe-maintainers:
