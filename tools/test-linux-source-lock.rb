@@ -55,7 +55,8 @@ def build_workspace(root)
     FileUtils.mkdir_p(checkout)
     run_git(checkout, "init", "--quiet")
     File.write(File.join(checkout, "tracked.txt"), "#{name}\n")
-    run_git(checkout, "add", "tracked.txt")
+    File.write(File.join(checkout, ".gitignore"), "unexpected.txt\n")
+    run_git(checkout, "add", "tracked.txt", ".gitignore")
     run_git(
       checkout, "-c", "user.name=Source Lock Test",
       "-c", "user.email=source-lock@example.invalid",
@@ -137,6 +138,12 @@ with_workspace do |root, lock_path|
   build_output = File.join(root, CHECKOUT_PATHS.fetch("farbot"), "build")
   FileUtils.mkdir_p(build_output)
   File.write(File.join(build_output, "CMakeCache.txt"), "generated\n")
+  nodeset_cache = File.join(
+    root, CHECKOUT_PATHS.fetch("open62541"),
+    "tools", "nodeset_compiler", "__pycache__"
+  )
+  FileUtils.mkdir_p(nodeset_cache)
+  File.write(File.join(nodeset_cache, "nodeset.cpython-314.pyc"), "generated\n")
   output, status = run_lock("verify", lock_path, root)
   raise "canonical checkout layout failed verification: #{output}" unless status.success?
   unless output.include?("Verified 14 locked Linux build sources.")

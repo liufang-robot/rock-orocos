@@ -42,7 +42,10 @@ module OrocosRock
       PACKAGE_SET_NAME =>
         ".autoproj/remotes/git_https___github_com_rock_core_package_set_git"
     }.freeze
-    GENERATED_CHECKOUT_PATH_PREFIXES = %w[build/].freeze
+    COMMON_GENERATED_CHECKOUT_PATH_PREFIXES = %w[build/].freeze
+    SOURCE_GENERATED_CHECKOUT_PATH_PREFIXES = {
+      "open62541" => %w[tools/nodeset_compiler/__pycache__/].freeze
+    }.freeze
     EXPECTED_REPOSITORIES =
       OrocosRock::SourceProvenance::FIRST_PARTY_REPOSITORIES.merge(
         OrocosRock::SourceProvenance::THIRD_PARTY_REPOSITORIES
@@ -181,11 +184,18 @@ module OrocosRock
         unless tracked_changes.empty?
           raise "locked source #{name} has tracked changes: #{tracked_changes.lines.first.strip}"
         end
-        untracked_files = capture_git(
-          expected_directory, "ls-files", "--others", "--exclude-standard"
-        ).lines.map(&:strip).reject(&:empty?)
+        untracked_files = [
+          capture_git(
+            expected_directory, "ls-files", "--others", "--exclude-standard"
+          ),
+          capture_git(
+            expected_directory, "ls-files", "--others", "--ignored", "--exclude-standard"
+          )
+        ].flat_map { |output| output.lines.map(&:strip) }.reject(&:empty?).uniq
+        generated_prefixes = COMMON_GENERATED_CHECKOUT_PATH_PREFIXES +
+                             SOURCE_GENERATED_CHECKOUT_PATH_PREFIXES.fetch(name, [])
         unexpected_untracked = untracked_files.reject do |path|
-          GENERATED_CHECKOUT_PATH_PREFIXES.any? { |prefix| path.start_with?(prefix) }
+          generated_prefixes.any? { |prefix| path.start_with?(prefix) }
         end
         unless unexpected_untracked.empty?
           raise "locked source #{name} has unexpected untracked files: " \
