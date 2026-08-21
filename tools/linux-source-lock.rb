@@ -4,6 +4,7 @@ require "find"
 require "json"
 require "open3"
 require "yaml"
+require_relative "check-source-provenance"
 
 module OrocosRock
   module LinuxSourceLock
@@ -24,6 +25,10 @@ module OrocosRock
       "metaruby" => "tools/metaruby",
       "rtt_typelib" => "rtt_typelib"
     }.freeze
+    EXPECTED_REPOSITORIES =
+      OrocosRock::SourceProvenance::FIRST_PARTY_REPOSITORIES.merge(
+        OrocosRock::SourceProvenance::THIRD_PARTY_REPOSITORIES
+      ).freeze
 
     module_function
 
@@ -52,6 +57,15 @@ module OrocosRock
       unknown = sources.keys - expected
       raise "source lock is missing: #{missing.sort.join(', ')}" unless missing.empty?
       raise "source lock contains unknown entries: #{unknown.sort.join(', ')}" unless unknown.empty?
+
+      expected.each do |name|
+        actual_repository = sources.fetch(name).fetch("repository")
+        expected_repository = EXPECTED_REPOSITORIES.fetch(name)
+        next if actual_repository == expected_repository
+
+        raise "source lock entry #{name} must use canonical repository " \
+              "#{expected_repository.inspect}, got #{actual_repository.inspect}"
+      end
 
       sources
     end

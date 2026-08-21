@@ -169,6 +169,7 @@ else
     tools/prepare-linux-conda-release.rb
     tools/test-linux-conda-consumer.sh
     tools/test-linux-prefix-sanitizer.rb
+    tools/test-linux-source-lock.rb
     packaging/**
     pixi.toml
     pixi.lock
@@ -206,6 +207,7 @@ else
   else
     commands = executable_commands(provenance_step)
     {
+      "ruby tools/test-linux-source-lock.rb" => "repository policy workflow must run Linux source-lock test",
       "ruby tools/test-source-provenance.rb" => "repository policy workflow must run source provenance test",
       "ruby tools/check-source-provenance.rb" => "repository policy workflow must run source provenance check"
     }.each do |command, message|

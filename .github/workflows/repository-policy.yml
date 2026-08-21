@@ -26,6 +26,7 @@ on:
       - "tools/prepare-linux-conda-release.rb"
       - "tools/test-linux-conda-consumer.sh"
       - "tools/test-linux-prefix-sanitizer.rb"
+      - "tools/test-linux-source-lock.rb"
       - "packaging/**"
       - "pixi.toml"
       - "pixi.lock"
@@ -56,6 +57,7 @@ on:
       - "tools/prepare-linux-conda-release.rb"
       - "tools/test-linux-conda-consumer.sh"
       - "tools/test-linux-prefix-sanitizer.rb"
+      - "tools/test-linux-source-lock.rb"
       - "packaging/**"
       - "pixi.toml"
       - "pixi.lock"
@@ -82,5 +84,6 @@ jobs:
 
       - name: Check source provenance
         run: |
+          ruby tools/test-linux-source-lock.rb
           ruby tools/test-source-provenance.rb
           ruby tools/check-source-provenance.rb
