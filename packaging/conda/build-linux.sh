@@ -25,13 +25,14 @@ export OROCOS_PREFIX="$PREFIX"
 export OROCOS_TARGET=gnulinux
 export OROCOS_ROCK_BUILD_TOOLS_PREFIX="$BUILD_PREFIX"
 export OROCOS_ROCK_DEPENDENCY_PREFIX="$PREFIX"
+export OROCOS_ROCK_RUBY_GEM_CACHE="$repository_root/.ruby-gems"
 export CMAKE_BUILD_PARALLEL_LEVEL="${CPU_COUNT:-2}"
 export JOBS="${CPU_COUNT:-2}"
 
 cd "$repository_root"
 
 ruby tools/linux-source-lock.rb apply packaging/source-lock.json "$repository_root"
-./tools/install-autoproj.sh
+./tools/install-autoproj.sh --gem-cache "$OROCOS_ROCK_RUBY_GEM_CACHE"
 ./tools/bootstrap.sh --prefix "$PREFIX" --target gnulinux --skip-osdeps
 ./tools/install.sh --prefix "$PREFIX" --target gnulinux --skip-osdeps
 ruby tools/linux-source-lock.rb verify packaging/source-lock.json "$repository_root"

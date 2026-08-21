@@ -8,20 +8,27 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
     cat <<'USAGE'
-Usage: ./tools/install-ruby-tools.sh --prefix PREFIX
+Usage: ./tools/install-ruby-tools.sh --prefix PREFIX [--gem-cache DIRECTORY]
 
 Build and install the Ruby-based Orocos generator tools into the public
-toolchain prefix.
+toolchain prefix. A configured gem cache makes dependency installation local
+and exact; normal source builds continue to resolve the same versions online.
 USAGE
 }
 
 PREFIX=""
+GEM_CACHE="${OROCOS_ROCK_RUBY_GEM_CACHE:-}"
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --prefix)
             [ "$#" -ge 2 ] || orocos_rock_die "--prefix requires a value"
             PREFIX="$2"
+            shift 2
+            ;;
+        --gem-cache)
+            [ "$#" -ge 2 ] || orocos_rock_die "--gem-cache requires a value"
+            GEM_CACHE="$2"
             shift 2
             ;;
         -h|--help)
@@ -37,6 +44,10 @@ done
 
 [ -n "$PREFIX" ] || orocos_rock_die "--prefix is required"
 
+if [ -n "$GEM_CACHE" ]; then
+    orocos_rock_set_ruby_gem_cache "$GEM_CACHE"
+fi
+
 orocos_rock_require_command ruby
 orocos_rock_require_command gem
 
@@ -51,15 +62,19 @@ mkdir -p "$GEM_HOME_DIR" "$BIN_DIR"
 
 install_remote_gem() {
     local gem_name="$1"
-    local gem_version="${2:-}"
+    local gem_version="$2"
     local args=()
-    if [ -n "$gem_version" ]; then
+
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        args=(--local --ignore-dependencies "$(orocos_rock_cached_gem_path "$gem_name" "$gem_version")")
+    else
         args=(-v "$gem_version")
+        args+=("$gem_name")
     fi
 
     GEM_HOME="$GEM_HOME_DIR" GEM_PATH="$GEM_HOME_DIR" \
         gem install --install-dir "$GEM_HOME_DIR" --bindir "$BIN_DIR" \
-        --env-shebang --no-document "${args[@]}" "$gem_name"
+        --env-shebang --no-document "${args[@]}"
 }
 
 install_local_gem() {
@@ -88,8 +103,10 @@ install_local_gem() {
 orocos_rock_info "Installing Ruby runtime dependencies into $GEM_HOME_DIR"
 install_remote_gem facets 3.1.0
 install_remote_gem backports 3.25.3
-install_remote_gem kramdown
-install_remote_gem rake
+install_remote_gem base64 0.3.0
+install_remote_gem rexml 3.4.4
+install_remote_gem kramdown 2.5.2
+install_remote_gem rake 13.4.2
 
 orocos_rock_info "Installing utilrb into the public toolchain prefix"
 install_local_gem "$OROCOS_ROCK_ROOT/toolchain/tools/utilrb"

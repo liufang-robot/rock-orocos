@@ -176,7 +176,11 @@ else
     tools/check-linux-package-ci.rb
     tools/check-source-provenance.rb
     tools/check-windows-package-ci.rb
+    tools/common.sh
     tools/inspect-conda-archive.py
+    tools/install-autoproj.sh
+    tools/install-ruby-tools.sh
+    tools/locked-ruby-gems.rb
     tools/prepare-windows-conda-release.ps1
     tools/test-pixi-consumer-activation.rb
     tools/test-source-provenance.rb
@@ -185,6 +189,7 @@ else
     tools/prepare-linux-conda-release.rb
     tools/test-linux-conda-consumer.sh
     tools/test-linux-prefix-sanitizer.rb
+    tools/test-linux-ruby-gems.rb
     tools/test-linux-source-lock.rb
     tools/test-linux-conda-release.py
     packaging/**
@@ -212,6 +217,7 @@ else
       "ruby tools/check-linux-package-ci.rb" => "repository policy workflow must run Linux package CI policy check",
       "python3 tools/test-linux-conda-release.py" => "repository policy workflow must run Linux conda archive tests",
       "ruby tools/test-linux-prefix-sanitizer.rb" => "repository policy workflow must run Linux prefix sanitizer tests",
+      "ruby tools/test-linux-ruby-gems.rb" => "repository policy workflow must run Linux Ruby gem input tests",
       "ruby tools/check-docs.rb" => "repository policy workflow must run documentation policy check",
       "ruby tools/test-pixi-consumer-activation.rb" => "repository policy workflow must run Pixi consumer activation tests"
     }.each do |command, message|

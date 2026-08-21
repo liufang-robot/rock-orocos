@@ -9,18 +9,114 @@ recipe:
   version: ${{ version }}
 
 source:
-  path: ../..
-  use_gitignore: true
-  filter:
-    include:
-      - autoproj/**
-      - packaging/source-lock.json
-      - packaging/conda/build-linux.sh
-      - packaging/conda/prepare-linux-prefix.sh
-      - packaging/conda/sanitize-linux-prefix.rb
-      - packaging/conda/test-runtime-linux.sh
-      - packaging/conda/test-dev-linux.sh
-      - tools/**
+  - path: ../..
+    use_gitignore: true
+    filter:
+      include:
+        - autoproj/**
+        - packaging/source-lock.json
+        - packaging/conda/build-linux.sh
+        - packaging/conda/prepare-linux-prefix.sh
+        - packaging/conda/sanitize-linux-prefix.rb
+        - packaging/conda/test-runtime-linux.sh
+        - packaging/conda/test-dev-linux.sh
+        - tools/**
+  - url: https://rubygems.org/downloads/autobuild-1.25.2.gem
+    sha256: 62b4c782550b3c1ba42eee8d034955835e445236c3156f2099c3be4fc8551968
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/autoproj-2.18.1.gem
+    sha256: 8e36787127025c445eff2c7361bfb86109a6ce029fcb278a8f79393c9db95b2e
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/backports-3.25.3.gem
+    sha256: 94298d32dc3c40ca15633b54e282780b49e2db0c045f602ea1907e4f63a17235
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/base64-0.3.0.gem
+    sha256: 27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/bundler-2.6.9.gem
+    sha256: a25675ffbd055ae1186766cc1e120b4cf62588e88abb59b99c57e22b1c55c9eb
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/concurrent-ruby-1.3.8.gem
+    sha256: b2f1be836e968ccc78ccfce277ea79c72a88633f22306782c16ff23fb415d1e1
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/equatable-0.7.0.gem
+    sha256: cd99f7bf79439dac5b34ccd33826aef0ef561029ecfa6d32a87c088a688ffe2b
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/facets-3.1.0.gem
+    sha256: 7834a68824efbb35380ed7f6f590e01fb9a31a9466e317210e8803f72813c345
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/ffi-1.17.4-x86_64-linux-gnu.gem
+    sha256: 9d3db14c2eae074b382fa9c083fe95aec6e0a1451da249eab096c34002bc752d
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/kramdown-2.5.2.gem
+    sha256: 1ba542204c66b6f9111ff00dcc26075b95b220b07f2905d8261740c82f7f02fa
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/necromancer-0.5.1.gem
+    sha256: 6d0be995dd3f69e2d03dfc6e426ab891704dd5bbb903a79730baab4352185ef0
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/net-protocol-0.2.2.gem
+    sha256: aa73e0cba6a125369de9837b8d8ef82a61849360eba0521900e2c3713aa162a8
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/net-smtp-0.5.1.gem
+    sha256: ed96a0af63c524fceb4b29b0d352195c30d82dd916a42f03c62a3a70e5b70736
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/pairing_heap-3.1.1.gem
+    sha256: c71a74ecdf9d6accc7545b38075b2f4e8d98b550aabe0f0758a587ee12e93588
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/parslet-2.0.0.gem
+    sha256: d45130695d39b43d7e6a91f4d2ec66b388a8d822bae38de9b4de9a5fbde1f606
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/pastel-0.7.4.gem
+    sha256: cc3b26fa5124c7c20250511969bfdeb36ac46d682a5f1a2fa4c22f044204feee
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/rake-13.4.2.gem
+    sha256: cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/rb-inotify-0.11.1.gem
+    sha256: a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/rexml-3.4.4.gem
+    sha256: 19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/rgl-0.5.10.gem
+    sha256: e3ff7dc67858baa6caea23396758c561e4a6f357e3f9c2cdfb4b9007d3164c4a
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/stream-0.5.6.gem
+    sha256: 2733607ce840d60c72eb181714d45f0a7b077ee62fec0a94510a29c39175610f
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/thor-1.5.0.gem
+    sha256: e3a9e55fe857e44859ce104a84675ab6e8cd59c650a49106a05f55f136425e73
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/timeout-0.4.3.gem
+    sha256: 9509f079b2b55fe4236d79633bd75e34c1c1e7e3fb4b56cb5fda61f80a0fe30e
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/tty-color-0.5.2.gem
+    sha256: 43bd59bce8767bb393935ca25e8a473dcfcbe589937507742e80483a6ced6c8b
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/tty-cursor-0.7.1.gem
+    sha256: 79534185e6a777888d88628b14b6a1fdf5154a603f285f80b1753e1908e0bf48
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/tty-prompt-0.21.0.gem
+    sha256: abeb4247e22f34600ba60c62b966131c6ec9a3bfc9442dfcebb642484fd5d909
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/tty-reader-0.7.0.gem
+    sha256: 2407d5c55585e9eab311a6d7f436edb80dc361a0c6558c116a90779db454e7a4
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/tty-screen-0.8.2.gem
+    sha256: c090652115beae764336c28802d633f204fb84da93c6a968aa5d8e319e819b50
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/tty-spinner-0.9.3.gem
+    sha256: 0e036f047b4ffb61f2aa45f5a770ec00b4d04130531558a94bfc5b192b570542
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/utilrb-3.2.0.gem
+    sha256: b9ea3be2971ea05024adb805ec37f3bb36e0bbb412f7e21ccf525ecd107daf78
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/wisper-2.0.1.gem
+    sha256: ce17bc5c3a166f241a2e6613848b025c8146fce2defba505920c1d1f3f88fae6
+    target_directory: .ruby-gems
+  - url: https://rubygems.org/downloads/xdg-2.2.5.gem
+    sha256: f3a5f799363852695e457bb7379ac6c4e3e8cb3a51ce6b449ab47fbb1523b913
+    target_directory: .ruby-gems
 
 outputs:
   - staging:
