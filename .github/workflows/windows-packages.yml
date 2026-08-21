@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - ".github/workflows/windows-packages.yml"
+      - "examples/pixi-consumer/**"
       - "packaging/**"
       - "tools/build-windows-msvc.ps1"
       - "tools/check-windows-package-ci.rb"
@@ -26,6 +27,7 @@ on:
       - main
     paths:
       - ".github/workflows/windows-packages.yml"
+      - "examples/pixi-consumer/**"
       - "packaging/**"
       - "tools/build-windows-msvc.ps1"
       - "tools/check-windows-package-ci.rb"

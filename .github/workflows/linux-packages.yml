@@ -1,0 +1,205 @@
+name: Linux Conda Packages
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/linux-packages.yml"
+      - "autoproj/**"
+      - "examples/pixi-consumer/**"
+      - "packaging/**"
+      - "tools/**"
+      - "pixi.toml"
+      - "pixi.lock"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/linux-packages.yml"
+      - "autoproj/**"
+      - "examples/pixi-consumer/**"
+      - "packaging/**"
+      - "tools/**"
+      - "pixi.toml"
+      - "pixi.lock"
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PREFIX_CHANNEL: liufang-robot/orocos
+  PUBLIC_CHANNEL_URL: https://prefix.dev/liufang-robot/orocos
+  RELEASE_BUNDLE: packaging/conda/output/linux-release
+
+concurrency:
+  group: linux-conda-packages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+jobs:
+  build-packages:
+    name: Build And Test Linux Packages
+    if: >-
+      github.event_name != 'release' ||
+      (github.event.action == 'published' &&
+      github.event.release.prerelease == false &&
+      github.repository == 'liufang-robot/rock-orocos')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify release commit is reachable from main
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          set -euo pipefail
+          protected_main_ref="refs/remotes/origin/release-protected-main"
+          git fetch --no-tags --prune --no-recurse-submodules origin \
+            "refs/heads/main:$protected_main_ref"
+          git merge-base --is-ancestor "$GITHUB_SHA" "$protected_main_ref"
+
+      - name: Set up locked Pixi package environment
+        uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          pixi-version: v0.76.2
+          environments: package
+          locked: true
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+
+      - name: Validate source lock
+        run: |
+          ruby tools/check-source-provenance.rb
+          ruby tools/linux-source-lock.rb validate packaging/source-lock.json .
+
+      - name: Render Linux package recipe
+        run: pixi run --locked linux-package-render
+
+      - name: Build and test Linux package artifacts
+        run: |
+          set -euo pipefail
+          mkdir -p packaging/conda/output
+          pixi run --locked linux-package-build 2>&1 |
+            tee packaging/conda/output/ci-linux-package-build.log
+
+      - name: Prepare verified Linux release bundle
+        run: |
+          pixi run --locked -e package ruby tools/prepare-linux-conda-release.rb \
+            --mode stage \
+            --repository-commit "$GITHUB_SHA"
+
+      - name: Test clean local-channel consumers
+        run: |
+          ./tools/test-linux-conda-consumer.sh \
+            --manifest "$RELEASE_BUNDLE/release-manifest.json" \
+            --local-channel packaging/conda/output
+
+      - name: Upload verified Linux release bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: orocos-linux-packages-${{ github.sha }}
+          path: ${{ env.RELEASE_BUNDLE }}
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Upload Linux package build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: orocos-linux-package-logs-${{ github.sha }}
+          if-no-files-found: ignore
+          retention-days: 7
+          path: |
+            packaging/conda/output/*.log
+            packaging/conda/output/**/*.log
+            packaging/conda/output/bld/**/CMakeFiles/CMakeOutput.log
+            packaging/conda/output/bld/**/CMakeFiles/CMakeError.log
+
+  publish-packages:
+    name: Publish Linux Packages To Prefix
+    needs: build-packages
+    if: >-
+      github.event_name == 'release' &&
+      github.event.action == 'published' &&
+      github.event.release.prerelease == false &&
+      github.repository == 'liufang-robot/rock-orocos'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out release commit
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify release commit is reachable from main
+        if: github.event_name == 'release'
+        shell: bash
+        run: |
+          set -euo pipefail
+          protected_main_ref="refs/remotes/origin/release-protected-main"
+          git fetch --no-tags --prune --no-recurse-submodules origin \
+            "refs/heads/main:$protected_main_ref"
+          git merge-base --is-ancestor "$GITHUB_SHA" "$protected_main_ref"
+
+      - name: Set up locked Pixi package environment
+        uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          pixi-version: v0.76.2
+          environments: package
+          locked: true
+          cache: true
+          cache-write: false
+
+      - name: Download verified Linux release bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: orocos-linux-packages-${{ github.sha }}
+          path: ${{ env.RELEASE_BUNDLE }}
+
+      - name: Verify release tag, commit, metadata, and checksums
+        env:
+          EXPECTED_RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          pixi run --locked -e package ruby tools/prepare-linux-conda-release.rb \
+            --mode verify \
+            --expected-tag "$EXPECTED_RELEASE_TAG" \
+            --expected-repository-commit "$GITHUB_SHA"
+
+      - name: Publish immutable Linux packages
+        run: |
+          set -euo pipefail
+          readarray -t package_files < <(
+            ruby -rjson -e '
+              manifest = JSON.parse(File.read(ARGV.fetch(0)))
+              manifest.fetch("packages").each do |item|
+                puts File.join(File.dirname(ARGV.fetch(0)), item.fetch("filename"))
+              end
+            ' "$RELEASE_BUNDLE/release-manifest.json"
+          )
+          [ "${#package_files[@]}" -eq 2 ]
+          pixi run --locked -e package rattler-build upload prefix \
+            --channel "$PREFIX_CHANNEL" "${package_files[@]}"
+
+      - name: Test clean public-channel consumers
+        run: |
+          ./tools/test-linux-conda-consumer.sh \
+            --manifest "$RELEASE_BUNDLE/release-manifest.json" \
+            --channel-url "$PUBLIC_CHANNEL_URL" \
+            --attempts 6 \
+            --retry-delay 10

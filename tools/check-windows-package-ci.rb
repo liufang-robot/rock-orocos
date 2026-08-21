@@ -114,6 +114,7 @@ else
 
   required_paths = %w[
     .github/workflows/windows-packages.yml
+    examples/pixi-consumer/**
     packaging/**
     tools/build-windows-msvc.ps1
     tools/check-windows-package-ci.rb
@@ -244,7 +245,7 @@ else
     errors << "Windows package recipe must activate the MSVC x64 build environment"
   end
   expected_repository = "https://github.com/liufang-robot/rock-orocos"
-  expected_documentation = "#{expected_repository}/tree/main/docs/src"
+  expected_documentation = "https://liufang-robot.github.io/rock-orocos/"
   {
     "homepage" => expected_repository,
     "repository" => expected_repository,
@@ -255,6 +256,13 @@ else
   end
   unless recipe.include?("    - liufang-robot")
     errors << "Windows package recipe must identify liufang-robot as maintainer"
+  end
+  [
+    "A relocatable Windows Orocos runtime",
+    "Headers, CMake and pkg-config metadata",
+    "description:"
+  ].each do |token|
+    errors << "Windows package recipe must define package descriptions" unless recipe.include?(token)
   end
 end
 

@@ -121,18 +121,27 @@ else
   %w[
     "AGENTS.md"
     "README.md"
+    ".github/workflows/docs.yml"
+    ".github/workflows/linux-packages.yml"
     ".github/workflows/repository-policy.yml"
     ".github/workflows/windows-packages.yml"
     "docs/book/**"
     "docs/src/**"
     "docs/superpowers/**"
+    "examples/pixi-consumer/**"
     "tools/check-repository-policy.rb"
+    "tools/check-docs.rb"
+    "tools/check-linux-package-ci.rb"
     "tools/check-source-provenance.rb"
     "tools/check-windows-package-ci.rb"
     "tools/prepare-windows-conda-release.ps1"
+    "tools/test-pixi-consumer-activation.rb"
     "tools/test-source-provenance.rb"
     "tools/test-windows-package-ci.rb"
     "tools/test-windows-conda-consumer.ps1"
+    "tools/prepare-linux-conda-release.rb"
+    "tools/test-linux-conda-consumer.sh"
+    "tools/test-linux-prefix-sanitizer.rb"
     "packaging/**"
     "pixi.toml"
     "pixi.lock"
@@ -140,10 +149,14 @@ else
     errors << "repository policy workflow must watch #{path}" unless workflow.include?(path)
   end
   errors << "repository policy workflow must run repository policy check" unless workflow.include?("ruby tools/check-repository-policy.rb")
+  errors << "repository policy workflow must run Pixi consumer activation tests" unless workflow.include?("ruby tools/test-pixi-consumer-activation.rb")
   errors << "repository policy workflow must run source provenance test" unless workflow.include?("ruby tools/test-source-provenance.rb")
   errors << "repository policy workflow must run source provenance check" unless workflow.include?("ruby tools/check-source-provenance.rb")
   errors << "repository policy workflow must run Windows package CI mutation tests" unless workflow.include?("ruby tools/test-windows-package-ci.rb")
   errors << "repository policy workflow must run Windows package CI policy check" unless workflow.include?("ruby tools/check-windows-package-ci.rb")
+  errors << "repository policy workflow must run Linux package CI policy check" unless workflow.include?("ruby tools/check-linux-package-ci.rb")
+  errors << "repository policy workflow must run Linux prefix sanitizer tests" unless workflow.include?("ruby tools/test-linux-prefix-sanitizer.rb")
+  errors << "repository policy workflow must run documentation policy check" unless workflow.include?("ruby tools/check-docs.rb")
 end
 
 if !File.file?(summary_path)
