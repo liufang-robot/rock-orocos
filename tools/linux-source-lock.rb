@@ -25,6 +25,23 @@ module OrocosRock
       "metaruby" => "tools/metaruby",
       "rtt_typelib" => "rtt_typelib"
     }.freeze
+    CHECKOUT_PATHS = {
+      "farbot" => "toolchain/farbot",
+      "rtlog-cpp" => "toolchain/rtlog-cpp",
+      "rtt" => "toolchain/tools/rtt",
+      "open62541" => "toolchain/open62541",
+      "open62541pp" => "toolchain/open62541pp",
+      "rtt_opcua" => "toolchain/tools/rtt_opcua",
+      "ocl" => "toolchain/tools/ocl",
+      "utilmm" => "toolchain/tools/utilmm",
+      "typelib" => "toolchain/tools/typelib",
+      "rtt_typelib" => "toolchain/tools/rtt_typelib",
+      "utilrb" => "toolchain/tools/utilrb",
+      "metaruby" => "tools/metaruby",
+      "orogen" => "toolchain/tools/orogen",
+      PACKAGE_SET_NAME =>
+        ".autoproj/remotes/git_https___github_com_rock_core_package_set_git"
+    }.freeze
     EXPECTED_REPOSITORIES =
       OrocosRock::SourceProvenance::FIRST_PARTY_REPOSITORIES.merge(
         OrocosRock::SourceProvenance::THIRD_PARTY_REPOSITORIES
@@ -34,6 +51,9 @@ module OrocosRock
 
     def load_lock(path)
       document = JSON.parse(File.read(path))
+      unless document.is_a?(Hash) && document.keys.sort == %w[schema_version sources]
+        raise "source lock root must contain only schema_version and sources"
+      end
       raise "source lock schema_version must be 1" unless document["schema_version"] == 1
       raise "source lock sources must be an array" unless document["sources"].is_a?(Array)
 
@@ -140,9 +160,25 @@ module OrocosRock
         expected_repository = normalize_repository(source.fetch("repository"))
         matches = checkouts.select { |_directory, repositories, _head| repositories.include?(expected_repository) }
         raise "locked source #{name} was not checked out" if matches.empty?
+        if matches.size > 1
+          actual = matches.map(&:first).join(", ")
+          raise "locked source #{name} has duplicate checkouts: #{actual}"
+        end
+        expected_directory = File.join(root, CHECKOUT_PATHS.fetch(name))
+        unless matches.any? { |directory, _repositories, _head| directory == expected_directory }
+          actual = matches.map(&:first).join(", ")
+          raise "locked source #{name} must be checked out at #{expected_directory}, found #{actual}"
+        end
         unless matches.any? { |_directory, _repositories, head| head == source.fetch("revision") }
           actual = matches.map { |directory, _repositories, head| "#{directory}=#{head}" }.join(", ")
           raise "locked source #{name} has the wrong revision: #{actual}"
+        end
+        tracked_changes = capture_git(
+          expected_directory, "status", "--porcelain=v1",
+          "--untracked-files=no", "--ignore-submodules=none"
+        )
+        unless tracked_changes.empty?
+          raise "locked source #{name} has tracked changes: #{tracked_changes.lines.first.strip}"
         end
       end
     end
