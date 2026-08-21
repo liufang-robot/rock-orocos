@@ -43,6 +43,11 @@ def pinned_action(action)
   "#{action}@#{ACTION_PINS.fetch(action)}"
 end
 
+def powershell_here_string(contents, variable)
+  match = contents.match(/^\$#{Regexp.escape(variable)} = @'\r?\n(?<body>.*?)^'@\r?$/m)
+  match && match[:body]
+end
+
 def check_release_checkout_and_ancestry(steps, job_name, errors)
   checkout = steps[0]
   ancestry = steps[1]
@@ -303,13 +308,39 @@ else
     "an exact runtime build" => '"orocos==$($runtime.version)=$($runtime.build)"',
     "an exact development build" => '"orocos-dev==$($development.version)=$($development.build)"',
     "a clean Pixi package cache" => "PIXI_CACHE_DIR",
-    "the shared Pixi activation selector" => "OROCOS_PIXI_ACTIVATION_SCRIPT",
-    "the project-relative PowerShell wrapper" => "activate-orocos.ps1",
     "OroGen" => "orogen --version",
     "Typegen" => "typegen --help",
     "the OPC UA deployer" => "deployer-opcua-win32.exe --check --no-consolelog"
   }.each do |contract, token|
     errors << "consumer smoke test must check #{contract}" unless consumer.include?(token)
+  end
+
+  activation_sources = consumer.scan(
+    /^[ \t]*\.[ \t]+\$env:OROCOS_PIXI_ACTIVATION_SCRIPT[ \t]*\r?$/
+  )
+  unless activation_sources.size == 2
+    errors << "consumer smoke test must source the shared Pixi activation wrapper exactly twice"
+  end
+
+  activation_resolution =
+    'Join-Path $PSScriptRoot "..\examples\pixi-consumer\scripts\activate-orocos.ps1"'
+  unless consumer.lines.any? { |line| line.strip == activation_resolution }
+    errors << "consumer smoke test must resolve the project-relative PowerShell wrapper"
+  end
+
+  if consumer.match?(
+    /^[ \t]*\.[ \t]+[^\r\n]*Library[\\\/](?:dev-)?env\.ps1\b[^\r\n]*\r?$/i
+  )
+    errors << "consumer smoke test must not source installed activation scripts directly"
+  end
+
+  {
+    "runtime" => powershell_here_string(consumer, "runtimeCommand"),
+    "development" => powershell_here_string(consumer, "developmentCommand")
+  }.each do |command, body|
+    unless body&.match?(/^[ \t]*\$ErrorActionPreference[ \t]*=[ \t]*"Stop"[ \t]*\r?$/)
+      errors << "consumer smoke test #{command} child must stop on PowerShell errors"
+    end
   end
 end
 
@@ -317,11 +348,20 @@ unless File.file?(activation_path)
   errors << "missing examples/pixi-consumer/scripts/activate-orocos.ps1"
 else
   activation = File.read(activation_path)
+  activation_lines = activation.lines.map(&:strip)
+  library_selector =
+    '$libraryPrefix = Join-Path -Path $env:CONDA_PREFIX -ChildPath "Library"'
   {
-    "the runtime activation contract" => ['"Library"', '"env.ps1"'],
-    "the development activation contract" => ['"Library"', '"dev-env.ps1"']
-  }.each do |contract, tokens|
-    unless tokens.all? { |token| activation.include?(token) }
+    "the runtime activation contract" => [
+      library_selector,
+      '$runtimeScript = Join-Path -Path $libraryPrefix -ChildPath "env.ps1"'
+    ],
+    "the development activation contract" => [
+      library_selector,
+      '$developmentScript = Join-Path -Path $libraryPrefix -ChildPath "dev-env.ps1"'
+    ]
+  }.each do |contract, required_lines|
+    unless required_lines.all? { |line| activation_lines.include?(line) }
       errors << "consumer activation wrapper must check #{contract}"
     end
   end

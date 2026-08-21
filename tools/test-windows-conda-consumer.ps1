@@ -58,6 +58,7 @@ $activationScript = (
 
 $runtimeCommand = @'
 & {
+    $ErrorActionPreference = "Stop"
     . $env:OROCOS_PIXI_ACTIVATION_SCRIPT
     $developmentHeader = Join-Path $env:CONDA_PREFIX 'Library\include\orocos\rtt\RTT.hpp'
     if (Test-Path -LiteralPath $developmentHeader) {
@@ -70,6 +71,7 @@ $runtimeCommand = @'
 
 $developmentCommand = @'
 & {
+    $ErrorActionPreference = "Stop"
     . $env:OROCOS_PIXI_ACTIVATION_SCRIPT
     $developmentHeader = Join-Path $env:CONDA_PREFIX 'Library\include\orocos\rtt\RTT.hpp'
     if (-not (Test-Path -LiteralPath $developmentHeader -PathType Leaf)) {

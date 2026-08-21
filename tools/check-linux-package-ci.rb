@@ -230,6 +230,25 @@ else
   ].each do |token|
     errors << "Linux consumer test must check #{token}" unless consumer.include?(token)
   end
+
+  activation_sources = consumer.scan(
+    /^[ \t]*\.[ \t]+"\$OROCOS_PIXI_ACTIVATION_SCRIPT"[ \t]*$/
+  )
+  unless activation_sources.size == 2
+    errors << "Linux consumer test must source the shared Pixi activation wrapper exactly twice"
+  end
+
+  activation_export =
+    'export OROCOS_PIXI_ACTIVATION_SCRIPT="$repository_root/examples/pixi-consumer/scripts/activate-orocos.sh"'
+  unless consumer.lines.any? { |line| line.strip == activation_export }
+    errors << "Linux consumer test must export the project-relative Pixi activation wrapper"
+  end
+
+  if consumer.match?(
+    /^[ \t]*\.[ \t]+[^\n]*\$(?:\{CONDA_PREFIX\}|CONDA_PREFIX)\/(?:dev-)?env\.sh[^\n]*$/
+  )
+    errors << "Linux consumer test must not source installed activation scripts directly"
+  end
 end
 
 unless errors.empty?

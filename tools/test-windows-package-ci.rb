@@ -8,6 +8,7 @@ require "tmpdir"
 ROOT = File.expand_path("..", __dir__)
 FIXTURE_PATHS = %w[
   .github/workflows/windows-packages.yml
+  examples/pixi-consumer/scripts/activate-orocos.ps1
   packaging/conda/recipe.yaml
   tools/check-windows-package-ci.rb
   tools/prepare-windows-conda-release.ps1
@@ -55,6 +56,18 @@ def mutate_publish_job(contents)
   return contents unless publish_index
 
   contents[0...publish_index] + yield(contents[publish_index..])
+end
+
+def replace_occurrence(contents, needle, replacement, occurrence)
+  offset = 0
+  index = nil
+  (occurrence + 1).times do
+    index = contents.index(needle, offset)
+    return contents unless index
+
+    offset = index + needle.length
+  end
+  contents[0...index] + replacement + contents[(index + needle.length)..]
 end
 
 with_fixture do |root|
@@ -197,17 +210,96 @@ MUTABLE_ACTIONS.each do |action, tag|
   ]
 end
 
+shared_source = '    . $env:OROCOS_PIXI_ACTIVATION_SCRIPT'
+child_error_preference = '    $ErrorActionPreference = "Stop"'
+consumer_mutations = {
+  "commented runtime shared wrapper source" => [
+    "consumer smoke test must source the shared Pixi activation wrapper exactly twice",
+    lambda do |contents|
+      replace_occurrence(contents, shared_source, "    # . $env:OROCOS_PIXI_ACTIVATION_SCRIPT", 0)
+    end
+  ],
+  "missing both shared wrapper sources" => [
+    "consumer smoke test must source the shared Pixi activation wrapper exactly twice",
+    ->(contents) { contents.gsub(/^#{Regexp.escape(shared_source)}\r?\n/, "") }
+  ],
+  "direct runtime installed activation source" => [
+    "consumer smoke test must not source installed activation scripts directly",
+    lambda do |contents|
+      replace_occurrence(
+        contents,
+        shared_source,
+        %q{    . (Join-Path $env:CONDA_PREFIX 'Library\env.ps1')},
+        0
+      )
+    end
+  ],
+  "direct development installed activation source" => [
+    "consumer smoke test must not source installed activation scripts directly",
+    lambda do |contents|
+      replace_occurrence(
+        contents,
+        shared_source,
+        %q{    . (Join-Path $env:CONDA_PREFIX 'Library\dev-env.ps1')},
+        1
+      )
+    end
+  ],
+  "wrong project-relative activation wrapper path" => [
+    "consumer smoke test must resolve the project-relative PowerShell wrapper",
+    lambda do |contents|
+      contents.sub(
+        '        Join-Path $PSScriptRoot "..\examples\pixi-consumer\scripts\activate-orocos.ps1"',
+        '        Join-Path $PSScriptRoot "..\examples\wrong-consumer\scripts\activate-orocos.ps1"'
+      )
+    end
+  ],
+  "missing runtime child terminating-error preference" => [
+    "consumer smoke test runtime child must stop on PowerShell errors",
+    ->(contents) { replace_occurrence(contents, child_error_preference, "", 0) }
+  ],
+  "missing development child terminating-error preference" => [
+    "consumer smoke test development child must stop on PowerShell errors",
+    ->(contents) { replace_occurrence(contents, child_error_preference, "", 1) }
+  ]
+}
+
+wrapper_mutations = {
+  "changed runtime activation filename" => [
+    "consumer activation wrapper must check the runtime activation contract",
+    ->(contents) { contents.sub('-ChildPath "env.ps1"', '-ChildPath "missing-env.ps1"') }
+  ],
+  "removed runtime activation selector" => [
+    "consumer activation wrapper must check the runtime activation contract",
+    ->(contents) { contents.sub(/^\$runtimeScript = .*\r?\n/, "") }
+  ],
+  "changed development activation filename" => [
+    "consumer activation wrapper must check the development activation contract",
+    ->(contents) { contents.sub('-ChildPath "dev-env.ps1"', '-ChildPath "missing-dev-env.ps1"') }
+  ],
+  "removed development activation selector" => [
+    "consumer activation wrapper must check the development activation contract",
+    ->(contents) { contents.sub(/^\$developmentScript = .*\r?\n/, "") }
+  ]
+}
+
 accepted_mutations = []
 wrong_rejections = []
-mutations.each do |name, (expected_error, mutation)|
-  with_fixture do |root|
-    workflow_path = File.join(root, ".github", "workflows", "windows-packages.yml")
-    File.write(workflow_path, mutation.call(File.read(workflow_path)))
-    _stdout, stderr, status = run_checker(root)
-    if status.success?
-      accepted_mutations << name
-    elsif !stderr.include?(expected_error)
-      wrong_rejections << "#{name}: expected #{expected_error.inspect}, got #{stderr.inspect}"
+{
+  ".github/workflows/windows-packages.yml" => mutations,
+  "tools/test-windows-conda-consumer.ps1" => consumer_mutations,
+  "examples/pixi-consumer/scripts/activate-orocos.ps1" => wrapper_mutations
+}.each do |relative_path, file_mutations|
+  file_mutations.each do |name, (expected_error, mutation)|
+    with_fixture do |root|
+      fixture_path = File.join(root, relative_path)
+      File.write(fixture_path, mutation.call(File.read(fixture_path)))
+      _stdout, stderr, status = run_checker(root)
+      if status.success?
+        accepted_mutations << name
+      elsif !stderr.include?(expected_error)
+        wrong_rejections << "#{name}: expected #{expected_error.inspect}, got #{stderr.inspect}"
+      end
     end
   end
 end
