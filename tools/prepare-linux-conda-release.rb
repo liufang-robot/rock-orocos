@@ -6,6 +6,9 @@ require "json"
 require "open3"
 require "optparse"
 require "set"
+require "tmpdir"
+
+ARCHIVE_INSPECTOR = File.join(__dir__, "inspect-conda-archive.py")
 
 Options = Struct.new(
   :mode, :package_directory, :release_directory, :source_lock, :channel,
@@ -64,6 +67,15 @@ rescue JSON::ParserError => e
   raise "rattler-build returned invalid JSON for #{path}: #{e.message}"
 end
 
+def inspect_archive(path)
+  output, status = Open3.capture2e("python3", ARCHIVE_INSPECTOR, path)
+  raise "independent archive validation failed for #{path}: #{output}" unless status.success?
+
+  JSON.parse(output)
+rescue JSON::ParserError => e
+  raise "archive inspector returned invalid JSON for #{path}: #{e.message}"
+end
+
 def package_records(directory)
   files = Dir[File.join(directory, "*.conda")].sort
   unless files.size == 2
@@ -71,14 +83,22 @@ def package_records(directory)
   end
 
   files.map do |path|
+    archive = inspect_archive(path)
     metadata = inspect_package(path)
+    archive_paths = archive.fetch("paths")
+    inspected_paths = metadata.fetch("paths").fetch("paths").map do |entry|
+      { "path" => entry.fetch("_path"), "type" => entry.fetch("path_type") }
+    end.sort_by { |entry| [entry.fetch("path"), entry.fetch("type")] }
+    unless archive_paths == inspected_paths
+      raise "rattler-build path metadata does not match package payload for #{path}"
+    end
     {
       path: path,
       filename: File.basename(path),
       bytes: File.size(path),
       sha256: Digest::SHA256.file(path).hexdigest,
       metadata: metadata,
-      paths: metadata.fetch("paths").fetch("paths").map { |entry| entry.fetch("_path") }
+      paths: archive_paths.map { |entry| entry.fetch("path") }
     }
   end
 end
@@ -244,37 +264,47 @@ def stage_bundle(options, source_lock)
     unless Dir.empty?(release_directory)
       raise "release directory must be empty: #{release_directory}"
     end
-  else
-    FileUtils.mkdir_p(release_directory)
   end
 
-  records.each { |record| FileUtils.cp(record.fetch(:path), release_directory) }
-  FileUtils.cp(source_lock, File.join(release_directory, "source-lock.json"))
-  source_lock_hash = Digest::SHA256.file(source_lock).hexdigest
-  manifest = {
-    "schema_version" => 1,
-    "channel" => options.channel,
-    "target_platform" => "linux-64",
-    "version" => package_set.fetch(:version),
-    "repository_commit" => options.repository_commit,
-    "source_lock" => {
-      "filename" => "source-lock.json", "sha256" => source_lock_hash
-    },
-    "packages" => records.map do |record|
-      manifest_package(record)
-    end.sort_by { |entry| entry.fetch("name") }
-  }
-  manifest_path = File.join(release_directory, "release-manifest.json")
-  File.write(manifest_path, "#{JSON.pretty_generate(manifest)}\n")
-  checksums_path = File.join(release_directory, "SHA256SUMS.txt")
-  File.write(
-    checksums_path, "#{expected_checksum_lines(manifest).join("\n")}\n"
+  parent_directory = File.dirname(release_directory)
+  FileUtils.mkdir_p(parent_directory)
+  temporary_directory = Dir.mktmpdir(
+    ".#{File.basename(release_directory)}.staging-", parent_directory
   )
+  begin
+    records.each { |record| FileUtils.cp(record.fetch(:path), temporary_directory) }
+    FileUtils.cp(source_lock, File.join(temporary_directory, "source-lock.json"))
+    source_lock_hash = Digest::SHA256.file(source_lock).hexdigest
+    manifest = {
+      "schema_version" => 1,
+      "channel" => options.channel,
+      "target_platform" => "linux-64",
+      "version" => package_set.fetch(:version),
+      "repository_commit" => options.repository_commit,
+      "source_lock" => {
+        "filename" => "source-lock.json", "sha256" => source_lock_hash
+      },
+      "packages" => records.map do |record|
+        manifest_package(record)
+      end.sort_by { |entry| entry.fetch("name") }
+    }
+    manifest_path = File.join(temporary_directory, "release-manifest.json")
+    File.write(manifest_path, "#{JSON.pretty_generate(manifest)}\n")
+    checksums_path = File.join(temporary_directory, "SHA256SUMS.txt")
+    File.write(
+      checksums_path, "#{expected_checksum_lines(manifest).join("\n")}\n"
+    )
 
-  verify_bundle(
-    release_directory, source_lock, options.channel,
-    commit: options.repository_commit
-  )
+    verify_bundle(
+      temporary_directory, source_lock, options.channel,
+      commit: options.repository_commit
+    )
+    Dir.rmdir(release_directory) if File.directory?(release_directory)
+    File.rename(temporary_directory, release_directory)
+    temporary_directory = nil
+  ensure
+    FileUtils.remove_entry(temporary_directory) if temporary_directory && File.exist?(temporary_directory)
+  end
   warn "Prepared Linux release bundle at #{release_directory}"
 end
 

@@ -161,6 +161,7 @@ else
     tools/check-linux-package-ci.rb
     tools/check-source-provenance.rb
     tools/check-windows-package-ci.rb
+    tools/inspect-conda-archive.py
     tools/prepare-windows-conda-release.ps1
     tools/test-pixi-consumer-activation.rb
     tools/test-source-provenance.rb
@@ -170,6 +171,7 @@ else
     tools/test-linux-conda-consumer.sh
     tools/test-linux-prefix-sanitizer.rb
     tools/test-linux-source-lock.rb
+    tools/test-linux-conda-release.py
     packaging/**
     pixi.toml
     pixi.lock
@@ -193,6 +195,7 @@ else
       "ruby tools/test-windows-package-ci.rb" => "repository policy workflow must run Windows package CI mutation tests",
       "ruby tools/check-windows-package-ci.rb" => "repository policy workflow must run Windows package CI policy check",
       "ruby tools/check-linux-package-ci.rb" => "repository policy workflow must run Linux package CI policy check",
+      "python3 tools/test-linux-conda-release.py" => "repository policy workflow must run Linux conda archive tests",
       "ruby tools/test-linux-prefix-sanitizer.rb" => "repository policy workflow must run Linux prefix sanitizer tests",
       "ruby tools/check-docs.rb" => "repository policy workflow must run documentation policy check",
       "ruby tools/test-pixi-consumer-activation.rb" => "repository policy workflow must run Pixi consumer activation tests"

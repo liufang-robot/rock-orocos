@@ -18,6 +18,7 @@ on:
       - "tools/check-linux-package-ci.rb"
       - "tools/check-source-provenance.rb"
       - "tools/check-windows-package-ci.rb"
+      - "tools/inspect-conda-archive.py"
       - "tools/prepare-windows-conda-release.ps1"
       - "tools/test-pixi-consumer-activation.rb"
       - "tools/test-source-provenance.rb"
@@ -27,6 +28,7 @@ on:
       - "tools/test-linux-conda-consumer.sh"
       - "tools/test-linux-prefix-sanitizer.rb"
       - "tools/test-linux-source-lock.rb"
+      - "tools/test-linux-conda-release.py"
       - "packaging/**"
       - "pixi.toml"
       - "pixi.lock"
@@ -49,6 +51,7 @@ on:
       - "tools/check-linux-package-ci.rb"
       - "tools/check-source-provenance.rb"
       - "tools/check-windows-package-ci.rb"
+      - "tools/inspect-conda-archive.py"
       - "tools/prepare-windows-conda-release.ps1"
       - "tools/test-pixi-consumer-activation.rb"
       - "tools/test-source-provenance.rb"
@@ -58,6 +61,7 @@ on:
       - "tools/test-linux-conda-consumer.sh"
       - "tools/test-linux-prefix-sanitizer.rb"
       - "tools/test-linux-source-lock.rb"
+      - "tools/test-linux-conda-release.py"
       - "packaging/**"
       - "pixi.toml"
       - "pixi.lock"
@@ -78,6 +82,7 @@ jobs:
           ruby tools/test-windows-package-ci.rb
           ruby tools/check-windows-package-ci.rb
           ruby tools/check-linux-package-ci.rb
+          python3 tools/test-linux-conda-release.py
           ruby tools/test-linux-prefix-sanitizer.rb
           ruby tools/check-docs.rb
           ruby tools/test-pixi-consumer-activation.rb
