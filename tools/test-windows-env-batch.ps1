@@ -29,7 +29,13 @@ function Get-BatchEnvironment {
         $standardError = $process.StandardError.ReadToEnd()
         $process.WaitForExit()
         if ($process.ExitCode -ne 0) {
-            throw "Batch activation failed with code $($process.ExitCode): $standardError"
+            throw @"
+Batch activation failed with code $($process.ExitCode).
+stdout:
+$standardOutput
+stderr:
+$standardError
+"@
         }
     } finally {
         $process.Dispose()
