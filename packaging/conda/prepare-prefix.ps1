@@ -353,6 +353,7 @@ Convert-PkgConfigFiles -InstalledPrefix $Prefix -VcpkgInstalled $vcpkgInstalled
 Convert-RttCMakeFiles -InstalledPrefix $Prefix -VcpkgInstalled $vcpkgInstalled
 $licenseStager = Join-Path $RepositoryRoot "tools\stage-license-corpus.rb"
 & $RubyExecutable @(
+    $licenseStager,
     "--inventory", (Join-Path $RepositoryRoot "packaging\license-corpus.json"),
     "--source-lock", (Join-Path $RepositoryRoot "packaging\source-lock.json"),
     "--platform", "windows",

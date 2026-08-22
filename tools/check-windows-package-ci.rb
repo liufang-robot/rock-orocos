@@ -125,6 +125,7 @@ else
     tools/build-windows-msvc.ps1
     tools/check-windows-package-ci.rb
     tools/test-windows-package-ci.rb
+    tools/stage-license-corpus.rb
     tools/prepare-windows-conda-release.ps1
     tools/test-windows-conda-consumer.ps1
     tools/test-windows-source-lock.ps1

@@ -77,7 +77,20 @@ end
 
 publish_condition_error =
   "Prefix publication condition must exactly require the approved release event and repository"
+license_stager_trigger = %(      - "tools/stage-license-corpus.rb"\n)
 mutations = {
+  "missing license stager pull-request trigger" => [
+    "Windows package CI pull requests must watch tools/stage-license-corpus.rb",
+    lambda do |contents|
+      replace_occurrence(contents, license_stager_trigger, "", 0)
+    end
+  ],
+  "missing license stager push trigger" => [
+    "Windows package CI main pushes must watch tools/stage-license-corpus.rb",
+    lambda do |contents|
+      replace_occurrence(contents, license_stager_trigger, "", 1)
+    end
+  ],
   "release tag interpolation in build PowerShell" => [
     "Windows package CI must not interpolate GitHub expressions into run scripts",
     lambda do |contents|

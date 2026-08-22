@@ -245,6 +245,13 @@ def test_platform_integration
          windows_prepare.include?('"--platform", "windows"') &&
          windows_prepare.include?('"--vcpkg-share"'),
          "Windows prefix preparation does not stage the validated license corpus")
+  ruby_invocation = windows_prepare.match(
+    /& \$RubyExecutable @\(\r?\n(?<arguments>.*?)^\)/m
+  )
+  assert(ruby_invocation, "Windows prefix preparation does not invoke Ruby structurally")
+  first_ruby_argument = ruby_invocation[:arguments].lines.map(&:strip).reject(&:empty?).first
+  assert(first_ruby_argument == "$licenseStager,",
+         "Windows Ruby invocation does not execute the license stager as its first argument")
   assert(!windows_prepare.include?("function Copy-LicenseMetadata"),
          "Windows prefix preparation retains the unvalidated legacy license copier")
 
