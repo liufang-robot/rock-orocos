@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "aggregate_license": {
-    "linux": "MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND LGPL-2.1-only AND GPL-2.0-only AND LGPL-2.1-or-later AND GPL-2.0-or-later AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices",
-    "windows": "(MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND LGPL-2.1-only AND GPL-2.0-only AND LGPL-2.1-or-later AND GPL-2.0-or-later AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices) AND LicenseRef-Windows-vcpkg-Bundled-Dependencies"
+    "linux": "MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND LicenseRef-open62541-base64-BSD AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices",
+    "windows": "(MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND LicenseRef-open62541-base64-BSD AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices) AND LicenseRef-Windows-vcpkg-Bundled-Dependencies"
   },
   "license_refs": [
     {
@@ -21,6 +21,13 @@
       "evidence": [
         "sources/metaruby/metaruby.gemspec",
         "sources/metaruby/manifest.xml"
+      ]
+    },
+    {
+      "id": "LicenseRef-OCL-GPL-2.0-Linking-Exception",
+      "description": "OCL's installed TableMarshaller.hpp is GPL-2.0-only with the project-specific template, macro, inline-function, compilation, and linking exception embedded in the header.",
+      "evidence": [
+        "sources/ocl/reporting/TableMarshaller.hpp"
       ]
     },
     {
@@ -59,6 +66,14 @@
       "description": "The Windows development package bundles a dynamically resolved, source-lock-bound vcpkg dependency SDK; manifest.json enumerates every copied notice path and SHA256.",
       "evidence": [
         "vcpkg/** (exact paths and SHA256 values in manifest.json)"
+      ]
+    },
+    {
+      "id": "LicenseRef-open62541-base64-BSD",
+      "description": "open62541's compiled bundled base64 implementation identifies its terms only as BSD, and the pinned dependency inventory does not specify a BSD variant.",
+      "evidence": [
+        "sources/open62541/deps/README.md",
+        "sources/open62541/deps/base64.c"
       ]
     },
     {
@@ -126,23 +141,35 @@
       "name": "ocl",
       "source_lock_name": "ocl",
       "revision": "b80710cd9ba3c1172e355c351d79e6dab016e214",
-      "license": "GPL-2.0-only AND LGPL-2.1-only AND LGPL-2.1-or-later",
+      "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
         "windows": "src/ocl"
       },
       "notices": [
         {
-          "path": "COPYING",
-          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          "path": "deployment/DeploymentComponent.cpp",
+          "sha256": "a66b2bac4150b8e7a0513af616d2fd074a16792a1c18abaf486e0b7d8444d9b3"
+        },
+        {
+          "path": "manifest.xml",
+          "sha256": "8aab2e6d56475b570dba3668cce4934d2be3e623ca96942f521dba5e8d1438fa"
         },
         {
           "path": "package.xml",
           "sha256": "6779f94c72388cf76552d9d847205b4ac2dd5d1b922e0f9c389f83ff02a230a9"
         },
         {
+          "path": "reporting/TableMarshaller.hpp",
+          "sha256": "62bb00e72b69214187594699563bb928c22f34a129824df2a809f7861067b7c0"
+        },
+        {
           "path": "scripts/shell/license.txt",
           "sha256": "0f2ededb764836d3403c5002ba3dd25c1ff955fbff9cb1a2b56909a74840d57e"
+        },
+        {
+          "path": "taskbrowser/TaskBrowser.cpp",
+          "sha256": "d1c84f3a5b6b1e6b09e31d35b0fb32205a7b22d4b38a4af65f11013272332203"
         }
       ]
     },
@@ -150,7 +177,7 @@
       "name": "open62541",
       "source_lock_name": "open62541",
       "revision": "45e4cd3ef6c79a8e503d37c9f5c89fefe90d99db",
-      "license": "MPL-2.0 AND CC0-1.0",
+      "license": "MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND MIT AND BSD-3-Clause AND LicenseRef-open62541-base64-BSD",
       "checkouts": {
         "linux": "toolchain/open62541",
         "windows": "src/open62541"
@@ -163,6 +190,74 @@
         {
           "path": "LICENSE-CC0",
           "sha256": "d93cc415382f0013088fa276d9cf82373badf244c78220a926f15ee46f0fe3c4"
+        },
+        {
+          "path": "deps/README.md",
+          "sha256": "2b211ebbbedf4baf96e8fadcc77ed9fd44668393cb79291084c847f093f9898b"
+        },
+        {
+          "path": "deps/base64.c",
+          "sha256": "786fbac5b6076caec15bf0ba4ff92da048c8fd247c04397ab3287c64f2697724"
+        },
+        {
+          "path": "deps/cj5.c",
+          "sha256": "6d8d3f7fc608ca04fbe7f26bfd7fb2110c2a5b92f57998691bb37c444efa2b01"
+        },
+        {
+          "path": "deps/cj5.h",
+          "sha256": "8b06827dc8a6a8d8b3c55389ba3022c14f131c7a4a597067187f77b50e5e6fd3"
+        },
+        {
+          "path": "deps/dtoa.c",
+          "sha256": "3c012b284feb982892a0fdaadedb12ffe5a7ce6179f4ad327c60f726ea6e1fd7"
+        },
+        {
+          "path": "deps/dtoa.h",
+          "sha256": "6c4658e37b925d04a2a8650815bfaa59d19c94dcfde8934ab24b9dd938911280"
+        },
+        {
+          "path": "deps/itoa.c",
+          "sha256": "4dcae275f05e382d7651846b7c7b44a739ae5db7116b6be10ae616ade28778e1"
+        },
+        {
+          "path": "deps/itoa.h",
+          "sha256": "b228b9c6c9c4ff2345c620e79443f183b349775ce1c7453386c9a7b0f06baf31"
+        },
+        {
+          "path": "deps/libc_time.c",
+          "sha256": "eaaa705f123d9ba6608bf777ae95dfe64e8f2d6d64cf13b7af5c3645a86e8582"
+        },
+        {
+          "path": "deps/mp_printf.c",
+          "sha256": "a2880fe6b878ba0e4544ebd648bf670de140465534d34a39fc25ed79acb26211"
+        },
+        {
+          "path": "deps/mp_printf.h",
+          "sha256": "ce8ee9daf7879fa2a58221269584778782ad4548dd37edf99de1eb724a2f30f9"
+        },
+        {
+          "path": "deps/open62541_queue.h",
+          "sha256": "0992ff6787795de0070cb7412ab864828fc5933c29b8315c0f54809143d71af9"
+        },
+        {
+          "path": "deps/parse_num.c",
+          "sha256": "99b52b38b73cc0de6962b4384417aa137d2c55aba678e4194d8f678e6fc726ed"
+        },
+        {
+          "path": "deps/pcg_basic.c",
+          "sha256": "e4b4b9f5f17c0f240d4e3806f20c2e73345131ef2a5b004e50a4f3f518e567bf"
+        },
+        {
+          "path": "deps/pcg_basic.h",
+          "sha256": "d85786cb6f68508bc07d7e8cd72a4e3d71ffedfb3aa008c30416ff3521bc3662"
+        },
+        {
+          "path": "deps/ziptree.c",
+          "sha256": "7ccfa0a5c3e305101fab24dc8ce829aa5dad4d6a61ab59fce1d4aa968ea59294"
+        },
+        {
+          "path": "deps/ziptree.h",
+          "sha256": "6384dc581e9027cef8c2efedb99f3c498fee731795d9e97204c915bd3e053b3c"
         }
       ]
     },
@@ -246,7 +341,7 @@
       "name": "rtt_opcua",
       "source_lock_name": "rtt_opcua",
       "revision": "847669186f79dc206313e0f200604581d7031ad8",
-      "license": "LGPL-2.1-only",
+      "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_opcua",
         "windows": "src/rtt_opcua"
@@ -255,6 +350,14 @@
         {
           "path": "LICENSE",
           "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+        },
+        {
+          "path": "manifest.xml",
+          "sha256": "7ccf045caccc446981c596cbceef0fd8b97c4b74520473222dd0f19013c8710d"
+        },
+        {
+          "path": "package.xml",
+          "sha256": "cadb8ab21f1267d759b20341d2709bdf78c5d18633807260160c967b77aed99a"
         }
       ]
     },

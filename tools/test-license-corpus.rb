@@ -32,13 +32,64 @@ EXPECTED_SOURCE_GEMS = {
 EXPECTED_LICENSE_REFS = %w[
   LicenseRef-MetaRuby-Bundled-jQuery-Notices
   LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations
+  LicenseRef-OCL-GPL-2.0-Linking-Exception
   LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception
   LicenseRef-Orocos-RTT-TLSF-Linking-Exception
   LicenseRef-Ruby-base64-Mixed-Legal-Notices
   LicenseRef-Ruby-facets-Mixed-Bundled-Notices
   LicenseRef-Windows-vcpkg-Bundled-Dependencies
+  LicenseRef-open62541-base64-BSD
   LicenseRef-rtlog-cpp-Bundled-License-Exceptions
 ].freeze
+EXPECTED_COMPONENT_LICENSES = {
+  "ocl" =>
+    "GPL-2.0-or-later AND LGPL-2.1-or-later AND " \
+    "LicenseRef-OCL-GPL-2.0-Linking-Exception",
+  "open62541" =>
+    "MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND MIT AND " \
+    "BSD-3-Clause AND LicenseRef-open62541-base64-BSD",
+  "rtt_opcua" => "LGPL-2.1-or-later"
+}.freeze
+EXPECTED_SOURCE_NOTICES = {
+  "ocl" => %w[
+    deployment/DeploymentComponent.cpp
+    manifest.xml
+    package.xml
+    reporting/TableMarshaller.hpp
+    scripts/shell/license.txt
+    taskbrowser/TaskBrowser.cpp
+  ],
+  "open62541" => %w[
+    LICENSE
+    LICENSE-CC0
+    deps/README.md
+    deps/base64.c
+    deps/cj5.c
+    deps/cj5.h
+    deps/dtoa.c
+    deps/dtoa.h
+    deps/itoa.c
+    deps/itoa.h
+    deps/libc_time.c
+    deps/mp_printf.c
+    deps/mp_printf.h
+    deps/open62541_queue.h
+    deps/parse_num.c
+    deps/pcg_basic.c
+    deps/pcg_basic.h
+    deps/ziptree.c
+    deps/ziptree.h
+  ],
+  "rtt_opcua" => %w[LICENSE manifest.xml package.xml]
+}.freeze
+EXPECTED_LICENSE_REF_EVIDENCE = {
+  "LicenseRef-OCL-GPL-2.0-Linking-Exception" =>
+    ["sources/ocl/reporting/TableMarshaller.hpp"],
+  "LicenseRef-open62541-base64-BSD" => [
+    "sources/open62541/deps/README.md",
+    "sources/open62541/deps/base64.c"
+  ]
+}.freeze
 
 def assert(condition, message)
   raise message unless condition
@@ -93,9 +144,20 @@ def test_production_inventory
   source_licenses = sources.to_h do |source|
     [source.fetch("name"), source.fetch("license")]
   end
+  EXPECTED_COMPONENT_LICENSES.each do |name, expected|
+    assert(source_licenses.fetch(name) == expected,
+           "production inventory misclassifies #{name}")
+  end
   assert(source_licenses.fetch("rtlog-cpp") ==
          "LicenseRef-rtlog-cpp-Bundled-License-Exceptions",
          "production inventory collapses rtlog-cpp's bundled exceptions")
+  source_notices = sources.to_h do |source|
+    [source.fetch("name"), source.fetch("notices").map { |notice| notice.fetch("path") }]
+  end
+  EXPECTED_SOURCE_NOTICES.each do |name, expected|
+    assert(source_notices.fetch(name) == expected,
+           "production inventory has incomplete or unordered notice evidence for #{name}")
+  end
 
   remote = inventory.fetch("ruby_gems").fetch("remote")
   actual_remote = remote.to_h { |gem| [gem.fetch("name"), gem.fetch("version")] }
@@ -129,8 +191,28 @@ def test_production_inventory
     assert(!reference.fetch("description").empty? && !reference.fetch("evidence").empty?,
            "#{reference.fetch('id')} is not documented with evidence")
   end
+  license_ref_evidence = license_refs.to_h do |reference|
+    [reference.fetch("id"), reference.fetch("evidence")]
+  end
+  EXPECTED_LICENSE_REF_EVIDENCE.each do |identifier, expected|
+    assert(license_ref_evidence.fetch(identifier) == expected,
+           "#{identifier} has incomplete or unordered evidence")
+  end
   linux_license = inventory.fetch("aggregate_license").fetch("linux")
   windows_license = inventory.fetch("aggregate_license").fetch("windows")
+  linux_terms = linux_license.split(" AND ")
+  %w[
+    Apache-2.0
+    BSL-1.0
+    LicenseRef-OCL-GPL-2.0-Linking-Exception
+    LicenseRef-open62541-base64-BSD
+  ].each do |term|
+    assert(linux_terms.include?(term), "Linux aggregate license omits #{term}")
+  end
+  %w[GPL-2.0-only LGPL-2.1-only].each do |obsolete|
+    assert(!linux_terms.include?(obsolete),
+           "Linux aggregate license retains obsolete plain #{obsolete}")
+  end
   assert(linux_license.include?("LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations"),
          "Linux aggregate license collapses the MetaRuby declaration conflict")
   assert(linux_license.include?("LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception"),
