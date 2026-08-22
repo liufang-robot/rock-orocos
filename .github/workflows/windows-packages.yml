@@ -14,6 +14,7 @@ on:
       - "tools/stage-license-corpus.rb"
       - "tools/prepare-windows-conda-release.ps1"
       - "tools/test-windows-conda-consumer.ps1"
+      - "tools/test-windows-env-batch.ps1"
       - "tools/test-windows-source-lock.ps1"
       - "tools/windows-generator-smoke/**"
       - "tools/windows-opcua-start-smoke.ops"
@@ -38,6 +39,7 @@ on:
       - "tools/stage-license-corpus.rb"
       - "tools/prepare-windows-conda-release.ps1"
       - "tools/test-windows-conda-consumer.ps1"
+      - "tools/test-windows-env-batch.ps1"
       - "tools/test-windows-source-lock.ps1"
       - "tools/windows-generator-smoke/**"
       - "tools/windows-opcua-start-smoke.ops"
@@ -99,6 +101,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Release commit $env:GITHUB_SHA is not reachable from protected main."
           }
+
+      - name: Validate Windows batch activation
+        shell: pwsh
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File tools/test-windows-env-batch.ps1
 
       - name: Set up locked Pixi package environment
         uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
