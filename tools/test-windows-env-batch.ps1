@@ -141,10 +141,10 @@ try {
 
     $callerLines = @(
         '@echo __OROCOS_TEST_BEFORE_FIRST=1',
-        '@call "{0}"' -f $hookPath,
+        ('@call "{0}"' -f $hookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@echo __OROCOS_TEST_AFTER_FIRST=1',
-        '@call "{0}"' -f $hookPath,
+        ('@call "{0}"' -f $hookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@echo __OROCOS_TEST_AFTER_SECOND=1',
         '@set'
