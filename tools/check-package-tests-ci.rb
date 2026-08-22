@@ -139,6 +139,9 @@ else
   end
   errors << "package tests must use matrix-selected containers" unless contents.include?("image: ${{ matrix.os.image }}")
   errors << "package tests must use a fresh /tmp/orocos install prefix" unless contents.include?("OROCOS_PREFIX: /tmp/orocos")
+  unless contents.include?("LANG: C.UTF-8") && contents.include?("LC_ALL: C.UTF-8")
+    errors << "package tests must use a UTF-8 locale for Autoproj and dpkg metadata"
+  end
   errors << "package tests must not use the clean-room Docker /opt/orocos install prefix" if contents.include?("OROCOS_PREFIX: /opt/orocos")
   errors << "package tests must not install omniORB for no-CORBA builds" if contents.include?("libomniorb4-dev") || contents.include?("omniidl")
   errors << "package tests must be non-required while experimental" unless contents.include?("continue-on-error: true")

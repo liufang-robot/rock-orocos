@@ -268,8 +268,8 @@ else
     unless setup_step["uses"] == SETUP_PIXI_ACTION
       errors << "documentation workflow must use the pinned setup-pixi action"
     end
-    unless setup_step.dig("with", "pixi-version") == "v0.76.2"
-      errors << "documentation workflow must pin Pixi v0.76.2"
+    unless setup_step.dig("with", "pixi-version") == "v0.77.0"
+      errors << "documentation workflow must pin Pixi v0.77.0"
     end
     unless setup_step.dig("with", "environments") == "docs" &&
            setup_step.dig("with", "locked") == true

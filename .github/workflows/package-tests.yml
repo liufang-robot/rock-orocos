@@ -40,6 +40,8 @@ jobs:
 
     env:
       DEBIAN_FRONTEND: noninteractive
+      LANG: C.UTF-8
+      LC_ALL: C.UTF-8
       OROCOS_PREFIX: /tmp/orocos
       SHELL: /bin/bash
 
