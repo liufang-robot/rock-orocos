@@ -17,6 +17,7 @@ source:
         - packaging/source-lock.json
         - packaging/conda/build.ps1
         - packaging/conda/orocos-activate.bat
+        - packaging/conda/stage-runtime-hook.ps1
         - packaging/conda/prepare-prefix.ps1
         - tools/build-windows-msvc.ps1
         - tools/export-windows-env.ps1
@@ -68,6 +69,8 @@ outputs:
       run_exports: false
     build:
       number: ${{ build_number }}
+      script:
+        file: stage-runtime-hook.ps1
       files:
         include:
           - Library/bin/*.dll

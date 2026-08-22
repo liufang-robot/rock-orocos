@@ -12,6 +12,7 @@ FIXTURE_PATHS = %w[
   packaging/conda/build.ps1
   packaging/conda/orocos-activate.bat
   packaging/conda/recipe.yaml
+  packaging/conda/stage-runtime-hook.ps1
   packaging/conda/test-runtime.ps1
   tools/check-windows-package-ci.rb
   tools/build-windows-msvc.ps1
@@ -355,18 +356,41 @@ recipe_mutations = {
   "missing activation hook recipe source" => [
     "Windows package recipe must include the Conda activation hook source",
     ->(contents) { contents.sub("        - packaging/conda/orocos-activate.bat\n", "") }
+  ],
+  "missing runtime hook staging script source" => [
+    "Windows package recipe must include the runtime hook staging script source",
+    ->(contents) { contents.sub("        - packaging/conda/stage-runtime-hook.ps1\n", "") }
+  ],
+  "missing runtime output hook staging script" => [
+    "orocos runtime output must stage its activation hook after build environment activation",
+    ->(contents) { contents.sub("        file: stage-runtime-hook.ps1\n", "") }
   ]
 }
 
 build_mutations = {
+  "activation hook staged by shared build cache" => [
+    "Windows shared staging cache must not install the runtime activation hook",
+    lambda do |contents|
+      contents + "\n" +
+        '$activationHookSource = Join-Path $repositoryRoot "packaging\conda\orocos-activate.bat"' +
+        "\n"
+    end
+  ]
+}
+
+runtime_stage_mutations = {
   "activation hook staged below Library prefix" => [
-    "Windows package build must stage the Conda prefix activation directory",
+    "Windows runtime output must stage the Conda prefix activation directory",
     lambda do |contents|
       contents.sub(
         'Join-Path $env:PREFIX "etc\conda\activate.d"',
         'Join-Path $env:LIBRARY_PREFIX "etc\conda\activate.d"'
       )
     end
+  ],
+  "missing runtime activation hook copy" => [
+    "Windows runtime output must stage the activation hook copy",
+    ->(contents) { contents.sub("Copy-Item", "Write-Output") }
   ]
 }
 
@@ -431,6 +455,7 @@ wrong_rejections = []
   "packaging/conda/recipe.yaml" => recipe_mutations,
   "packaging/conda/build.ps1" => build_mutations,
   "packaging/conda/orocos-activate.bat" => hook_mutations,
+  "packaging/conda/stage-runtime-hook.ps1" => runtime_stage_mutations,
   "packaging/conda/test-runtime.ps1" => runtime_test_mutations,
   "tools/build-windows-msvc.ps1" => builder_mutations,
   "tools/export-windows-env.ps1" => exporter_mutations

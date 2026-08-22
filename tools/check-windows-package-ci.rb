@@ -81,6 +81,9 @@ root = File.expand_path("..", __dir__)
 workflow_path = File.join(root, ".github", "workflows", "windows-packages.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe.yaml")
 build_path = File.join(root, "packaging", "conda", "build.ps1")
+runtime_stage_path = File.join(
+  root, "packaging", "conda", "stage-runtime-hook.ps1"
+)
 builder_path = File.join(root, "tools", "build-windows-msvc.ps1")
 hook_path = File.join(root, "packaging", "conda", "orocos-activate.bat")
 runtime_test_path = File.join(root, "packaging", "conda", "test-runtime.ps1")
@@ -306,6 +309,14 @@ else
   unless recipe.include?("        - packaging/conda/orocos-activate.bat")
     errors << "Windows package recipe must include the Conda activation hook source"
   end
+  unless recipe.include?("        - packaging/conda/stage-runtime-hook.ps1")
+    errors << "Windows package recipe must include the runtime hook staging script source"
+  end
+  unless runtime_output.to_s.match?(
+    /^\s+script:\r?\n\s+file: stage-runtime-hook\.ps1\s*$/
+  )
+    errors << "orocos runtime output must stage its activation hook after build environment activation"
+  end
   {
     "Library/env.bat" => "generated batch runtime entrypoint",
     "etc/conda/activate.d/orocos-activate.bat" => "Conda runtime activation hook"
@@ -328,14 +339,26 @@ unless File.file?(build_path)
   errors << "missing packaging/conda/build.ps1"
 else
   build_script = File.read(build_path)
+  if build_script.include?("orocos-activate.bat") ||
+     build_script.include?('etc\conda\activate.d')
+    errors << "Windows shared staging cache must not install the runtime activation hook"
+  end
+end
+
+if !File.file?(runtime_stage_path)
+  errors << "missing packaging/conda/stage-runtime-hook.ps1"
+else
+  runtime_stage = File.read(runtime_stage_path)
   {
     "the repository-owned activation hook" =>
-      'Join-Path $repositoryRoot "packaging\conda\orocos-activate.bat"',
+      'Join-Path $env:SRC_DIR "packaging\conda\orocos-activate.bat"',
     "the Conda prefix activation directory" =>
       'Join-Path $env:PREFIX "etc\conda\activate.d"',
     "the activation hook copy" => "Copy-Item"
   }.each do |contract, token|
-    errors << "Windows package build must stage #{contract}" unless build_script.include?(token)
+    unless runtime_stage.include?(token)
+      errors << "Windows runtime output must stage #{contract}"
+    end
   end
 end
 
