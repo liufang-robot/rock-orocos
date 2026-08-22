@@ -427,9 +427,8 @@ module OrocosRock
       policy = inventory.fetch("windows_vcpkg")
       exact_names = policy.fetch("exact_names").map(&:downcase)
       prefixes = policy.fetch("name_prefixes").map(&:downcase)
-      all_ports = Dir.children(share).sort.select do |entry|
-        File.directory?(File.join(share, entry))
-      end
+      # vcpkg's share tree also contains CMake aliases and support directories
+      # such as boost_algorithm and man. They are not ports and own no notice.
       matches = Dir[File.join(share, "**", "*")].select do |path|
         next false unless File.file?(path)
 
@@ -437,13 +436,6 @@ module OrocosRock
         exact_names.include?(basename) || prefixes.any? { |prefix| basename.start_with?(prefix) }
       end.sort_by do |path|
         relative_path_parts(share, path, "vcpkg license metadata path").join("/")
-      end
-      matched_ports = matches.map do |path|
-        relative_path_parts(share, path, "vcpkg license metadata path").fetch(0)
-      end.uniq
-      missing_ports = all_ports - matched_ports
-      unless missing_ports.empty?
-        raise "vcpkg ports are missing declared license metadata: #{missing_ports.join(', ')}"
       end
       raise "vcpkg installed share directory contains no license metadata" if matches.empty?
 

@@ -322,10 +322,16 @@ Dir.mktmpdir("orocos-license-corpus-test-") do |temporary|
   File.write(File.join(checkout, "LICENSE"), notice_contents)
   File.write(File.join(windows_checkout, "LICENSE"), notice_contents)
   FileUtils.mkdir_p(File.join(vcpkg_share, "boost", "licenses"))
+  FileUtils.mkdir_p(File.join(vcpkg_share, "boost_algorithm"))
+  FileUtils.mkdir_p(File.join(vcpkg_share, "man", "man1"))
   FileUtils.mkdir_p(File.join(vcpkg_share, "zlib"))
   File.write(File.join(vcpkg_share, "boost", "licenses", "LICENSE_1_0.txt"),
              "Boost license\n")
   File.write(File.join(vcpkg_share, "boost", "vcpkg.spdx.json"), "{\"name\":\"boost\"}\n")
+  File.write(File.join(vcpkg_share, "boost_algorithm", "boost_algorithm-config.cmake"),
+             "# CMake package support directory, not a vcpkg port\n")
+  File.write(File.join(vcpkg_share, "man", "man1", "example.1"),
+             "Manual page support directory, not a vcpkg port\n")
   File.write(File.join(vcpkg_share, "zlib", "copyright"), "zlib copyright\n")
   File.write(File.join(vcpkg_share, "zlib", "license-extra.txt"), "zlib license\n")
   File.write(File.join(vcpkg_share, "zlib", "usage"), "ignored metadata\n")
