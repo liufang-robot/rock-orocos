@@ -308,9 +308,15 @@ $runtimeBatchTemplate = @'
 :orocos_add_path_value
 @if "%~1"=="" exit /b 0
 @set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"
-@set "__OROCOS_ROCK_PATH_DUPLICATE="
-@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"
-@if defined __OROCOS_ROCK_PATH_DUPLICATE exit /b 0
+@set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_NEW%"
+:orocos_scan_path_value
+@if not defined __OROCOS_ROCK_PATH_SCAN goto orocos_path_value_unique
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_SCAN=%%F"
+@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_CANDIDATE%" exit /b 0
+@goto orocos_scan_path_value
+
+:orocos_path_value_unique
 @if defined __OROCOS_ROCK_PATH_NEW goto orocos_append_path_value
 @set "__OROCOS_ROCK_PATH_NEW=%__OROCOS_ROCK_PATH_CANDIDATE%"
 @exit /b 0
@@ -330,7 +336,8 @@ $runtimeBatchTemplate = @'
 @set "__OROCOS_ROCK_PATH_NEW="
 @set "__OROCOS_ROCK_PATH_SUPPORTED="
 @set "__OROCOS_ROCK_PATH_CANDIDATE="
-@set "__OROCOS_ROCK_PATH_DUPLICATE="
+@set "__OROCOS_ROCK_PATH_SCAN="
+@set "__OROCOS_ROCK_PATH_CURRENT="
 @exit /b 0
 '@
 

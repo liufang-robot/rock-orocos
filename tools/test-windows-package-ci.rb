@@ -423,6 +423,16 @@ hook_mutations = {
   ]
 }
 
+safe_batch_scan = <<~'BATCH'.chomp
+  @set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_NEW%"
+  :orocos_scan_path_value
+  @if not defined __OROCOS_ROCK_PATH_SCAN goto orocos_path_value_unique
+  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
+  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_SCAN=%%F"
+  @if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_CANDIDATE%" exit /b 0
+  @goto orocos_scan_path_value
+BATCH
+
 exporter_mutations = {
   "PowerShell path model emits a trailing array comma" => [
     "Windows environment exporter must not emit a trailing comma after the final PowerShell path expression",
@@ -454,7 +464,7 @@ exporter_mutations = {
     "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity",
     lambda do |contents|
       contents.sub(
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
+        safe_batch_scan,
         '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
       )
     end
@@ -463,8 +473,17 @@ exporter_mutations = {
     "generated env.bat must avoid native cmd FOR/path-modifier parser ambiguity",
     lambda do |contents|
       contents.sub(
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
+        safe_batch_scan,
         '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
+      )
+    end
+  ],
+  "batch dedup compares quoted candidates inside FOR" => [
+    "generated env.bat must not compare deduplication candidates inside FOR",
+    lambda do |contents|
+      contents.sub(
+        safe_batch_scan,
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
       )
     end
   ],
@@ -472,8 +491,17 @@ exporter_mutations = {
     "generated env.bat must compare deduplication candidates without nested batch calls",
     lambda do |contents|
       contents.sub(
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
+        safe_batch_scan,
         '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"'
+      )
+    end
+  ],
+  "batch dedup omits the separate comparison" => [
+    "generated env.bat must scan path entries before a separate comparison",
+    lambda do |contents|
+      contents.sub(
+        '@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_CANDIDATE%" exit /b 0',
+        '@rem missing separate comparison'
       )
     end
   ]
