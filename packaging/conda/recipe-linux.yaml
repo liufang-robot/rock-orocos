@@ -244,6 +244,7 @@ outputs:
         - libffi >=3.4,<4
         - libxml2-devel >=2.12,<3
         - pkg-config >=0.29,<1
+        - python >=3.11,<3.15
         - ruby >=3.4,<3.5
         - zstd >=1.5,<2
     tests:

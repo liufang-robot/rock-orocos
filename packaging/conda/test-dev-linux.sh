@@ -24,3 +24,22 @@ orogen --help >/dev/null
 typegen --help >/dev/null
 deployer_output="$(deployer-opcua-gnulinux --version 2>&1 || true)"
 grep -q "OROCOS Toolchain version" <<<"$deployer_output"
+
+status_code_generator="$PREFIX/toolchain/share/open62541/generate_statuscode_descriptions.py"
+status_code_csv="$PREFIX/toolchain/share/open62541/schema/StatusCode.csv"
+temporary_directory="$(mktemp -d "${TMPDIR:-/tmp}/orocos-open62541-generator.XXXXXX")"
+
+cleanup() {
+    rm -rf -- "$temporary_directory"
+}
+trap cleanup EXIT
+
+status_code_output="$temporary_directory/statuscode_descriptions"
+"$PREFIX/bin/python" "$status_code_generator" "$status_code_csv" "$status_code_output"
+
+generated_c="${status_code_output}.c"
+generated_h="${status_code_output}.h"
+[ -s "$generated_c" ]
+[ -s "$generated_h" ]
+grep -q "UA_StatusCode_name" "$generated_c"
+grep -q "UA_STATUSCODE_BADUNEXPECTEDERROR" "$generated_h"

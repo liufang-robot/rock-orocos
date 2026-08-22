@@ -50,6 +50,7 @@ workflow_path = File.join(root, ".github", "workflows", "linux-packages.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe-linux.yaml")
 build_path = File.join(root, "packaging", "conda", "build-linux.sh")
 sanitizer_path = File.join(root, "packaging", "conda", "sanitize-linux-prefix.rb")
+development_test_path = File.join(root, "packaging", "conda", "test-dev-linux.sh")
 release_path = File.join(root, "tools", "prepare-linux-conda-release.rb")
 consumer_path = File.join(root, "tools", "test-linux-conda-consumer.sh")
 errors = []
@@ -185,10 +186,30 @@ errors << "missing packaging/conda/sanitize-linux-prefix.rb" unless File.file?(s
 if !File.file?(recipe_path)
   errors << "missing packaging/conda/recipe-linux.yaml"
 else
-  recipe = File.read(recipe_path)
+  recipe_contents = File.read(recipe_path)
+  recipe = YAML.safe_load(recipe_contents, aliases: true)
+  package_outputs = Array(recipe["outputs"]).filter_map do |output|
+    name = output.dig("package", "name")
+    [name, output] if name
+  end.to_h
+
   %w[orocos orocos-dev].each do |name|
-    errors << "Linux recipe must define #{name}" unless recipe.include?("name: #{name}")
+    errors << "Linux recipe must define #{name}" unless package_outputs.key?(name)
   end
+
+  python_requirement = "python >=3.11,<3.15"
+  runtime_requirements = Array(package_outputs.dig("orocos", "requirements", "run"))
+  runtime_python_requirements = runtime_requirements.grep(/\Apython(?:\s|[<>=!~]|\z)/)
+  unless runtime_python_requirements.empty?
+    errors << "Linux orocos runtime requirements must not include Python"
+  end
+
+  development_requirements = Array(package_outputs.dig("orocos-dev", "requirements", "run"))
+  development_python_requirements = development_requirements.grep(/\Apython(?:\s|[<>=!~]|\z)/)
+  unless development_python_requirements == [python_requirement]
+    errors << "Linux orocos-dev must require exactly #{python_requirement}"
+  end
+
   {
     "linux-64 source build" => "build-linux.sh",
     "prefix sanitizer" => "sanitize-linux-prefix.rb",
@@ -200,7 +221,39 @@ else
     "runtime Ruby exclusion" => "toolchain/lib/ruby/3.4.0/x86_64-linux/typelib_ruby.so",
     "published documentation" => "https://liufang-robot.github.io/rock-orocos/"
   }.each do |contract, token|
-    errors << "Linux recipe is missing #{contract}" unless recipe.include?(token)
+    errors << "Linux recipe is missing #{contract}" unless recipe_contents.include?(token)
+  end
+end
+
+if !File.file?(development_test_path)
+  errors << "missing packaging/conda/test-dev-linux.sh"
+else
+  development_test_lines = File.readlines(development_test_path).map(&:strip)
+  {
+    "installed open62541 generator" =>
+      'status_code_generator="$PREFIX/toolchain/share/open62541/generate_statuscode_descriptions.py"',
+    "installed open62541 status-code schema" =>
+      'status_code_csv="$PREFIX/toolchain/share/open62541/schema/StatusCode.csv"',
+    "temporary open62541 generator directory" =>
+      'temporary_directory="$(mktemp -d "${TMPDIR:-/tmp}/orocos-open62541-generator.XXXXXX")"',
+    "safe temporary-directory cleanup" => 'rm -rf -- "$temporary_directory"',
+    "temporary-directory cleanup function" => "cleanup() {",
+    "temporary-directory EXIT trap" => "trap cleanup EXIT",
+    "temporary generator output base" =>
+      'status_code_output="$temporary_directory/statuscode_descriptions"',
+    "prefix Python generator execution" =>
+      '"$PREFIX/bin/python" "$status_code_generator" "$status_code_csv" "$status_code_output"',
+    "generated C source path" => 'generated_c="${status_code_output}.c"',
+    "generated C header path" => 'generated_h="${status_code_output}.h"',
+    "nonempty generated C source" => '[ -s "$generated_c" ]',
+    "nonempty generated C header" => '[ -s "$generated_h" ]',
+    "generated status-code function" => 'grep -q "UA_StatusCode_name" "$generated_c"',
+    "generated status-code constant" =>
+      'grep -q "UA_STATUSCODE_BADUNEXPECTEDERROR" "$generated_h"'
+  }.each do |contract, line|
+    unless development_test_lines.include?(line)
+      errors << "Linux development package test is missing #{contract}"
+    end
   end
 end
 
