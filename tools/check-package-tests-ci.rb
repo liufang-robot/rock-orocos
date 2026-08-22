@@ -86,6 +86,7 @@ package_test_contracts = {
   "rtt-opcua" => {
     script_tokens: [
       "-DRTT_OPCUA_WARNINGS_AS_ERRORS=ON",
+      "rtt_opcua_publication_selector_test",
       'build_targets toolchain/tools/rtt_opcua/build "${RTT_OPCUA_TEST_TARGETS[@]}"',
       "run_ctest toolchain/tools/rtt_opcua/build '^rtt_opcua_.*_test$'",
       "build_targets toolchain/tools/ocl/build ocl_opcua_deployment_test deployer-opcua ctaskbrowser-opcua",
