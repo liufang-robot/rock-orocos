@@ -433,6 +433,16 @@ safe_batch_scan = <<~'BATCH'.chomp
   @goto orocos_scan_path_value
 BATCH
 
+safe_existing_path_scan = <<~'BATCH'.chomp
+  @set "__OROCOS_ROCK_PATH_EXISTING=%__OROCOS_ROCK_PATH_OLD%"
+  :orocos_add_existing_path_value
+  @if not defined __OROCOS_ROCK_PATH_EXISTING exit /b 0
+  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
+  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_EXISTING=%%F"
+  @call :orocos_add_path_value "%__OROCOS_ROCK_PATH_CURRENT%"
+  @goto orocos_add_existing_path_value
+BATCH
+
 exporter_mutations = {
   "PowerShell path model emits a trailing array comma" => [
     "Windows environment exporter must not emit a trailing comma after the final PowerShell path expression",
@@ -502,6 +512,24 @@ exporter_mutations = {
       contents.sub(
         '@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_CANDIDATE%" exit /b 0',
         '@rem missing separate comparison'
+      )
+    end
+  ],
+  "batch inherited paths use inline substitution" => [
+    "generated env.bat must scan inherited paths without inline substitution",
+    lambda do |contents|
+      contents.sub(
+        safe_existing_path_scan,
+        '@for %%E in ("%__OROCOS_ROCK_PATH_OLD:;=" "%") do call :orocos_add_path_value "%%~E"'
+      )
+    end
+  ],
+  "batch inherited path scanner is incomplete" => [
+    "generated env.bat must implement the inherited path scanner",
+    lambda do |contents|
+      contents.sub(
+        '@goto orocos_add_existing_path_value',
+        '@rem missing inherited path loop'
       )
     end
   ]

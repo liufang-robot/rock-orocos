@@ -419,12 +419,21 @@ else
     '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
   nested_batch_dedup =
     '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"'
+  unsafe_existing_path_scan =
+    '@for %%E in ("%__OROCOS_ROCK_PATH_OLD:;=" "%") do call :orocos_add_path_value "%%~E"'
   safe_batch_scan = [
     ':orocos_scan_path_value',
     '@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"',
     '@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_SCAN=%%F"',
     '@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_CANDIDATE%" exit /b 0',
     '@goto orocos_scan_path_value'
+  ]
+  safe_existing_path_scan = [
+    ':orocos_add_existing_path_value',
+    '@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"',
+    '@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_EXISTING=%%F"',
+    '@call :orocos_add_path_value "%__OROCOS_ROCK_PATH_CURRENT%"',
+    '@goto orocos_add_existing_path_value'
   ]
   if runtime_batch&.include?(unsafe_batch_dedup)
     errors << "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity"
@@ -434,8 +443,12 @@ else
     errors << "generated env.bat must not compare deduplication candidates inside FOR"
   elsif runtime_batch&.include?(nested_batch_dedup)
     errors << "generated env.bat must compare deduplication candidates without nested batch calls"
+  elsif runtime_batch&.include?(unsafe_existing_path_scan)
+    errors << "generated env.bat must scan inherited paths without inline substitution"
   elsif safe_batch_scan.any? { |line| !runtime_batch&.include?(line) }
     errors << "generated env.bat must scan path entries before a separate comparison"
+  elsif safe_existing_path_scan.any? { |line| !runtime_batch&.include?(line) }
+    errors << "generated env.bat must implement the inherited path scanner"
   end
   if runtime_batch&.match?(/^\s*@?echo\s+off\s*$/i)
     errors << "generated env.bat must not change the caller's echo mode"

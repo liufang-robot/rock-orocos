@@ -302,8 +302,13 @@ $runtimeBatchTemplate = @'
 @exit /b %ERRORLEVEL%
 
 :orocos_add_existing
-@for %%E in ("%__OROCOS_ROCK_PATH_OLD:;=" "%") do call :orocos_add_path_value "%%~E"
-@exit /b 0
+@set "__OROCOS_ROCK_PATH_EXISTING=%__OROCOS_ROCK_PATH_OLD%"
+:orocos_add_existing_path_value
+@if not defined __OROCOS_ROCK_PATH_EXISTING exit /b 0
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_EXISTING=%%F"
+@call :orocos_add_path_value "%__OROCOS_ROCK_PATH_CURRENT%"
+@goto orocos_add_existing_path_value
 
 :orocos_add_path_value
 @if "%~1"=="" exit /b 0
@@ -338,6 +343,7 @@ $runtimeBatchTemplate = @'
 @set "__OROCOS_ROCK_PATH_CANDIDATE="
 @set "__OROCOS_ROCK_PATH_SCAN="
 @set "__OROCOS_ROCK_PATH_CURRENT="
+@set "__OROCOS_ROCK_PATH_EXISTING="
 @exit /b 0
 '@
 
