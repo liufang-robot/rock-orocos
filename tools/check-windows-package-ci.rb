@@ -411,15 +411,22 @@ else
   if runtime_batch&.match?(/\b(?:setlocal|powershell(?:\.exe)?|python(?:\.exe)?)\b/i)
     errors << "generated env.bat must not use scoped activation or helper subprocesses"
   end
+  safe_batch_dedup =
+    '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
   unsafe_batch_dedup =
     '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
-  if runtime_batch&.include?(unsafe_batch_dedup)
-    errors << "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity"
-  end
+  native_path_modifier_dedup =
+    '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
   nested_batch_dedup =
     '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"'
-  if runtime_batch&.include?(nested_batch_dedup)
+  if runtime_batch&.include?(unsafe_batch_dedup)
+    errors << "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity"
+  elsif runtime_batch&.include?(native_path_modifier_dedup)
+    errors << "generated env.bat must avoid native cmd FOR/path-modifier parser ambiguity"
+  elsif runtime_batch&.include?(nested_batch_dedup)
     errors << "generated env.bat must compare deduplication candidates without nested batch calls"
+  elsif !runtime_batch&.include?(safe_batch_dedup)
+    errors << "generated env.bat must use the parser-safe quoted FOR comparison"
   end
   if runtime_batch&.match?(/^\s*@?echo\s+off\s*$/i)
     errors << "generated env.bat must not change the caller's echo mode"

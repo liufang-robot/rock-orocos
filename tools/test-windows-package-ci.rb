@@ -454,8 +454,17 @@ exporter_mutations = {
     "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity",
     lambda do |contents|
       contents.sub(
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
         '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
+      )
+    end
+  ],
+  "batch dedup combines string substitution and FOR path modifier" => [
+    "generated env.bat must avoid native cmd FOR/path-modifier parser ambiguity",
+    lambda do |contents|
+      contents.sub(
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
       )
     end
   ],
@@ -463,7 +472,7 @@ exporter_mutations = {
     "generated env.bat must compare deduplication candidates without nested batch calls",
     lambda do |contents|
       contents.sub(
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
         '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"'
       )
     end
