@@ -36,11 +36,20 @@ scripts = ["scripts/activate-orocos.sh"]
 scripts = ["scripts/activate-orocos.ps1"]
 ```
 
-Runtime-only users replace or remove `orocos-dev = "==0.1.0"` and add
-`orocos = "==0.1.0"` under `[dependencies]`. The wrappers remain unchanged:
-they prefer `dev-env.sh` on Unix or `Library\dev-env.ps1` on Windows when
-`orocos-dev` is installed, and otherwise choose `env.sh` or
-`Library\env.ps1` from `orocos`. The scripts set the paths described by the
+Runtime-only users replace `orocos-dev = "==0.1.0"` with
+`orocos = "==0.1.0"` under `[dependencies]`. Unix consumers retain
+`[target.unix.activation]` so the project wrapper can source `env.sh`.
+
+Runtime-only Windows consumers do not need `[target.win.activation]`.
+The `orocos` package installs `Library\env.bat` and the
+`etc\conda\activate.d\orocos-activate.bat` package hook, which Pixi and Conda
+run automatically through `cmd.exe`. The hook establishes the complete
+runtime environment before `pixi run` or `pixi shell` starts a process.
+
+The example keeps `[target.win.activation]` because it installs `orocos-dev`.
+Its project wrapper dot-sources `Library\dev-env.ps1` to add OroGen, Typegen,
+and build dependencies after package-owned runtime activation. The wrappers
+and package hook set the paths described by the
 [Install Contract](./install-contract.md), are relocatable with the Conda
 environment, and do not require this repository's Autoproj workspace.
 
@@ -95,6 +104,12 @@ On Windows, activate a development package with:
 
 A runtime-only environment uses
 `. "$env:CONDA_PREFIX\Library\env.ps1"` instead.
+
+From `cmd.exe`, the equivalent explicit runtime entrypoint is:
+
+```bat
+call "%CONDA_PREFIX%\Library\env.bat"
+```
 
 ## Local Package Testing
 

@@ -114,6 +114,17 @@ else
   unless fenced_command?(automatic_activation, "pixi shell")
     errors << "Automatic Pixi Activation must contain a fenced pixi shell command"
   end
+  {
+    "Windows runtime batch entrypoint" => 'Library\env.bat',
+    "Windows package activation hook" =>
+      'etc\conda\activate.d\orocos-activate.bat',
+    "runtime-only Windows package activation" =>
+      'Runtime-only Windows consumers do not need `[target.win.activation]`'
+  }.each do |contract, token|
+    unless automatic_activation.include?(token)
+      errors << "Automatic Pixi Activation is missing #{contract}"
+    end
+  end
 end
 
 example_manifest_path = File.join(root, "examples", "pixi-consumer", "pixi.toml")
@@ -138,11 +149,27 @@ else
     "Unix development" => 'source "$CONDA_PREFIX/dev-env.sh"',
     "Unix runtime" => 'source "$CONDA_PREFIX/env.sh"',
     "Windows development" => '. "$env:CONDA_PREFIX\Library\dev-env.ps1"',
-    "Windows runtime" => '. "$env:CONDA_PREFIX\Library\env.ps1"'
+    "Windows PowerShell runtime" => '. "$env:CONDA_PREFIX\Library\env.ps1"',
+    "Windows cmd runtime" => 'call "%CONDA_PREFIX%\Library\env.bat"'
   }.each do |contract, command|
     unless manual_fallback.include?(command)
       errors << "Manual Fallback is missing the #{contract} command"
     end
+  end
+end
+
+install_contract = strip_html_comments(
+  File.read(File.join(source, "install-contract.md"))
+)
+{
+  "Windows batch runtime entrypoint" => '`env.bat`',
+  "Windows Conda activation hook" =>
+    '`etc/conda/activate.d/orocos-activate.bat`',
+  "PowerShell compatibility entrypoint" => '`env.ps1`',
+  "development entrypoint" => '`dev-env.ps1`'
+}.each do |contract, token|
+  unless install_contract.include?(token)
+    errors << "install contract is missing #{contract}"
   end
 end
 

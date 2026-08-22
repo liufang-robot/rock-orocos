@@ -17,7 +17,7 @@ The exact prefix may be configurable later, but the contract should stay the
 same regardless of location.
 
 The native Windows Pixi build uses `install/windows-msvc` by default and
-exports the same runtime/development split through `env.ps1` and
+exports the same runtime/development split through `env.ps1`, `env.bat`, and
 `dev-env.ps1`.
 
 The published `orocos` and `orocos-dev` packages map the
@@ -167,6 +167,20 @@ environment containing `orocos-dev`; that package declares those Pixi-managed
 dependencies and installs the exact matching `orocos` runtime. The `win32`
 generator defaults to the Typelib transport; CORBA and mqueue are not part of
 the Windows contract.
+
+The packaged Windows runtime additionally provides `Library/env.bat` for
+explicit `cmd.exe` activation and
+`etc/conda/activate.d/orocos-activate.bat` for automatic Pixi/Conda package
+activation. Both runtime entrypoints derive `OROCOS_PREFIX` from the installed
+`Library` prefix, set `OROCOS_TARGET=win32`, and expose the same runtime and
+component discovery paths. Repeated activation is case-insensitively
+deduplicated. The package hook only calls `Library/env.bat`; it does not
+duplicate the environment model or invoke PowerShell.
+
+`orocos-dev` receives this runtime hook through its exact dependency on
+`orocos`. Development setup remains the responsibility of `dev-env.ps1` and
+the downstream project's Windows Pixi activation wrapper. There is no
+`dev-env.bat` contract.
 
 ## Validation Expectations
 
