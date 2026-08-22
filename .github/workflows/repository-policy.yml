@@ -23,6 +23,7 @@ on:
       - "tools/install-autoproj.sh"
       - "tools/install-ruby-tools.sh"
       - "tools/locked-ruby-gems.rb"
+      - "tools/stage-license-corpus.rb"
       - "tools/prepare-windows-conda-release.ps1"
       - "tools/test-pixi-consumer-activation.rb"
       - "tools/test-source-provenance.rb"
@@ -33,6 +34,7 @@ on:
       - "tools/test-linux-prefix-sanitizer.rb"
       - "tools/test-linux-ruby-gems.rb"
       - "tools/test-linux-source-lock.rb"
+      - "tools/test-license-corpus.rb"
       - "tools/test-linux-conda-release.py"
       - "packaging/**"
       - "pixi.toml"
@@ -61,6 +63,7 @@ on:
       - "tools/install-autoproj.sh"
       - "tools/install-ruby-tools.sh"
       - "tools/locked-ruby-gems.rb"
+      - "tools/stage-license-corpus.rb"
       - "tools/prepare-windows-conda-release.ps1"
       - "tools/test-pixi-consumer-activation.rb"
       - "tools/test-source-provenance.rb"
@@ -71,6 +74,7 @@ on:
       - "tools/test-linux-prefix-sanitizer.rb"
       - "tools/test-linux-ruby-gems.rb"
       - "tools/test-linux-source-lock.rb"
+      - "tools/test-license-corpus.rb"
       - "tools/test-linux-conda-release.py"
       - "packaging/**"
       - "pixi.toml"
@@ -95,6 +99,7 @@ jobs:
           python3 tools/test-linux-conda-release.py
           ruby tools/test-linux-prefix-sanitizer.rb
           ruby tools/test-linux-ruby-gems.rb
+          ruby tools/test-license-corpus.rb
           ruby tools/check-docs.rb
           ruby tools/test-pixi-consumer-activation.rb
 

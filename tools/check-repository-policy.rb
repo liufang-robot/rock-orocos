@@ -181,6 +181,7 @@ else
     tools/install-autoproj.sh
     tools/install-ruby-tools.sh
     tools/locked-ruby-gems.rb
+    tools/stage-license-corpus.rb
     tools/prepare-windows-conda-release.ps1
     tools/test-pixi-consumer-activation.rb
     tools/test-source-provenance.rb
@@ -191,6 +192,7 @@ else
     tools/test-linux-prefix-sanitizer.rb
     tools/test-linux-ruby-gems.rb
     tools/test-linux-source-lock.rb
+    tools/test-license-corpus.rb
     tools/test-linux-conda-release.py
     packaging/**
     pixi.toml
@@ -218,6 +220,7 @@ else
       "python3 tools/test-linux-conda-release.py" => "repository policy workflow must run Linux conda archive tests",
       "ruby tools/test-linux-prefix-sanitizer.rb" => "repository policy workflow must run Linux prefix sanitizer tests",
       "ruby tools/test-linux-ruby-gems.rb" => "repository policy workflow must run Linux Ruby gem input tests",
+      "ruby tools/test-license-corpus.rb" => "repository policy workflow must run license corpus regression tests",
       "ruby tools/check-docs.rb" => "repository policy workflow must run documentation policy check",
       "ruby tools/test-pixi-consumer-activation.rb" => "repository policy workflow must run Pixi consumer activation tests"
     }.each do |command, message|

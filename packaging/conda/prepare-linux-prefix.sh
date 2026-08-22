@@ -26,6 +26,15 @@ for required in \
     }
 done
 
+ruby "$repository_root/tools/stage-license-corpus.rb" \
+    --inventory "$repository_root/packaging/license-corpus.json" \
+    --source-lock "$repository_root/packaging/source-lock.json" \
+    --platform linux \
+    --source-root "$repository_root" \
+    --gem-home "$prefix/toolchain/gems" \
+    --gem-cache "$repository_root/.ruby-gems" \
+    --prefix "$prefix"
+
 ruby "$repository_root/packaging/conda/sanitize-linux-prefix.rb" \
     --prefix "$prefix" \
     --build-prefix "$build_prefix" \

@@ -14,6 +14,7 @@ source:
     filter:
       include:
         - autoproj/**
+        - packaging/license-corpus.json
         - packaging/source-lock.json
         - packaging/conda/build-linux.sh
         - packaging/conda/prepare-linux-prefix.sh
@@ -158,6 +159,7 @@ outputs:
       files:
         include:
           - env.sh
+          - share/licenses/orocos/**
           - toolchain/bin/ctaskbrowser*
           - toolchain/bin/deployer*
           - toolchain/bin/rtt*
@@ -184,10 +186,13 @@ outputs:
           files:
             exists:
               - env.sh
+              - share/licenses/orocos/LICENSES.md
+              - share/licenses/orocos/manifest.json
               - toolchain/bin/deployer-opcua-gnulinux
               - toolchain/lib/orocos/gnulinux/types/librtt-transport-mqueue-gnulinux.so
             not_exists:
               - dev-env.sh
+              - share/licenses/orocos-dev/LICENSES.md
               - toolchain/include/orocos/rtt/RTT.hpp
               - toolchain/lib/ruby/3.4.0/x86_64-linux/typelib_ruby.so
       - script: test-runtime-linux.sh
@@ -195,7 +200,9 @@ outputs:
       homepage: https://github.com/liufang-robot/rock-orocos
       repository: https://github.com/liufang-robot/rock-orocos
       documentation: https://liufang-robot.github.io/rock-orocos/
-      license: GPL-2.0-only
+      license: MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND LGPL-2.1-only AND GPL-2.0-only AND LGPL-2.1-or-later AND GPL-2.0-or-later AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices
+      license_file:
+        - ${{ PREFIX }}/share/licenses/orocos/**
       summary: Orocos RTT runtime with OCL, scripting, and native OPC UA tools
       description: |
         A relocatable Linux Orocos runtime containing RTT, OCL deployers,
@@ -212,6 +219,7 @@ outputs:
       files:
         include:
           - dev-env.sh
+          - share/licenses/orocos-dev/**
           - toolchain/bin/*
           - toolchain/gems/**
           - toolchain/include/**
@@ -243,19 +251,24 @@ outputs:
           files:
             exists:
               - dev-env.sh
+              - share/licenses/orocos-dev/LICENSES.md
+              - share/licenses/orocos-dev/manifest.json
               - toolchain/bin/orogen
               - toolchain/bin/typegen
               - toolchain/include/orocos/rtt/RTT.hpp
               - toolchain/lib/cmake/orocos-rtt/orocos-rtt-config.cmake
             not_exists:
               - env.sh
+              - share/licenses/orocos/LICENSES.md
               - toolchain/bin/deployer-opcua-gnulinux
       - script: test-dev-linux.sh
     about:
       homepage: https://github.com/liufang-robot/rock-orocos
       repository: https://github.com/liufang-robot/rock-orocos
       documentation: https://liufang-robot.github.io/rock-orocos/
-      license: GPL-2.0-only
+      license: MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND LGPL-2.1-only AND GPL-2.0-only AND LGPL-2.1-or-later AND GPL-2.0-or-later AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices
+      license_file:
+        - ${{ PREFIX }}/share/licenses/orocos-dev/**
       summary: Orocos development SDK with OroGen and Typegen
       description: |
         Headers, CMake and pkg-config metadata, Ruby generator libraries,
@@ -266,7 +279,7 @@ about:
   homepage: https://github.com/liufang-robot/rock-orocos
   repository: https://github.com/liufang-robot/rock-orocos
   documentation: https://liufang-robot.github.io/rock-orocos/
-  license: GPL-2.0-only
+  license: MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND LGPL-2.1-only AND GPL-2.0-only AND LGPL-2.1-or-later AND GPL-2.0-or-later AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices
   summary: Standalone Orocos RTT runtime and development toolchain for Linux
   description: |
     A relocatable Orocos/Rock toolchain split into runtime and development
