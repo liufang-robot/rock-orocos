@@ -3,6 +3,7 @@ param()
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$script:BatchStandardOutput = ""
 
 function Get-BatchEnvironment {
     param(
@@ -28,6 +29,7 @@ function Get-BatchEnvironment {
         $standardOutput = $process.StandardOutput.ReadToEnd()
         $standardError = $process.StandardError.ReadToEnd()
         $process.WaitForExit()
+        $script:BatchStandardOutput = $standardOutput
         if ($process.ExitCode -ne 0) {
             throw @"
 Batch activation failed with code $($process.ExitCode).
@@ -65,7 +67,13 @@ function Assert-EnvironmentValue {
             $actual,
             $Expected,
             [StringComparison]::OrdinalIgnoreCase)) {
-        throw "$Name was '$actual', expected '$Expected'."
+        $parsedKeys = @($Environment.Keys | Sort-Object) -join ", "
+        throw @"
+$Name was '$actual', expected '$Expected'.
+Parsed keys: $parsedKeys
+Batch output:
+$script:BatchStandardOutput
+"@
     }
 }
 
