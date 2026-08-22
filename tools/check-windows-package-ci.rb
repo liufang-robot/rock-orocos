@@ -80,9 +80,13 @@ end
 root = File.expand_path("..", __dir__)
 workflow_path = File.join(root, ".github", "workflows", "windows-packages.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe.yaml")
+build_path = File.join(root, "packaging", "conda", "build.ps1")
+hook_path = File.join(root, "packaging", "conda", "orocos-activate.bat")
+runtime_test_path = File.join(root, "packaging", "conda", "test-runtime.ps1")
 staging_path = File.join(root, "tools", "prepare-windows-conda-release.ps1")
 consumer_path = File.join(root, "tools", "test-windows-conda-consumer.ps1")
 activation_path = File.join(root, "examples", "pixi-consumer", "scripts", "activate-orocos.ps1")
+exporter_path = File.join(root, "tools", "export-windows-env.ps1")
 errors = []
 
 unless File.file?(workflow_path)
@@ -248,6 +252,10 @@ unless File.file?(recipe_path)
   errors << "missing packaging/conda/recipe.yaml"
 else
   recipe = File.read(recipe_path)
+  build_number = recipe[/^  build_number:\s*(\d+)\s*$/, 1]
+  unless build_number && build_number.to_i > 0
+    errors << "Windows package recipe build number must be greater than published build 0"
+  end
   unless recipe.include?(%q{${{ compiler('cxx') }}})
     errors << "Windows package recipe must activate the MSVC x64 build environment"
   end
@@ -270,6 +278,110 @@ else
     "description:"
   ].each do |token|
     errors << "Windows package recipe must define package descriptions" unless recipe.include?(token)
+  end
+
+  runtime_output = recipe[/^  - package:\r?\n      name: orocos\r?\n(?<body>.*?)(?=^  - package:|\z)/m, :body]
+  development_output = recipe[/^  - package:\r?\n      name: orocos-dev\r?\n(?<body>.*?)(?=^  - package:|\z)/m, :body]
+  unless recipe.include?("        - packaging/conda/orocos-activate.bat")
+    errors << "Windows package recipe must include the Conda activation hook source"
+  end
+  {
+    "Library/env.bat" => "generated batch runtime entrypoint",
+    "etc/conda/activate.d/orocos-activate.bat" => "Conda runtime activation hook"
+  }.each do |path, contract|
+    runtime_count = runtime_output.to_s.scan(/^\s+- #{Regexp.escape(path)}\s*$/).size
+    unless runtime_count >= 2
+      errors << "orocos runtime output must own and test the #{contract}"
+    end
+    development_count = development_output.to_s.scan(/^\s+- #{Regexp.escape(path)}\s*$/).size
+    unless development_count == 1
+      errors << "orocos-dev output must explicitly exclude the #{contract}"
+    end
+  end
+  if recipe.match?(/^\s+- Library\/dev-env\.bat\s*$/)
+    errors << "Windows package recipe must not add dev-env.bat"
+  end
+end
+
+unless File.file?(build_path)
+  errors << "missing packaging/conda/build.ps1"
+else
+  build_script = File.read(build_path)
+  {
+    "the repository-owned activation hook" =>
+      'Join-Path $repositoryRoot "packaging\conda\orocos-activate.bat"',
+    "the Conda prefix activation directory" =>
+      'Join-Path $env:PREFIX "etc\conda\activate.d"',
+    "the activation hook copy" => "Copy-Item"
+  }.each do |contract, token|
+    errors << "Windows package build must stage #{contract}" unless build_script.include?(token)
+  end
+end
+
+expected_hook = <<~'BATCH'
+  @call "%~dp0..\..\..\Library\env.bat"
+  @exit /b %ERRORLEVEL%
+BATCH
+if !File.file?(hook_path)
+  errors << "missing packaging/conda/orocos-activate.bat"
+elsif File.read(hook_path).gsub("\r\n", "\n") != expected_hook
+  errors << "Windows package activation hook must only call Library\\env.bat and propagate failure"
+end
+
+unless File.file?(exporter_path)
+  errors << "missing tools/export-windows-env.ps1"
+else
+  exporter = File.read(exporter_path)
+  {
+    "the shared runtime directory model" => "$runtimeDirectoriesBeforeRecursive",
+    "the generated batch runtime template" => "$runtimeBatchTemplate = @'",
+    "the batch runtime output" => 'Join-Path $Prefix "env.bat"'
+  }.each do |contract, token|
+      errors << "Windows environment exporter must define #{contract}" unless exporter.include?(token)
+  end
+  if exporter.include?(%q!"{0}(Join-Path `$Prefix '{1}')," -f!)
+    errors << "Windows environment exporter must not emit a trailing comma after the final PowerShell path expression"
+  end
+
+  runtime_batch = powershell_here_string(exporter, "runtimeBatchTemplate")
+  {
+    "self-relative prefix discovery" => '%~dp0.',
+    "recursive Orocos directory discovery" => "for /d /r",
+    "directory existence filtering" => "if not exist",
+    "case-insensitive path deduplication" => "if /I",
+    "caller-preserving success" => "exit /b 0"
+  }.each do |contract, token|
+    unless runtime_batch&.include?(token)
+      errors << "generated env.bat must implement #{contract}"
+    end
+  end
+  if runtime_batch&.match?(/\b(?:setlocal|powershell(?:\.exe)?|python(?:\.exe)?)\b/i)
+    errors << "generated env.bat must not use scoped activation or helper subprocesses"
+  end
+  if runtime_batch&.match?(/^\s*@?echo\s+off\s*$/i)
+    errors << "generated env.bat must not change the caller's echo mode"
+  end
+end
+
+
+unless File.file?(runtime_test_path)
+  errors << "missing packaging/conda/test-runtime.ps1"
+else
+  runtime_test = File.read(runtime_test_path)
+  {
+    "the explicit batch runtime entrypoint" => 'Join-Path $libraryPrefix "env.bat"',
+    "the package activation hook" =>
+      'Join-Path $condaPrefix "etc\conda\activate.d\orocos-activate.bat"',
+    "cmd.exe caller activation" => "Invoke-BatchEnvironment",
+    "repeated activation" =>
+      'Invoke-BatchEnvironment -BatchPath $runtimeBatch -Calls 2',
+    "global path deduplication" => "Assert-PathEntriesUnique",
+    "structured expected path records" => "$expectedPathEntries = @(",
+    "a relocated prefix containing spaces" => '"orocos activation "',
+    "case-insensitive comparisons" => "OrdinalIgnoreCase",
+    "recursive runtime discovery" => '"lib\orocos\win32\custom\plugins"'
+  }.each do |contract, token|
+    errors << "Windows runtime package test must cover #{contract}" unless runtime_test.include?(token)
   end
 end
 
@@ -319,8 +431,8 @@ else
   activation_sources = consumer.scan(
     /^[ \t]*\.[ \t]+\$env:OROCOS_PIXI_ACTIVATION_SCRIPT[ \t]*\r?$/
   )
-  unless activation_sources.size == 2
-    errors << "consumer smoke test must source the shared Pixi activation wrapper exactly twice"
+  unless activation_sources.size == 1
+    errors << "consumer smoke test must source the shared Pixi activation wrapper only for development"
   end
 
   activation_resolution =
@@ -341,6 +453,29 @@ else
   }.each do |command, body|
     unless body&.match?(/^[ \t]*\$ErrorActionPreference[ \t]*=[ \t]*"Stop"[ \t]*\r?$/)
       errors << "consumer smoke test #{command} child must stop on PowerShell errors"
+    end
+  end
+
+  runtime_body = powershell_here_string(consumer, "runtimeCommand")
+  development_body = powershell_here_string(consumer, "developmentCommand")
+  if runtime_body&.include?("OROCOS_PIXI_ACTIVATION_SCRIPT") ||
+     runtime_body&.match?(/(?:dev-)?env\.ps1/i)
+    errors << "runtime consumer must rely only on package-owned activation"
+  end
+  unless development_body&.scan(
+      /^[ \t]*\.[ \t]+\$env:OROCOS_PIXI_ACTIVATION_SCRIPT[ \t]*\r?$/
+    )&.size == 1
+    errors << "development consumer must source the shared Pixi activation wrapper once"
+  end
+  {
+    "the package-owned runtime prefix" => "$expectedPrefix",
+    "the activated Orocos prefix" => "$env:OROCOS_PREFIX",
+    "the win32 target" => '$env:OROCOS_TARGET -ne "win32"',
+    "case-insensitive relocated-prefix comparison" => "OrdinalIgnoreCase",
+    "runtime command discovery" => "Get-Command deployer-opcua-win32.exe"
+  }.each do |contract, token|
+    unless runtime_body&.include?(token)
+      errors << "runtime consumer must check #{contract}"
     end
   end
 end

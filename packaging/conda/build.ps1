@@ -21,8 +21,12 @@ if ($env:SUBDIR -ne "win-64") {
 $repositoryRoot = (Resolve-Path -LiteralPath $env:SRC_DIR).Path
 $sourceLockPath = Join-Path $repositoryRoot "packaging\source-lock.json"
 $sourceLockHelper = Join-Path $repositoryRoot "tools\windows-source-lock.ps1"
+$activationHookSource = Join-Path $repositoryRoot "packaging\conda\orocos-activate.bat"
 if (-not (Test-Path -LiteralPath $sourceLockHelper -PathType Leaf)) {
     throw "Missing Windows source-lock helper: $sourceLockHelper"
+}
+if (-not (Test-Path -LiteralPath $activationHookSource -PathType Leaf)) {
+    throw "Missing Windows runtime activation hook: $activationHookSource"
 }
 
 . $sourceLockHelper
@@ -117,5 +121,11 @@ try {
         Remove-Item -LiteralPath $resolvedTemporaryRoot -Recurse -Force
     }
 }
+
+$activationHookDirectory = Join-Path $env:PREFIX "etc\conda\activate.d"
+New-Item -ItemType Directory -Force -Path $activationHookDirectory | Out-Null
+Copy-Item -LiteralPath $activationHookSource `
+    -Destination (Join-Path $activationHookDirectory "orocos-activate.bat") `
+    -Force
 
 Write-Host "Staged relocatable Orocos prefix from $($sourceLock.Count) locked sources."

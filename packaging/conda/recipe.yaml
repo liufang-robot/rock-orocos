@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   version: "0.1.0"
-  build_number: 0
+  build_number: 1
 
 recipe:
   name: orocos-distribution
@@ -16,6 +16,7 @@ source:
         - packaging/license-corpus.json
         - packaging/source-lock.json
         - packaging/conda/build.ps1
+        - packaging/conda/orocos-activate.bat
         - packaging/conda/prepare-prefix.ps1
         - tools/build-windows-msvc.ps1
         - tools/export-windows-env.ps1
@@ -73,8 +74,10 @@ outputs:
           - Library/bin/*.exe
           - Library/lib/orocos/**/*.dll
           - Library/lib/typelib/*.dll
+          - Library/env.bat
           - Library/env.ps1
           - Library/share/licenses/orocos/**
+          - etc/conda/activate.d/orocos-activate.bat
     requirements:
       run:
         - vc14_runtime >=14.44,<15
@@ -84,7 +87,9 @@ outputs:
             exists:
               - Library/bin/deployer-opcua-win32.exe
               - Library/bin/readline.dll
+              - Library/env.bat
               - Library/env.ps1
+              - etc/conda/activate.d/orocos-activate.bat
               - Library/share/licenses/orocos/LICENSES.md
               - Library/share/licenses/orocos/manifest.json
               - Library/lib/orocos/win32/types/rtt-typekit-win32.dll
@@ -151,7 +156,9 @@ outputs:
               - Library/vcpkg/include/boost/version.hpp
             not_exists:
               - Library/bin/deployer-opcua-win32.exe
+              - Library/env.bat
               - Library/env.ps1
+              - etc/conda/activate.d/orocos-activate.bat
               - Library/share/licenses/orocos/LICENSES.md
       - script: test-dev.ps1
         files:

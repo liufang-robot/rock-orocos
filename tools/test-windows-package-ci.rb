@@ -9,8 +9,12 @@ ROOT = File.expand_path("..", __dir__)
 FIXTURE_PATHS = %w[
   .github/workflows/windows-packages.yml
   examples/pixi-consumer/scripts/activate-orocos.ps1
+  packaging/conda/build.ps1
+  packaging/conda/orocos-activate.bat
   packaging/conda/recipe.yaml
+  packaging/conda/test-runtime.ps1
   tools/check-windows-package-ci.rb
+  tools/export-windows-env.ps1
   tools/prepare-windows-conda-release.ps1
   tools/test-windows-conda-consumer.ps1
 ].freeze
@@ -226,23 +230,29 @@ end
 shared_source = '    . $env:OROCOS_PIXI_ACTIVATION_SCRIPT'
 child_error_preference = '    $ErrorActionPreference = "Stop"'
 consumer_mutations = {
-  "commented runtime shared wrapper source" => [
-    "consumer smoke test must source the shared Pixi activation wrapper exactly twice",
+  "runtime shared wrapper source" => [
+    "runtime consumer must rely only on package-owned activation",
     lambda do |contents|
-      replace_occurrence(contents, shared_source, "    # . $env:OROCOS_PIXI_ACTIVATION_SCRIPT", 0)
+      replace_occurrence(
+        contents,
+        child_error_preference,
+        "#{child_error_preference}\n#{shared_source}",
+        0
+      )
     end
   ],
-  "missing both shared wrapper sources" => [
-    "consumer smoke test must source the shared Pixi activation wrapper exactly twice",
-    ->(contents) { contents.gsub(/^#{Regexp.escape(shared_source)}\r?\n/, "") }
+  "missing development shared wrapper source" => [
+    "consumer smoke test must source the shared Pixi activation wrapper only for development",
+    ->(contents) { contents.sub(/^#{Regexp.escape(shared_source)}\r?\n/, "") }
   ],
   "direct runtime installed activation source" => [
     "consumer smoke test must not source installed activation scripts directly",
     lambda do |contents|
       replace_occurrence(
         contents,
-        shared_source,
-        %q{    . (Join-Path $env:CONDA_PREFIX 'Library\env.ps1')},
+        child_error_preference,
+        "#{child_error_preference}\n" +
+          %q{    . (Join-Path $env:CONDA_PREFIX 'Library\env.ps1')},
         0
       )
     end
@@ -254,7 +264,7 @@ consumer_mutations = {
         contents,
         shared_source,
         %q{    . (Join-Path $env:CONDA_PREFIX 'Library\dev-env.ps1')},
-        1
+        0
       )
     end
   ],
@@ -274,6 +284,18 @@ consumer_mutations = {
   "missing development child terminating-error preference" => [
     "consumer smoke test development child must stop on PowerShell errors",
     ->(contents) { replace_occurrence(contents, child_error_preference, "", 1) }
+  ],
+  "missing runtime prefix assertion" => [
+    "runtime consumer must check the package-owned runtime prefix",
+    ->(contents) { contents.gsub("$expectedPrefix", "$wrongPrefix") }
+  ],
+  "weakened runtime target assertion" => [
+    "runtime consumer must check the win32 target",
+    ->(contents) { contents.sub('$env:OROCOS_TARGET -ne "win32"', '$env:OROCOS_TARGET -ne "wrong"') }
+  ],
+  "case-sensitive runtime prefix comparison" => [
+    "runtime consumer must check case-insensitive relocated-prefix comparison",
+    ->(contents) { contents.sub("OrdinalIgnoreCase", "Ordinal") }
   ]
 }
 
@@ -296,12 +318,111 @@ wrapper_mutations = {
   ]
 }
 
+recipe_mutations = {
+  "reused published Windows build number" => [
+    "Windows package recipe build number must be greater than published build 0",
+    lambda do |contents|
+      contents.sub(
+        /^  build_number: \d+$/,
+        "  build_number: 0"
+      )
+    end
+  ],
+  "missing runtime batch package ownership" => [
+    "orocos runtime output must own and test the generated batch runtime entrypoint",
+    lambda do |contents|
+      replace_occurrence(contents, "          - Library/env.bat\n", "", 0)
+    end
+  ],
+  "missing runtime hook package ownership" => [
+    "orocos runtime output must own and test the Conda runtime activation hook",
+    lambda do |contents|
+      replace_occurrence(
+        contents,
+        "          - etc/conda/activate.d/orocos-activate.bat\n",
+        "",
+        0
+      )
+    end
+  ],
+  "development package claims runtime batch" => [
+    "orocos-dev output must explicitly exclude the generated batch runtime entrypoint",
+    lambda do |contents|
+      replace_occurrence(contents, "              - Library/env.bat\n", "", 1)
+    end
+  ],
+  "missing activation hook recipe source" => [
+    "Windows package recipe must include the Conda activation hook source",
+    ->(contents) { contents.sub("        - packaging/conda/orocos-activate.bat\n", "") }
+  ]
+}
+
+build_mutations = {
+  "activation hook staged below Library prefix" => [
+    "Windows package build must stage the Conda prefix activation directory",
+    lambda do |contents|
+      contents.sub(
+        'Join-Path $env:PREFIX "etc\conda\activate.d"',
+        'Join-Path $env:LIBRARY_PREFIX "etc\conda\activate.d"'
+      )
+    end
+  ]
+}
+
+hook_mutations = {
+  "activation hook calls PowerShell entrypoint" => [
+    "Windows package activation hook must only call Library\\env.bat and propagate failure",
+    ->(contents) { contents.sub("Library\\env.bat", "Library\\env.ps1") }
+  ]
+}
+
+exporter_mutations = {
+  "PowerShell path model emits a trailing array comma" => [
+    "Windows environment exporter must not emit a trailing comma after the final PowerShell path expression",
+    lambda do |contents|
+      contents.sub(
+        %q!"{0}(Join-Path `$Prefix '{1}')" -f!,
+        %q!"{0}(Join-Path `$Prefix '{1}')," -f!
+      )
+    end
+  ],
+  "missing generated batch output" => [
+    "Windows environment exporter must define the batch runtime output",
+    ->(contents) { contents.sub('Join-Path $Prefix "env.bat"', 'Join-Path $Prefix "runtime.bat"') }
+  ],
+  "batch activation uses setlocal" => [
+    "generated env.bat must not use scoped activation or helper subprocesses",
+    ->(contents) { contents.sub("@rem Call this file", "@setlocal\n@rem Call this file") }
+  ]
+}
+
+runtime_test_mutations = {
+  "runtime batch is not called twice" => [
+    "Windows runtime package test must cover repeated activation",
+    ->(contents) { contents.sub("-BatchPath $runtimeBatch -Calls 2", "-BatchPath $runtimeBatch") }
+  ],
+  "runtime test skips the package hook" => [
+    "Windows runtime package test must cover the package activation hook",
+    lambda do |contents|
+      contents.sub(
+        'Join-Path $condaPrefix "etc\conda\activate.d\orocos-activate.bat"',
+        'Join-Path $condaPrefix "missing-orocos-activate.bat"'
+      )
+    end
+  ]
+}
+
 accepted_mutations = []
 wrong_rejections = []
 {
   ".github/workflows/windows-packages.yml" => mutations,
   "tools/test-windows-conda-consumer.ps1" => consumer_mutations,
-  "examples/pixi-consumer/scripts/activate-orocos.ps1" => wrapper_mutations
+  "examples/pixi-consumer/scripts/activate-orocos.ps1" => wrapper_mutations,
+  "packaging/conda/recipe.yaml" => recipe_mutations,
+  "packaging/conda/build.ps1" => build_mutations,
+  "packaging/conda/orocos-activate.bat" => hook_mutations,
+  "packaging/conda/test-runtime.ps1" => runtime_test_mutations,
+  "tools/export-windows-env.ps1" => exporter_mutations
 }.each do |relative_path, file_mutations|
   file_mutations.each do |name, (expected_error, mutation)|
     with_fixture do |root|

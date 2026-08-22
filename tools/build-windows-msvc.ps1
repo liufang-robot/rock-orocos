@@ -790,6 +790,7 @@ Invoke-Step "Validate Windows prefix" {
         "toolchain\bin\orogen.bat",
         "toolchain\bin\typegen.bat",
         "env.ps1",
+        "env.bat",
         "dev-env.ps1"
     )
 
