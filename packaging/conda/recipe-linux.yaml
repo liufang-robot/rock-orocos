@@ -2,7 +2,7 @@ schema_version: 1
 
 context:
   version: "0.1.0"
-  build_number: 0
+  build_number: 1
 
 recipe:
   name: orocos-distribution
@@ -17,6 +17,7 @@ source:
         - packaging/license-corpus.json
         - packaging/source-lock.json
         - packaging/conda/build-linux.sh
+        - packaging/conda/orocos-activate.sh
         - packaging/conda/prepare-linux-prefix.sh
         - packaging/conda/sanitize-linux-prefix.rb
         - packaging/conda/test-runtime-linux.sh
@@ -159,6 +160,7 @@ outputs:
       files:
         include:
           - env.sh
+          - etc/conda/activate.d/orocos-activate.sh
           - share/licenses/orocos/**
           - toolchain/bin/ctaskbrowser*
           - toolchain/bin/deployer*
@@ -186,6 +188,7 @@ outputs:
           files:
             exists:
               - env.sh
+              - etc/conda/activate.d/orocos-activate.sh
               - share/licenses/orocos/LICENSES.md
               - share/licenses/orocos/manifest.json
               - toolchain/bin/deployer-opcua-gnulinux
@@ -260,6 +263,7 @@ outputs:
               - toolchain/lib/cmake/orocos-rtt/orocos-rtt-config.cmake
             not_exists:
               - env.sh
+              - etc/conda/activate.d/orocos-activate.sh
               - share/licenses/orocos/LICENSES.md
               - toolchain/bin/deployer-opcua-gnulinux
       - script: test-dev-linux.sh

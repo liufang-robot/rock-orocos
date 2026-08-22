@@ -24,6 +24,19 @@ def pinned_action(name)
   "#{name}@#{ACTION_PINS.fetch(name)}"
 end
 
+def shell_here_document(contents, variable)
+  contents.match(
+    /^#{Regexp.escape(variable)}="\$\(cat <<'COMMAND'\r?\n(?<body>.*?)^COMMAND\r?\n\)"\r?$/m
+  )&.[](:body)
+end
+
+def package_content_files(output, presence)
+  contents_test = Array(output["tests"]).find do |test|
+    test.is_a?(Hash) && test.key?("package_contents")
+  end
+  Array(contents_test&.dig("package_contents", "files", presence))
+end
+
 def check_release_checkout(steps, name, errors)
   checkout = steps[0] || {}
   unless checkout["uses"] == pinned_action("actions/checkout") &&
@@ -50,6 +63,9 @@ workflow_path = File.join(root, ".github", "workflows", "linux-packages.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe-linux.yaml")
 build_path = File.join(root, "packaging", "conda", "build-linux.sh")
 sanitizer_path = File.join(root, "packaging", "conda", "sanitize-linux-prefix.rb")
+hook_path = File.join(root, "packaging", "conda", "orocos-activate.sh")
+prefix_preparation_path = File.join(root, "packaging", "conda", "prepare-linux-prefix.sh")
+runtime_test_path = File.join(root, "packaging", "conda", "test-runtime-linux.sh")
 development_test_path = File.join(root, "packaging", "conda", "test-dev-linux.sh")
 release_path = File.join(root, "tools", "prepare-linux-conda-release.rb")
 consumer_path = File.join(root, "tools", "test-linux-conda-consumer.sh")
@@ -188,6 +204,17 @@ if !File.file?(recipe_path)
 else
   recipe_contents = File.read(recipe_path)
   recipe = YAML.safe_load(recipe_contents, aliases: true)
+  unless recipe.dig("context", "build_number") == 1
+    errors << "Linux package recipe build number must be 1 for automatic runtime activation"
+  end
+
+  local_source = Array(recipe["source"]).find { |source| source["path"] == "../.." }
+  local_source_files = Array(local_source&.dig("filter", "include"))
+  hook_source_path = "packaging/conda/orocos-activate.sh"
+  unless local_source_files.count(hook_source_path) == 1
+    errors << "Linux package recipe must include the runtime activation hook source exactly once"
+  end
+
   package_outputs = Array(recipe["outputs"]).filter_map do |output|
     name = output.dig("package", "name")
     [name, output] if name
@@ -209,6 +236,35 @@ else
   unless development_python_requirements == [python_requirement]
     errors << "Linux orocos-dev must require exactly #{python_requirement}"
   end
+  exact_runtime_dependency = "${{ pin_subpackage('orocos', exact=True) }}"
+  unless development_requirements.count(exact_runtime_dependency) == 1
+    errors << "Linux orocos-dev must retain exactly one exact dependency on orocos"
+  end
+
+  activation_hook = "etc/conda/activate.d/orocos-activate.sh"
+  runtime_output = package_outputs["orocos"] || {}
+  development_output = package_outputs["orocos-dev"] || {}
+  runtime_files = Array(runtime_output.dig("build", "files", "include"))
+  development_files = Array(development_output.dig("build", "files", "include"))
+  runtime_exists = package_content_files(runtime_output, "exists")
+  runtime_not_exists = package_content_files(runtime_output, "not_exists")
+  development_exists = package_content_files(development_output, "exists")
+  development_not_exists = package_content_files(development_output, "not_exists")
+  unless runtime_files.count(activation_hook) == 1
+    errors << "Linux orocos output must own the runtime activation hook exactly once"
+  end
+  unless runtime_exists.count(activation_hook) == 1
+    errors << "Linux orocos package contents must require the runtime activation hook"
+  end
+  if runtime_not_exists.include?(activation_hook)
+    errors << "Linux orocos package contents must not exclude the runtime activation hook"
+  end
+  if development_files.include?(activation_hook) || development_exists.include?(activation_hook)
+    errors << "Linux orocos-dev output must not own the runtime activation hook"
+  end
+  unless development_not_exists.count(activation_hook) == 1
+    errors << "Linux orocos-dev package contents must explicitly exclude the runtime activation hook"
+  end
 
   {
     "linux-64 source build" => "build-linux.sh",
@@ -222,6 +278,79 @@ else
     "published documentation" => "https://liufang-robot.github.io/rock-orocos/"
   }.each do |contract, token|
     errors << "Linux recipe is missing #{contract}" unless recipe_contents.include?(token)
+  end
+end
+
+expected_hook = <<~'SH'
+  #!/bin/sh
+
+  if [ -z "${CONDA_PREFIX:-}" ]; then
+      printf '%s\n' 'Cannot activate Orocos runtime: CONDA_PREFIX is not set.' >&2
+      return 1
+  fi
+
+  if [ ! -f "$CONDA_PREFIX/env.sh" ]; then
+      printf 'Cannot activate Orocos runtime: missing %s.\n' \
+          "$CONDA_PREFIX/env.sh" >&2
+      return 1
+  fi
+
+  # shellcheck disable=SC1091
+  . "$CONDA_PREFIX/env.sh"
+SH
+if !File.file?(hook_path)
+  errors << "missing packaging/conda/orocos-activate.sh"
+elsif File.read(hook_path).gsub("\r\n", "\n") != expected_hook
+  errors << "Linux package activation hook must validate CONDA_PREFIX and source only the relocatable $CONDA_PREFIX/env.sh"
+end
+
+if !File.file?(prefix_preparation_path)
+  errors << "missing packaging/conda/prepare-linux-prefix.sh"
+else
+  prefix_preparation = File.read(prefix_preparation_path)
+  {
+    "the repository-owned activation hook" =>
+      'activation_hook_source="$repository_root/packaging/conda/orocos-activate.sh"',
+    "the Conda prefix activation directory" =>
+      'activation_hook_directory="$prefix/etc/conda/activate.d"',
+    "the activation directory with mode 0755" =>
+      'install -d -m 0755 "$activation_hook_directory"',
+    "the sourced activation hook with mode 0644" =>
+      'install -m 0644 "$activation_hook_source"',
+    "the canonical activation hook destination" =>
+      '"$activation_hook_directory/orocos-activate.sh"'
+  }.each do |contract, token|
+    errors << "Linux prefix preparation must stage #{contract}" unless prefix_preparation.include?(token)
+  end
+end
+
+if !File.file?(runtime_test_path)
+  errors << "missing packaging/conda/test-runtime-linux.sh"
+else
+  runtime_test = File.read(runtime_test_path)
+  {
+    "the installed package activation hook" =>
+      'test -f "$PREFIX/etc/conda/activate.d/orocos-activate.sh"',
+    "the Conda activation prefix" => 'test -n "${CONDA_PREFIX:-}"',
+    "the resolved Conda prefix" =>
+      'resolved_conda_prefix="$(cd "$CONDA_PREFIX" && pwd)"',
+    "the resolved Rattler test prefix" =>
+      'resolved_test_prefix="$(cd "$PREFIX" && pwd)"',
+    "the shared activated and test prefix" =>
+      'test "$resolved_conda_prefix" = "$resolved_test_prefix"',
+    "the automatically activated Orocos prefix" =>
+      'test "$OROCOS_PREFIX" = "$PREFIX"',
+    "the automatically activated gnulinux target" =>
+      'test "$OROCOS_TARGET" = "gnulinux"'
+  }.each do |contract, line|
+    unless runtime_test.lines.any? { |candidate| candidate.strip == line }
+      errors << "Linux runtime package test must check #{contract}"
+    end
+  end
+  if runtime_test.match?(
+    /^[ \t]*(?:\.|source)[ \t]+[^\n]*(?:dev-)?env\.sh[^\n]*$/
+  )
+    errors << "Linux runtime package test must rely on automatic package activation"
   end
 end
 
@@ -287,20 +416,73 @@ else
   activation_sources = consumer.scan(
     /^[ \t]*\.[ \t]+"\$OROCOS_PIXI_ACTIVATION_SCRIPT"[ \t]*$/
   )
-  unless activation_sources.size == 2
-    errors << "Linux consumer test must source the shared Pixi activation wrapper exactly twice"
+  unless activation_sources.size == 1
+    errors << "Linux consumer test must source the project Pixi activation wrapper exactly once for development"
   end
 
-  activation_export =
-    'export OROCOS_PIXI_ACTIVATION_SCRIPT="$repository_root/examples/pixi-consumer/scripts/activate-orocos.sh"'
-  unless consumer.lines.any? { |line| line.strip == activation_export }
-    errors << "Linux consumer test must export the project-relative Pixi activation wrapper"
+  activation_assignment =
+    'activation_script="$repository_root/examples/pixi-consumer/scripts/activate-orocos.sh"'
+  unless consumer.lines.any? { |line| line.strip == activation_assignment }
+    errors << "Linux consumer test must resolve the project-relative Pixi activation wrapper"
   end
 
   if consumer.match?(
     /^[ \t]*\.[ \t]+[^\n]*\$(?:\{CONDA_PREFIX\}|CONDA_PREFIX)\/(?:dev-)?env\.sh[^\n]*$/
   )
     errors << "Linux consumer test must not source installed activation scripts directly"
+  end
+
+  runtime_body = shell_here_document(consumer, "runtime_command")
+  development_body = shell_here_document(consumer, "development_command")
+  errors << "Linux consumer test must define the runtime command" unless runtime_body
+  errors << "Linux consumer test must define the development command" unless development_body
+
+  if runtime_body&.include?("OROCOS_PIXI_ACTIVATION_SCRIPT") ||
+     runtime_body&.match?(/^[ \t]*(?:\.|source)[ \t]+[^\n]*(?:dev-)?env\.sh[^\n]*$/)
+    errors << "Linux runtime consumer must rely only on package-owned activation"
+  end
+  unless development_body&.scan(
+      /^[ \t]*\.[ \t]+"\$OROCOS_PIXI_ACTIVATION_SCRIPT"[ \t]*$/
+    )&.size == 1
+    errors << "Linux development consumer must source the project Pixi activation wrapper once"
+  end
+
+  {
+    "the activated Orocos prefix" => 'test "${OROCOS_PREFIX:-}" = "$CONDA_PREFIX"',
+    "the gnulinux target" => 'test "${OROCOS_TARGET:-}" = "gnulinux"',
+    "runtime PATH activation" =>
+      'test "$(command -v deployer-opcua-gnulinux)" = "$CONDA_PREFIX/toolchain/bin/deployer-opcua-gnulinux"',
+    "the target mqueue transport" =>
+      'test -f "$CONDA_PREFIX/toolchain/lib/orocos/gnulinux/types/librtt-transport-mqueue-gnulinux.so"',
+    "the Typelib transport path" => "TYPELIB_PLUGIN_PATH"
+  }.each do |contract, token|
+    unless runtime_body&.include?(token)
+      errors << "Linux runtime consumer must check #{contract}"
+    end
+  end
+
+  %w[OROCOS_PIXI_ACTIVATION_SCRIPT OROCOS_PREFIX OROCOS_TARGET TYPELIB_PLUGIN_PATH].each do |name|
+    unless consumer.include?("-u #{name}")
+      errors << "Linux runtime consumer launch must clear inherited #{name}"
+    end
+  end
+  unless consumer.include?('OROCOS_PIXI_ACTIVATION_SCRIPT="$activation_script"')
+    errors << "Linux development consumer launch must provide the project activation wrapper"
+  end
+
+  {
+    "a deliberately invalid pre-activation GEM_HOME" =>
+      '.invalid-workspace-gem-home',
+    "the prefix-local generator gem home" =>
+      'test "$GEM_HOME" = "$CONDA_PREFIX/toolchain/gems"',
+    "the installed generator libraries" =>
+      'ruby -e \'require "typelib"; require "orogen"\'',
+    "OroGen" => "orogen --help",
+    "Typegen" => "typegen --help"
+  }.each do |contract, token|
+    unless development_body&.include?(token)
+      errors << "Linux development consumer must check #{contract}"
+    end
   end
 end
 

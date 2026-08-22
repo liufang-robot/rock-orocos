@@ -64,10 +64,10 @@ done
 }
 
 repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export OROCOS_PIXI_ACTIVATION_SCRIPT="$repository_root/examples/pixi-consumer/scripts/activate-orocos.sh"
-[ -f "$OROCOS_PIXI_ACTIVATION_SCRIPT" ] || {
+activation_script="$repository_root/examples/pixi-consumer/scripts/activate-orocos.sh"
+[ -f "$activation_script" ] || {
     printf 'missing Pixi consumer activation script: %s\n' \
-        "$OROCOS_PIXI_ACTIVATION_SCRIPT" >&2
+        "$activation_script" >&2
     exit 1
 }
 
@@ -87,10 +87,15 @@ readarray -t package_specs < <(
 
 runtime_command="$(cat <<'COMMAND'
 set -euo pipefail
-. "$OROCOS_PIXI_ACTIVATION_SCRIPT"
-test "$OROCOS_PREFIX" = "$CONDA_PREFIX"
+test "${OROCOS_PREFIX:-}" = "$CONDA_PREFIX"
+test "${OROCOS_TARGET:-}" = "gnulinux"
+test "$(command -v deployer-opcua-gnulinux)" = "$CONDA_PREFIX/toolchain/bin/deployer-opcua-gnulinux"
 test ! -e "$CONDA_PREFIX/toolchain/include/orocos/rtt/RTT.hpp"
 test -f "$CONDA_PREFIX/toolchain/lib/orocos/gnulinux/types/librtt-transport-mqueue-gnulinux.so"
+case ":$TYPELIB_PLUGIN_PATH:" in
+    *:"$CONDA_PREFIX/toolchain/lib/typelib":*) ;;
+    *) exit 1 ;;
+esac
 deployer_output="$(deployer-opcua-gnulinux --version 2>&1 || true)"
 grep -q "OROCOS Toolchain version" <<<"$deployer_output"
 ctaskbrowser-opcua-gnulinux --version >/dev/null
@@ -128,11 +133,19 @@ for ((attempt = 1; attempt <= attempts; attempt += 1)); do
     mkdir -p "$PIXI_CACHE_DIR"
     printf 'Testing Linux package consumers from %s (attempt %d of %d).\n' \
         "$channel" "$attempt" "$attempts"
-    if pixi exec --force-reinstall --platform linux-64 \
+    if env -u OROCOS_PIXI_ACTIVATION_SCRIPT \
+           -u OROCOS_PREFIX \
+           -u OROCOS_TARGET \
+           -u TYPELIB_PLUGIN_PATH \
+           pixi exec --force-reinstall --platform linux-64 \
            --spec "${package_specs[0]}" \
            --channel "$channel" --channel conda-forge \
            bash -c "$runtime_command" &&
-       pixi exec --force-reinstall --platform linux-64 \
+       env -u OROCOS_PREFIX \
+           -u OROCOS_TARGET \
+           -u TYPELIB_PLUGIN_PATH \
+           OROCOS_PIXI_ACTIVATION_SCRIPT="$activation_script" \
+           pixi exec --force-reinstall --platform linux-64 \
            --spec "${package_specs[1]}" \
            --channel "$channel" --channel conda-forge \
            bash -c "$development_command"; then

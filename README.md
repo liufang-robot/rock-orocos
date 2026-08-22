@@ -12,9 +12,9 @@ They do not depend on this repository's Autoproj checkout layout.
 After artifacts for the current version and platform have been published, the
 complete [Pixi consumer example](https://github.com/liufang-robot/rock-orocos/tree/main/examples/pixi-consumer)
 provides the Prefix.dev and conda-forge channels, `orocos-dev==0.1.0`, and
-development activation wrappers for both Unix and Windows targets. The
-Windows `orocos` runtime package also activates itself through its Conda
-package hook. Start from that example:
+development activation wrappers for both Unix and Windows targets. The Linux
+and Windows `orocos` runtime packages activate themselves through Conda
+package hooks. Start from that example:
 
 ```bash
 cd examples/pixi-consumer
@@ -24,6 +24,11 @@ pixi shell
 `orocos` is the runtime package. `orocos-dev` adds headers,
 CMake/pkg-config metadata, OroGen, Typegen, and an exact dependency on the
 matching runtime.
+
+Runtime-only Linux consumers do not need `[target.unix.activation]`; the
+package hook automatically sources the relocatable `env.sh`. Projects using
+`orocos-dev` retain the Unix activation wrapper so it sources `dev-env.sh`
+and adds the generator development environment.
 
 See [Pixi And Conda Packages](./docs/src/conda-packages.md) for runtime-only
 installation, adopting the example in an existing workspace, manual fallback,

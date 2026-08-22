@@ -37,8 +37,18 @@ scripts = ["scripts/activate-orocos.ps1"]
 ```
 
 Runtime-only users replace `orocos-dev = "==0.1.0"` with
-`orocos = "==0.1.0"` under `[dependencies]`. Unix consumers retain
-`[target.unix.activation]` so the project wrapper can source `env.sh`.
+`orocos = "==0.1.0"` under `[dependencies]`.
+
+Runtime-only Linux consumers remove `[target.unix.activation]`. The `orocos`
+package installs `etc/conda/activate.d/orocos-activate.sh`, which Pixi and
+Conda source automatically. The hook sources the relocatable
+`$CONDA_PREFIX/env.sh` and establishes the complete runtime environment.
+
+The example keeps `[target.unix.activation]` because it installs
+`orocos-dev`. Its project wrapper sources `dev-env.sh` once to add OroGen,
+Typegen, and the generator development state after package-owned runtime
+activation. The package does not install a development hook or automatically
+source `dev-env.sh`.
 
 Runtime-only Windows consumers do not need `[target.win.activation]`.
 The `orocos` package installs `Library\env.bat` and the

@@ -177,10 +177,18 @@ component discovery paths. Repeated activation is case-insensitively
 deduplicated. The package hook only calls `Library/env.bat`; it does not
 duplicate the environment model or invoke PowerShell.
 
-`orocos-dev` receives this runtime hook through its exact dependency on
-`orocos`. Development setup remains the responsibility of `dev-env.ps1` and
-the downstream project's Windows Pixi activation wrapper. There is no
-`dev-env.bat` contract.
+The packaged Linux runtime similarly provides
+`etc/conda/activate.d/orocos-activate.sh`. Pixi and Conda source this package
+hook automatically, and the hook sources the relocatable
+`$CONDA_PREFIX/env.sh`. Runtime-only Linux consumers therefore do not need a
+project `[target.unix.activation]` wrapper.
+
+On both platforms, `orocos-dev` receives the runtime hook through its exact
+dependency on `orocos`. Development setup remains the responsibility of
+`dev-env.sh` or `dev-env.ps1` and the downstream project's platform-specific
+Pixi activation wrapper. The Linux package does not install a development
+hook or automatically source `dev-env.sh`; there is no `dev-env.bat`
+contract on Windows.
 
 ## Validation Expectations
 
