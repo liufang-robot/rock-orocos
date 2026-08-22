@@ -120,6 +120,12 @@ else
 
   build = jobs.fetch("build-packages", {})
   publish = jobs.fetch("publish-packages", {})
+  unless build["name"] == "Linux packages / build and test"
+    errors << "Linux package build check must use the platform-first display name"
+  end
+  unless publish["name"] == "Linux packages / publish to Prefix"
+    errors << "Linux package publish check must use the platform-first display name"
+  end
   expected_guard = "github.event.action == 'published' && " \
                    "github.event.release.prerelease == false && " \
                    "github.repository == 'liufang-robot/rock-orocos'"

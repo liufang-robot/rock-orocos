@@ -85,6 +85,24 @@ publish_condition_error =
   "Prefix publication condition must exactly require the approved release event and repository"
 license_stager_trigger = %(      - "tools/stage-license-corpus.rb"\n)
 mutations = {
+  "non-platform-first package build name" => [
+    "Windows package build check must use the platform-first display name",
+    lambda do |contents|
+      contents.sub(
+        "name: Windows packages / build and test",
+        "name: Build And Test Windows Packages"
+      )
+    end
+  ],
+  "non-platform-first package publish name" => [
+    "Windows package publish check must use the platform-first display name",
+    lambda do |contents|
+      contents.sub(
+        "name: Windows packages / publish to Prefix",
+        "name: Publish Windows Packages To Prefix"
+      )
+    end
+  ],
   "missing license stager pull-request trigger" => [
     "Windows package CI pull requests must watch tools/stage-license-corpus.rb",
     lambda do |contents|
@@ -436,8 +454,17 @@ exporter_mutations = {
     "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity",
     lambda do |contents|
       contents.sub(
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"',
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
         '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
+      )
+    end
+  ],
+  "batch dedup uses a nested comparison call" => [
+    "generated env.bat must compare deduplication candidates without nested batch calls",
+    lambda do |contents|
+      contents.sub(
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"',
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"'
       )
     end
   ]

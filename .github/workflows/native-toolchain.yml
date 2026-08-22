@@ -1,4 +1,4 @@
-name: Native Toolchain Matrix
+name: Linux Native Toolchain
 
 on:
   pull_request:
@@ -19,7 +19,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.os.name }} Native Build
+    name: Linux native / ${{ matrix.os.name }}
     runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.os.image }}

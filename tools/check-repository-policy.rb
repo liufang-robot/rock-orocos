@@ -23,6 +23,8 @@ readme_path = File.join(root, "README.md")
 pixi_manifest_path = File.join(root, "pixi.toml")
 repository_workflow_path = File.join(root, ".github", "workflows", "repository-policy.yml")
 docs_workflow_path = File.join(root, ".github", "workflows", "docs.yml")
+linux_native_workflow_path = File.join(root, ".github", "workflows", "native-toolchain.yml")
+windows_native_workflow_path = File.join(root, ".github", "workflows", "windows-msvc.yml")
 xenomai3_path = File.join(root, "docs", "src", "xenomai3-integration.md")
 docs_src = File.join(root, "docs", "src")
 summary_path = File.join(docs_src, "SUMMARY.md")
@@ -125,6 +127,31 @@ else
   end
 end
 
+{
+  linux_native_workflow_path => {
+    "workflow" => "Linux Native Toolchain",
+    "job" => "Linux native / ${{ matrix.os.name }}"
+  },
+  windows_native_workflow_path => {
+    "workflow" => "Windows Native Toolchain",
+    "job" => "Windows native / Windows 2022"
+  }
+}.each do |path, expected_names|
+  unless File.file?(path)
+    errors << "missing #{path.delete_prefix(root + File::SEPARATOR)}"
+    next
+  end
+
+  workflow = YAML.safe_load(File.read(path), aliases: true) || {}
+  platform = expected_names.fetch("workflow").split.first
+  unless workflow["name"] == expected_names.fetch("workflow")
+    errors << "#{platform} native workflow must use the platform-first display name"
+  end
+  unless workflow.dig("jobs", "build", "name") == expected_names.fetch("job")
+    errors << "#{platform} native build check must use the platform-first display name"
+  end
+end
+
 if !File.file?(xenomai3_path)
   errors << "missing docs/src/xenomai3-integration.md"
 else
@@ -165,7 +192,9 @@ else
     README.md
     .github/workflows/docs.yml
     .github/workflows/linux-packages.yml
+    .github/workflows/native-toolchain.yml
     .github/workflows/repository-policy.yml
+    .github/workflows/windows-msvc.yml
     .github/workflows/windows-packages.yml
     docs/book/**
     docs/src/**

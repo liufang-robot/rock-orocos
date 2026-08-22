@@ -40,7 +40,7 @@ concurrency:
 
 jobs:
   build-packages:
-    name: Build And Test Linux Packages
+    name: Linux packages / build and test
     if: >-
       github.event_name != 'release' ||
       (github.event.action == 'published' &&
@@ -126,7 +126,7 @@ jobs:
             packaging/conda/output/bld/**/CMakeFiles/CMakeError.log
 
   publish-packages:
-    name: Publish Linux Packages To Prefix
+    name: Linux packages / publish to Prefix
     needs: build-packages
     if: >-
       github.event_name == 'release' &&

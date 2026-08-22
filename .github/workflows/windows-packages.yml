@@ -68,7 +68,7 @@ concurrency:
 
 jobs:
   build-packages:
-    name: Build And Test Windows Packages
+    name: Windows packages / build and test
     if: >-
       github.event_name != 'release' ||
       (github.event.action == 'published' &&
@@ -237,7 +237,7 @@ jobs:
             packaging/conda/output/bld/**/CMakeFiles/CMakeError.log
 
   publish-packages:
-    name: Publish Windows Packages To Prefix
+    name: Windows packages / publish to Prefix
     needs: build-packages
     if: >-
       github.event_name == 'release' &&

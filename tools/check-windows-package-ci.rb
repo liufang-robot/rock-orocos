@@ -106,6 +106,12 @@ else
   end
   build = jobs.fetch("build-packages", {})
   publish = jobs.fetch("publish-packages", {})
+  unless build["name"] == "Windows packages / build and test"
+    errors << "Windows package build check must use the platform-first display name"
+  end
+  unless publish["name"] == "Windows packages / publish to Prefix"
+    errors << "Windows package publish check must use the platform-first display name"
+  end
   workflow_runs = jobs.values.flat_map do |job|
     Array(job["steps"]).filter_map { |step| step["run"] }
   end.join("\n")
@@ -409,6 +415,11 @@ else
     '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
   if runtime_batch&.include?(unsafe_batch_dedup)
     errors << "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity"
+  end
+  nested_batch_dedup =
+    '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"'
+  if runtime_batch&.include?(nested_batch_dedup)
+    errors << "generated env.bat must compare deduplication candidates without nested batch calls"
   end
   if runtime_batch&.match?(/^\s*@?echo\s+off\s*$/i)
     errors << "generated env.bat must not change the caller's echo mode"
