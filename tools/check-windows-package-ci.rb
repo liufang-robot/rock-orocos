@@ -363,7 +363,7 @@ else
 end
 
 expected_hook = <<~'BATCH'
-  @call "%~dp0..\..\..\Library\env.bat"
+  @call "%~dp0..\..\..\Library\env.bat" --conda
   @exit /b %ERRORLEVEL%
 BATCH
 if !File.file?(hook_path)
@@ -393,6 +393,9 @@ else
     "recursive Orocos directory discovery" => "for /d /r",
     "directory existence filtering" => "if not exist",
     "case-insensitive path deduplication" => "if /I",
+    "Conda-owned PATH preservation" =>
+      '@if /I "%~1"=="--conda" goto orocos_runtime_path_ready',
+    "the package-mode runtime path boundary" => ":orocos_runtime_path_ready",
     "caller-preserving success" => "exit /b 0"
   }.each do |contract, token|
     unless runtime_batch&.include?(token)
@@ -421,11 +424,49 @@ else
       'Invoke-BatchEnvironment -BatchPath $runtimeBatch -Calls 2',
     "global path deduplication" => "Assert-PathEntriesUnique",
     "structured expected path records" => "$expectedPathEntries = @(",
+    "a Rattler-length inherited PATH" => "$rattlerPathEntries = @(",
     "a relocated prefix containing spaces" => '"orocos activation "',
     "case-insensitive comparisons" => "OrdinalIgnoreCase",
     "recursive runtime discovery" => '"lib\orocos\win32\custom\plugins"'
   }.each do |contract, token|
     errors << "Windows runtime package test must cover #{contract}" unless runtime_test.include?(token)
+  end
+
+  exact_path_tokens = [
+    "function Assert-EnvironmentValueExact {",
+    "[StringComparison]::Ordinal",
+    '-Environment $hookEnvironment -Name "PATH" -Expected $rattlerPath'
+  ]
+  unless exact_path_tokens.all? { |token| runtime_test.include?(token) } &&
+         runtime_test.scan(/\bAssert-EnvironmentValueExact\b/).size >= 2
+    errors << "Windows runtime package test must preserve Conda PATH with case-sensitive equality"
+  end
+
+  conda_discovery_tokens = [
+    '$staleHookDiscoveryPath = "C:\stale-orocos-discovery"',
+    'OROCOS_PREFIX = "C:\stale-orocos-prefix"',
+    'OROCOS_TARGET = "stale-target"',
+    'RTT_COMPONENT_PATH = $staleHookDiscoveryPath',
+    'PKG_CONFIG_LIBDIR = "C:\stale-pkg-config-libdir"',
+    'PKG_CONFIG_PATH = $staleHookDiscoveryPath',
+    'TYPELIB_PLUGIN_PATH = $staleHookDiscoveryPath',
+    'CMAKE_PREFIX_PATH = $staleHookDiscoveryPath',
+    '-Name "OROCOS_PREFIX" -Expected $libraryPrefix',
+    '-Name "OROCOS_TARGET" -Expected "win32"',
+    '$hookPkgConfig = Join-Path $libraryPrefix "lib\pkgconfig"',
+    '$hookTypelib = Join-Path $libraryPrefix "lib\typelib"',
+    '$hookRttTypes = Join-Path $libraryPrefix "lib\orocos\win32\types"',
+    '$createdHookPkgConfig = -not (Test-Path -LiteralPath $hookPkgConfig',
+    'New-Item -ItemType Directory -Path $hookPkgConfig',
+    'if ($createdHookPkgConfig) {',
+    'Remove-Item -LiteralPath $hookPkgConfig -Force',
+    '-Name "PKG_CONFIG_LIBDIR" -Expected $hookPkgConfig',
+    '$hookExpectedPathEntries = @(',
+    '$hookPreservedPathNames = @(',
+    '-ExpectedPath $staleHookDiscoveryPath'
+  ]
+  unless conda_discovery_tokens.all? { |token| runtime_test.include?(token) }
+    errors << "Windows runtime package test must cover Conda-mode discovery variables"
   end
 end
 

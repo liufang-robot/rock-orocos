@@ -100,6 +100,22 @@ function Assert-EnvironmentValue {
     }
 }
 
+function Assert-EnvironmentValueExact {
+    param(
+        [Collections.Generic.IDictionary[string, string]]$Environment,
+        [string]$Name,
+        [string]$Expected
+    )
+
+    $actual = $Environment[$Name]
+    if (-not [string]::Equals(
+            $actual,
+            $Expected,
+            [StringComparison]::Ordinal)) {
+        throw "$Name was '$actual', expected exactly '$Expected'."
+    }
+}
+
 function Get-PathEntries {
     param(
         [Collections.Generic.IDictionary[string, string]]$Environment,
@@ -151,17 +167,90 @@ function Assert-PathEntriesUnique {
 
 $runtimeBatch = Join-Path $libraryPrefix "env.bat"
 $activationHook = Join-Path $condaPrefix "etc\conda\activate.d\orocos-activate.bat"
-$batchEnvironment = Invoke-BatchEnvironment -BatchPath $runtimeBatch -Calls 2
+$minimalBatchPath = Split-Path -Parent $env:ComSpec
+$batchEnvironment = Invoke-BatchEnvironment -BatchPath $runtimeBatch -Calls 2 `
+    -InitialEnvironment @{ PATH = $minimalBatchPath }
 Assert-EnvironmentValue `
     -Environment $batchEnvironment -Name "OROCOS_PREFIX" -Expected $libraryPrefix
 Assert-EnvironmentValue `
     -Environment $batchEnvironment -Name "OROCOS_TARGET" -Expected "win32"
 
-$hookEnvironment = Invoke-BatchEnvironment -BatchPath $activationHook
-Assert-EnvironmentValue `
-    -Environment $hookEnvironment -Name "OROCOS_PREFIX" -Expected $libraryPrefix
-Assert-EnvironmentValue `
-    -Environment $hookEnvironment -Name "OROCOS_TARGET" -Expected "win32"
+$rattlerPathEntries = @(
+    1..96 | ForEach-Object {
+        "C:\rattler-build\host_env_placehold_placehold_placehold\Library\bin\$_"
+    }
+)
+$rattlerPath = $rattlerPathEntries -join ";"
+if ($rattlerPath.Length -lt 6500 -or $rattlerPath.Length -gt 7600) {
+    throw "Rattler-length PATH fixture has unexpected length $($rattlerPath.Length)."
+}
+$staleHookDiscoveryPath = "C:\stale-orocos-discovery"
+$hookPkgConfig = Join-Path $libraryPrefix "lib\pkgconfig"
+$hookTypelib = Join-Path $libraryPrefix "lib\typelib"
+$hookRttTypes = Join-Path $libraryPrefix "lib\orocos\win32\types"
+$createdHookPkgConfig = -not (Test-Path -LiteralPath $hookPkgConfig `
+    -PathType Container)
+if ($createdHookPkgConfig) {
+    New-Item -ItemType Directory -Path $hookPkgConfig | Out-Null
+}
+try {
+    $hookEnvironment = Invoke-BatchEnvironment `
+        -BatchPath $activationHook `
+        -InitialEnvironment @{
+            PATH = $rattlerPath
+            OROCOS_PREFIX = "C:\stale-orocos-prefix"
+            OROCOS_TARGET = "stale-target"
+            RTT_COMPONENT_PATH = $staleHookDiscoveryPath
+            PKG_CONFIG_LIBDIR = "C:\stale-pkg-config-libdir"
+            PKG_CONFIG_PATH = $staleHookDiscoveryPath
+            TYPELIB_PLUGIN_PATH = $staleHookDiscoveryPath
+            CMAKE_PREFIX_PATH = $staleHookDiscoveryPath
+        }
+    Assert-EnvironmentValue `
+        -Environment $hookEnvironment -Name "OROCOS_PREFIX" -Expected $libraryPrefix
+    Assert-EnvironmentValue `
+        -Environment $hookEnvironment -Name "OROCOS_TARGET" -Expected "win32"
+    Assert-EnvironmentValueExact `
+        -Environment $hookEnvironment -Name "PATH" -Expected $rattlerPath
+    Assert-EnvironmentValue `
+        -Environment $hookEnvironment `
+        -Name "PKG_CONFIG_LIBDIR" -Expected $hookPkgConfig
+
+    $hookExpectedPathEntries = @(
+        [PSCustomObject]@{
+            Name = "RTT_COMPONENT_PATH"
+            Path = $hookRttTypes
+        },
+        [PSCustomObject]@{ Name = "PKG_CONFIG_PATH"; Path = $hookPkgConfig },
+        [PSCustomObject]@{ Name = "TYPELIB_PLUGIN_PATH"; Path = $hookTypelib },
+        [PSCustomObject]@{ Name = "CMAKE_PREFIX_PATH"; Path = $libraryPrefix }
+    )
+    foreach ($entry in $hookExpectedPathEntries) {
+        Assert-PathEntryCount `
+            -Environment $hookEnvironment `
+            -Name $entry.Name `
+            -ExpectedPath $entry.Path `
+            -ExpectedCount 1
+    }
+
+    $hookPreservedPathNames = @(
+        "RTT_COMPONENT_PATH",
+        "PKG_CONFIG_PATH",
+        "TYPELIB_PLUGIN_PATH",
+        "CMAKE_PREFIX_PATH"
+    )
+    foreach ($name in $hookPreservedPathNames) {
+        Assert-PathEntryCount `
+            -Environment $hookEnvironment `
+            -Name $name `
+            -ExpectedPath $staleHookDiscoveryPath `
+            -ExpectedCount 1
+    }
+} finally {
+    if ($createdHookPkgConfig) {
+        Remove-Item -LiteralPath $hookPkgConfig -Force
+    }
+}
 
 $fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) `
     ("orocos activation " + [guid]::NewGuid().ToString("N"))

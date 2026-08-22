@@ -398,6 +398,10 @@ hook_mutations = {
   "activation hook calls PowerShell entrypoint" => [
     "Windows package activation hook must only call Library\\env.bat and propagate failure",
     ->(contents) { contents.sub("Library\\env.bat", "Library\\env.ps1") }
+  ],
+  "activation hook omits Conda mode" => [
+    "Windows package activation hook must only call Library\\env.bat and propagate failure",
+    ->(contents) { contents.sub('Library\\env.bat" --conda', 'Library\\env.bat"') }
   ]
 }
 
@@ -418,6 +422,15 @@ exporter_mutations = {
   "batch activation uses setlocal" => [
     "generated env.bat must not use scoped activation or helper subprocesses",
     ->(contents) { contents.sub("@rem Call this file", "@setlocal\n@rem Call this file") }
+  ],
+  "batch activation rebuilds Conda-owned PATH" => [
+    "generated env.bat must implement Conda-owned PATH preservation",
+    lambda do |contents|
+      contents.sub(
+        '@if /I "%~1"=="--conda" goto orocos_runtime_path_ready',
+        '@rem missing Conda PATH boundary'
+      )
+    end
   ]
 }
 
@@ -432,6 +445,30 @@ runtime_test_mutations = {
       contents.sub(
         'Join-Path $condaPrefix "etc\conda\activate.d\orocos-activate.bat"',
         'Join-Path $condaPrefix "missing-orocos-activate.bat"'
+      )
+    end
+  ],
+  "runtime test omits a Rattler-length inherited PATH" => [
+    "Windows runtime package test must cover a Rattler-length inherited PATH",
+    ->(contents) { contents.sub("$rattlerPathEntries = @(", "$shortPathEntries = @(") }
+  ],
+  "runtime test weakens exact Conda PATH preservation" => [
+    "Windows runtime package test must preserve Conda PATH with case-sensitive equality",
+    lambda do |contents|
+      replace_occurrence(
+        contents,
+        "Assert-EnvironmentValueExact",
+        "Assert-EnvironmentValue",
+        1
+      )
+    end
+  ],
+  "runtime test omits Conda discovery-variable coverage" => [
+    "Windows runtime package test must cover Conda-mode discovery variables",
+    lambda do |contents|
+      contents.sub(
+        /^\$hookPkgConfig = .*?^}\r?\n(?=\r?\n\$fixtureRoot)/m,
+        ""
       )
     end
   ]

@@ -53,8 +53,10 @@ source `dev-env.sh`.
 Runtime-only Windows consumers do not need `[target.win.activation]`.
 The `orocos` package installs `Library\env.bat` and the
 `etc\conda\activate.d\orocos-activate.bat` package hook, which Pixi and Conda
-run automatically through `cmd.exe`. The hook establishes the complete
-runtime environment before `pixi run` or `pixi shell` starts a process.
+run automatically through `cmd.exe`. The hook preserves the standard
+Pixi/Conda `PATH`, which already contains `Library\bin`, and delegates the
+remaining Orocos runtime environment to `Library\env.bat`. The complete
+environment is available before `pixi run` or `pixi shell` starts a process.
 
 The example keeps `[target.win.activation]` because it installs `orocos-dev`.
 Its project wrapper dot-sources `Library\dev-env.ps1` to add OroGen, Typegen,

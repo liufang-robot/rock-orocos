@@ -244,12 +244,14 @@ $runtimeBatchTemplate = @'
 @for %%I in ("%~dp0.") do set "OROCOS_PREFIX=%%~fI"
 @set "OROCOS_TARGET=@TARGET@"
 
+@if /I "%~1"=="--conda" goto orocos_runtime_path_ready
 @call :orocos_begin_path PATH
 @RUNTIME_BATCH_CALLS@
 @if exist "%OROCOS_PREFIX%\lib\orocos\" for /d /r "%OROCOS_PREFIX%\lib\orocos" %%D in (*) do call :orocos_add_candidate "%%~fD"
 @RUNTIME_VCPKG_BATCH_CALL@
 @call :orocos_add_existing
 @call :orocos_commit_path
+:orocos_runtime_path_ready
 
 @call :orocos_begin_path RTT_COMPONENT_PATH
 @COMPONENT_BATCH_CALLS@
