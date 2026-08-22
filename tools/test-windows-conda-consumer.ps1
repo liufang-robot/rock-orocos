@@ -108,6 +108,9 @@ function Invoke-PixiConsumer {
         [Parameter(Mandatory = $true)][string]$Command
     )
 
+    $encodedCommand = [Convert]::ToBase64String(
+        [Text.Encoding]::Unicode.GetBytes($Command)
+    )
     $arguments = @(
         "exec",
         "--force-reinstall",
@@ -117,7 +120,7 @@ function Invoke-PixiConsumer {
         "powershell.exe",
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
-        "-Command", $Command
+        "-EncodedCommand", $encodedCommand
     )
     & pixi @arguments
     if ($LASTEXITCODE -ne 0) {

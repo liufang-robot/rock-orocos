@@ -551,6 +551,14 @@ else
   }.each do |contract, token|
     errors << "consumer smoke test must check #{contract}" unless consumer.include?(token)
   end
+  encoded_command_transport = [
+    "$encodedCommand = [Convert]::ToBase64String(",
+    "[Text.Encoding]::Unicode.GetBytes($Command)",
+    '"-EncodedCommand", $encodedCommand'
+  ]
+  unless encoded_command_transport.all? { |token| consumer.include?(token) }
+    errors << "consumer smoke test must encode child PowerShell commands"
+  end
 
   activation_sources = consumer.scan(
     /^[ \t]*\.[ \t]+\$env:OROCOS_PIXI_ACTIVATION_SCRIPT[ \t]*\r?$/

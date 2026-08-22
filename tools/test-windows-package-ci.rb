@@ -322,6 +322,21 @@ consumer_mutations = {
   "case-sensitive runtime prefix comparison" => [
     "runtime consumer must check case-insensitive relocated-prefix comparison",
     ->(contents) { contents.sub("OrdinalIgnoreCase", "Ordinal") }
+  ],
+  "raw child command transport" => [
+    "consumer smoke test must encode child PowerShell commands",
+    lambda do |contents|
+      contents.sub('"-EncodedCommand", $encodedCommand', '"-Command", $Command')
+    end
+  ],
+  "UTF-8 child command encoding" => [
+    "consumer smoke test must encode child PowerShell commands",
+    lambda do |contents|
+      contents.sub(
+        "[Text.Encoding]::Unicode.GetBytes($Command)",
+        "[Text.Encoding]::UTF8.GetBytes($Command)"
+      )
+    end
   ]
 }
 
