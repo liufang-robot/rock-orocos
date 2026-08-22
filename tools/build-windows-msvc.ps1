@@ -454,6 +454,7 @@ Invoke-Step "Install vcpkg dependencies" {
     Invoke-NativeWithRetry (Join-Path $VcpkgRoot "vcpkg.exe") install `
         "boost-assign:${VcpkgTriplet}" `
         "boost-filesystem:${VcpkgTriplet}" `
+        "boost-functional:${VcpkgTriplet}" `
         "boost-serialization:${VcpkgTriplet}" `
         "boost-thread:${VcpkgTriplet}" `
         "boost-uuid:${VcpkgTriplet}" `

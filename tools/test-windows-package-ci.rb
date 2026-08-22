@@ -14,6 +14,7 @@ FIXTURE_PATHS = %w[
   packaging/conda/recipe.yaml
   packaging/conda/test-runtime.ps1
   tools/check-windows-package-ci.rb
+  tools/build-windows-msvc.ps1
   tools/export-windows-env.ps1
   tools/prepare-windows-conda-release.ps1
   tools/test-windows-conda-consumer.ps1
@@ -412,6 +413,15 @@ runtime_test_mutations = {
   ]
 }
 
+builder_mutations = {
+  "missing direct boost-functional dependency" => [
+    "Windows builder must install boost-functional directly for RTT headers",
+    lambda do |contents|
+      contents.sub(/^\s*"boost-functional:\$\{VcpkgTriplet\}"\s*`?\r?\n/, "")
+    end
+  ]
+}
+
 accepted_mutations = []
 wrong_rejections = []
 {
@@ -422,6 +432,7 @@ wrong_rejections = []
   "packaging/conda/build.ps1" => build_mutations,
   "packaging/conda/orocos-activate.bat" => hook_mutations,
   "packaging/conda/test-runtime.ps1" => runtime_test_mutations,
+  "tools/build-windows-msvc.ps1" => builder_mutations,
   "tools/export-windows-env.ps1" => exporter_mutations
 }.each do |relative_path, file_mutations|
   file_mutations.each do |name, (expected_error, mutation)|

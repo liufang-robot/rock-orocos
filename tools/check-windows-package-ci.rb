@@ -81,6 +81,7 @@ root = File.expand_path("..", __dir__)
 workflow_path = File.join(root, ".github", "workflows", "windows-packages.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe.yaml")
 build_path = File.join(root, "packaging", "conda", "build.ps1")
+builder_path = File.join(root, "tools", "build-windows-msvc.ps1")
 hook_path = File.join(root, "packaging", "conda", "orocos-activate.bat")
 runtime_test_path = File.join(root, "packaging", "conda", "test-runtime.ps1")
 staging_path = File.join(root, "tools", "prepare-windows-conda-release.ps1")
@@ -245,6 +246,26 @@ else
   unless all_uses.tally == expected_uses
     errors << "Windows package CI actions must equal the approved full-SHA selections: " \
               "expected #{expected_uses.inspect}, got #{all_uses.tally.inspect}"
+  end
+end
+
+unless File.file?(builder_path)
+  errors << "missing tools/build-windows-msvc.ps1"
+else
+  builder = File.read(builder_path)
+  install_step = builder.match(
+    /^Invoke-Step "Install vcpkg dependencies" \{\r?\n(?<body>.*?)^\}\r?$/m
+  )
+  if install_step.nil?
+    errors << "Windows builder must define the vcpkg dependency install step"
+  else
+    dependency = '"boost-functional:${VcpkgTriplet}"'
+    dependency_count = install_step[:body].lines.count do |line|
+      line.strip.delete_suffix(" `") == dependency
+    end
+    unless dependency_count == 1
+      errors << "Windows builder must install boost-functional directly for RTT headers"
+    end
   end
 end
 
