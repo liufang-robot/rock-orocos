@@ -140,10 +140,13 @@ try {
         -Destination $hookPath
 
     $callerLines = @(
+        '@echo __OROCOS_TEST_BEFORE_FIRST=1',
         '@call "{0}"' -f $hookPath,
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
+        '@echo __OROCOS_TEST_AFTER_FIRST=1',
         '@call "{0}"' -f $hookPath,
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
+        '@echo __OROCOS_TEST_AFTER_SECOND=1',
         '@set'
     )
     [IO.File]::WriteAllText(
@@ -160,6 +163,12 @@ try {
         -CallerPath $callerPath `
         -InitialPath $rattlerPath
 
+    Assert-EnvironmentValue `
+        -Environment $environment -Name "__OROCOS_TEST_BEFORE_FIRST" -Expected "1"
+    Assert-EnvironmentValue `
+        -Environment $environment -Name "__OROCOS_TEST_AFTER_FIRST" -Expected "1"
+    Assert-EnvironmentValue `
+        -Environment $environment -Name "__OROCOS_TEST_AFTER_SECOND" -Expected "1"
     Assert-EnvironmentValue `
         -Environment $environment -Name "OROCOS_PREFIX" -Expected $libraryPrefix
     Assert-EnvironmentValue `
