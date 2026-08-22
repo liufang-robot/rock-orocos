@@ -405,6 +405,11 @@ else
   if runtime_batch&.match?(/\b(?:setlocal|powershell(?:\.exe)?|python(?:\.exe)?)\b/i)
     errors << "generated env.bat must not use scoped activation or helper subprocesses"
   end
+  unsafe_batch_dedup =
+    '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
+  if runtime_batch&.include?(unsafe_batch_dedup)
+    errors << "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity"
+  end
   if runtime_batch&.match?(/^\s*@?echo\s+off\s*$/i)
     errors << "generated env.bat must not change the caller's echo mode"
   end

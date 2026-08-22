@@ -431,6 +431,15 @@ exporter_mutations = {
         '@rem missing Conda PATH boundary'
       )
     end
+  ],
+  "batch dedup combines FOR and batch parameter expansion" => [
+    "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity",
+    lambda do |contents|
+      contents.sub(
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"',
+        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
+      )
+    end
   ]
 }
 
