@@ -424,23 +424,28 @@ hook_mutations = {
 }
 
 safe_batch_scan = <<~'BATCH'.chomp
-  @set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_NEW%"
-  :orocos_scan_path_value
-  @if not defined __OROCOS_ROCK_PATH_SCAN goto orocos_path_value_unique
+  @set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_INPUT:~1%"
+  :orocos_deduplicate_next_path_value
+  @if not defined __OROCOS_ROCK_PATH_SCAN goto orocos_deduplicate_path_done
+  @if not "%__OROCOS_ROCK_PATH_SCAN:~0,1%"==";" goto orocos_split_next_path_value
+  @set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_SCAN:~1%"
+  @goto orocos_deduplicate_next_path_value
+
+  :orocos_split_next_path_value
   @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
   @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_SCAN=%%F"
-  @if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_CANDIDATE%" exit /b 0
-  @goto orocos_scan_path_value
-BATCH
+  @set "__OROCOS_ROCK_PATH_COMPARE=%__OROCOS_ROCK_PATH_NEW:~1%"
 
-safe_existing_path_scan = <<~'BATCH'.chomp
-  @set "__OROCOS_ROCK_PATH_EXISTING=%__OROCOS_ROCK_PATH_OLD%"
-  :orocos_add_existing_path_value
-  @if not defined __OROCOS_ROCK_PATH_EXISTING exit /b 0
-  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
-  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_EXISTING=%%F"
-  @call :orocos_add_path_value "%__OROCOS_ROCK_PATH_CURRENT%"
-  @goto orocos_add_existing_path_value
+  :orocos_compare_next_path_value
+  @if not defined __OROCOS_ROCK_PATH_COMPARE goto orocos_append_unique_path_value
+  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_COMPARE%") do set "__OROCOS_ROCK_PATH_COMPARISON=%%E"
+  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_COMPARE%") do set "__OROCOS_ROCK_PATH_COMPARE=%%F"
+  @if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_COMPARISON%" goto orocos_deduplicate_next_path_value
+  @goto orocos_compare_next_path_value
+
+  :orocos_append_unique_path_value
+  @set "__OROCOS_ROCK_PATH_NEW=%__OROCOS_ROCK_PATH_NEW%;%__OROCOS_ROCK_PATH_CURRENT%"
+  @goto orocos_deduplicate_next_path_value
 BATCH
 
 exporter_mutations = {
@@ -507,10 +512,10 @@ exporter_mutations = {
     end
   ],
   "batch dedup omits the separate comparison" => [
-    "generated env.bat must scan path entries before a separate comparison",
+    "generated env.bat must collect paths before a separate deduplication pass",
     lambda do |contents|
       contents.sub(
-        '@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_CANDIDATE%" exit /b 0',
+        '@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_COMPARISON%" goto orocos_deduplicate_next_path_value',
         '@rem missing separate comparison'
       )
     end
@@ -519,17 +524,17 @@ exporter_mutations = {
     "generated env.bat must scan inherited paths without inline substitution",
     lambda do |contents|
       contents.sub(
-        safe_existing_path_scan,
+        '@set "__OROCOS_ROCK_PATH_INPUT=%__OROCOS_ROCK_PATH_INPUT%;%__OROCOS_ROCK_PATH_OLD%"',
         '@for %%E in ("%__OROCOS_ROCK_PATH_OLD:;=" "%") do call :orocos_add_path_value "%%~E"'
       )
     end
   ],
-  "batch inherited path scanner is incomplete" => [
-    "generated env.bat must implement the inherited path scanner",
+  "batch collection and deduplication are not separated" => [
+    "generated env.bat must collect paths before a separate deduplication pass",
     lambda do |contents|
       contents.sub(
-        '@goto orocos_add_existing_path_value',
-        '@rem missing inherited path loop'
+        '@set "__OROCOS_ROCK_PATH_INPUT=%__OROCOS_ROCK_PATH_INPUT%;%~1"',
+        '@call :orocos_add_path_value "%~1"'
       )
     end
   ]

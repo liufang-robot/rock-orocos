@@ -281,6 +281,7 @@ $runtimeBatchTemplate = @'
 @set "__OROCOS_ROCK_PATH_NAME=%~1"
 @set "__OROCOS_ROCK_PATH_OLD="
 @set "__OROCOS_ROCK_PATH_NEW="
+@set "__OROCOS_ROCK_PATH_INPUT="
 @set "__OROCOS_ROCK_PATH_SUPPORTED="
 @if /I "%~1"=="PATH" set "__OROCOS_ROCK_PATH_OLD=%PATH%"
 @if /I "%~1"=="PATH" set "__OROCOS_ROCK_PATH_SUPPORTED=1"
@@ -298,52 +299,52 @@ $runtimeBatchTemplate = @'
 :orocos_add_candidate
 @if "%~1"=="" exit /b 0
 @if not exist "%~1\" exit /b 0
-@call :orocos_add_path_value "%~1"
-@exit /b %ERRORLEVEL%
-
-:orocos_add_existing
-@set "__OROCOS_ROCK_PATH_EXISTING=%__OROCOS_ROCK_PATH_OLD%"
-:orocos_add_existing_path_value
-@if not defined __OROCOS_ROCK_PATH_EXISTING exit /b 0
-@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
-@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_EXISTING%") do set "__OROCOS_ROCK_PATH_EXISTING=%%F"
-@call :orocos_add_path_value "%__OROCOS_ROCK_PATH_CURRENT%"
-@goto orocos_add_existing_path_value
-
-:orocos_add_path_value
-@if "%~1"=="" exit /b 0
-@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"
-@set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_NEW%"
-:orocos_scan_path_value
-@if not defined __OROCOS_ROCK_PATH_SCAN goto orocos_path_value_unique
-@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
-@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_SCAN=%%F"
-@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_CANDIDATE%" exit /b 0
-@goto orocos_scan_path_value
-
-:orocos_path_value_unique
-@if defined __OROCOS_ROCK_PATH_NEW goto orocos_append_path_value
-@set "__OROCOS_ROCK_PATH_NEW=%__OROCOS_ROCK_PATH_CANDIDATE%"
+@set "__OROCOS_ROCK_PATH_INPUT=%__OROCOS_ROCK_PATH_INPUT%;%~1"
 @exit /b 0
 
-:orocos_append_path_value
-@set "__OROCOS_ROCK_PATH_NEW=%__OROCOS_ROCK_PATH_NEW%;%__OROCOS_ROCK_PATH_CANDIDATE%"
+:orocos_add_existing
+@set "__OROCOS_ROCK_PATH_INPUT=%__OROCOS_ROCK_PATH_INPUT%;%__OROCOS_ROCK_PATH_OLD%"
 @exit /b 0
 
 :orocos_commit_path
-@if /I "%__OROCOS_ROCK_PATH_NAME%"=="PATH" set "PATH=%__OROCOS_ROCK_PATH_NEW%"
-@if /I "%__OROCOS_ROCK_PATH_NAME%"=="RTT_COMPONENT_PATH" set "RTT_COMPONENT_PATH=%__OROCOS_ROCK_PATH_NEW%"
-@if /I "%__OROCOS_ROCK_PATH_NAME%"=="PKG_CONFIG_PATH" set "PKG_CONFIG_PATH=%__OROCOS_ROCK_PATH_NEW%"
-@if /I "%__OROCOS_ROCK_PATH_NAME%"=="TYPELIB_PLUGIN_PATH" set "TYPELIB_PLUGIN_PATH=%__OROCOS_ROCK_PATH_NEW%"
-@if /I "%__OROCOS_ROCK_PATH_NAME%"=="CMAKE_PREFIX_PATH" set "CMAKE_PREFIX_PATH=%__OROCOS_ROCK_PATH_NEW%"
+@set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_INPUT:~1%"
+:orocos_deduplicate_next_path_value
+@if not defined __OROCOS_ROCK_PATH_SCAN goto orocos_deduplicate_path_done
+@if not "%__OROCOS_ROCK_PATH_SCAN:~0,1%"==";" goto orocos_split_next_path_value
+@set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_SCAN:~1%"
+@goto orocos_deduplicate_next_path_value
+
+:orocos_split_next_path_value
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_SCAN=%%F"
+@set "__OROCOS_ROCK_PATH_COMPARE=%__OROCOS_ROCK_PATH_NEW:~1%"
+
+:orocos_compare_next_path_value
+@if not defined __OROCOS_ROCK_PATH_COMPARE goto orocos_append_unique_path_value
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_COMPARE%") do set "__OROCOS_ROCK_PATH_COMPARISON=%%E"
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_COMPARE%") do set "__OROCOS_ROCK_PATH_COMPARE=%%F"
+@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_COMPARISON%" goto orocos_deduplicate_next_path_value
+@goto orocos_compare_next_path_value
+
+:orocos_append_unique_path_value
+@set "__OROCOS_ROCK_PATH_NEW=%__OROCOS_ROCK_PATH_NEW%;%__OROCOS_ROCK_PATH_CURRENT%"
+@goto orocos_deduplicate_next_path_value
+
+:orocos_deduplicate_path_done
+@if /I "%__OROCOS_ROCK_PATH_NAME%"=="PATH" set "PATH=%__OROCOS_ROCK_PATH_NEW:~1%"
+@if /I "%__OROCOS_ROCK_PATH_NAME%"=="RTT_COMPONENT_PATH" set "RTT_COMPONENT_PATH=%__OROCOS_ROCK_PATH_NEW:~1%"
+@if /I "%__OROCOS_ROCK_PATH_NAME%"=="PKG_CONFIG_PATH" set "PKG_CONFIG_PATH=%__OROCOS_ROCK_PATH_NEW:~1%"
+@if /I "%__OROCOS_ROCK_PATH_NAME%"=="TYPELIB_PLUGIN_PATH" set "TYPELIB_PLUGIN_PATH=%__OROCOS_ROCK_PATH_NEW:~1%"
+@if /I "%__OROCOS_ROCK_PATH_NAME%"=="CMAKE_PREFIX_PATH" set "CMAKE_PREFIX_PATH=%__OROCOS_ROCK_PATH_NEW:~1%"
 @set "__OROCOS_ROCK_PATH_NAME="
 @set "__OROCOS_ROCK_PATH_OLD="
 @set "__OROCOS_ROCK_PATH_NEW="
+@set "__OROCOS_ROCK_PATH_INPUT="
 @set "__OROCOS_ROCK_PATH_SUPPORTED="
-@set "__OROCOS_ROCK_PATH_CANDIDATE="
 @set "__OROCOS_ROCK_PATH_SCAN="
 @set "__OROCOS_ROCK_PATH_CURRENT="
-@set "__OROCOS_ROCK_PATH_EXISTING="
+@set "__OROCOS_ROCK_PATH_COMPARE="
+@set "__OROCOS_ROCK_PATH_COMPARISON="
 @exit /b 0
 '@
 
