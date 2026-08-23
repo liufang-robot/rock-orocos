@@ -62,7 +62,7 @@ expected_sources = {
   "rtt" => { "url" => "https://github.com/liufang-robot/rtt.git", "branch" => "dev" },
   "rtt_opcua" => {
     "url" => "https://github.com/liufang-robot/rtt_opcua.git",
-    "branch" => "fix/proxy-shutdown-lost-wakeup"
+    "branch" => "dev"
   },
   "ocl" => { "url" => "https://github.com/liufang-robot/ocl.git", "branch" => "dev" },
   "orogen" => {

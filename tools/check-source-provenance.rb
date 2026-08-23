@@ -87,7 +87,7 @@ module OrocosRock
           "rtt_opcua" => {
             "type" => "git",
             "url" => repositories.fetch("rtt_opcua"),
-            "branch" => "fix/proxy-shutdown-lost-wakeup"
+            "branch" => "dev"
           }
         },
         "overrides" => {
