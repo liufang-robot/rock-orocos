@@ -125,9 +125,58 @@ jobs:
             packaging/conda/output/bld/**/CMakeFiles/CMakeOutput.log
             packaging/conda/output/bld/**/CMakeFiles/CMakeError.log
 
+  test-linux-compatibility:
+    name: Linux packages / Ubuntu 22.04 compatibility
+    needs: build-packages
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up locked Pixi package environment
+        uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          pixi-version: v0.76.2
+          environments: package
+          locked: true
+          cache: true
+          cache-write: false
+
+      - name: Download verified Linux release bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: orocos-linux-packages-${{ github.sha }}
+          path: ${{ env.RELEASE_BUNDLE }}
+
+      - name: Verify downloaded release bundle
+        run: |
+          pixi run --locked -e package ruby tools/prepare-linux-conda-release.rb \
+            --mode verify \
+            --expected-repository-commit "$GITHUB_SHA"
+
+      - name: Test exact packages on Ubuntu 22.04
+        run: |
+          set -euo pipefail
+          compatibility_channel="packaging/conda/compatibility-channel"
+          mkdir -p "$compatibility_channel/linux-64"
+          cp "$RELEASE_BUNDLE"/*.conda "$compatibility_channel/linux-64/"
+          pixi run --locked -e package rattler-index \
+            --force --target-platform linux-64 fs "$compatibility_channel"
+          ./tools/test-linux-conda-consumer.sh \
+            --manifest "$RELEASE_BUNDLE/release-manifest.json" \
+            --local-channel "$compatibility_channel"
+
   publish-packages:
     name: Linux packages / publish to Prefix
-    needs: build-packages
+    needs:
+      - build-packages
+      - test-linux-compatibility
     if: >-
       github.event_name == 'release' &&
       github.event.action == 'published' &&

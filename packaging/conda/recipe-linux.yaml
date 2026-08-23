@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.1"
+  version: "0.1.2"
   build_number: 0
 
 recipe:
@@ -127,6 +127,7 @@ outputs:
       build:
         - ${{ compiler('c') }}
         - ${{ compiler('cxx') }}
+        - ${{ stdlib('c') }}
         - cmake >=3.28,<4
         - curl
         - git >=2.45,<3
@@ -174,6 +175,7 @@ outputs:
           - toolchain/lib/ruby/**
     requirements:
       run:
+        - __glibc >=2.17
         - libboost >=1.84,<1.85
         - libffi >=3.4,<4
         - libgcc >=14
@@ -240,6 +242,7 @@ outputs:
     requirements:
       run:
         - ${{ pin_subpackage('orocos', exact=True) }}
+        - __glibc >=2.17
         - boost-cpp >=1.84,<1.85
         - castxml >=0.7,<0.8
         - cmake >=3.28,<4

@@ -43,6 +43,10 @@ Focused regression tests:
   publication, and post-publication test boundaries
 - `test-windows-package-ci.rb` mutation-tests the release guard, protected-main
   ancestry gate, action pins, and release-tag command boundary
+- `check-linux-glibc-compatibility.rb` rejects package-owned ELF files that
+  require a newer GLIBC symbol version than the configured Linux baseline
+- `test-linux-glibc-compatibility.rb` proves the GLIBC scanner's acceptance and
+  rejection behavior with deterministic `readelf` fixtures
 - `windows-generator-smoke/` is generated and compiled by the Windows Pixi
   build to exercise Typelib, OroGen, standalone Typegen regeneration, typekit,
   transport, and deployer support

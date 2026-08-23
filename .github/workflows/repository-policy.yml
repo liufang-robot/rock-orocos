@@ -18,6 +18,7 @@ on:
       - "tools/check-repository-policy.rb"
       - "tools/check-docs.rb"
       - "tools/check-linux-package-ci.rb"
+      - "tools/check-linux-glibc-compatibility.rb"
       - "tools/check-source-provenance.rb"
       - "tools/check-windows-package-ci.rb"
       - "tools/common.sh"
@@ -33,6 +34,7 @@ on:
       - "tools/test-windows-conda-consumer.ps1"
       - "tools/prepare-linux-conda-release.rb"
       - "tools/test-linux-conda-consumer.sh"
+      - "tools/test-linux-glibc-compatibility.rb"
       - "tools/test-linux-prefix-sanitizer.rb"
       - "tools/test-linux-ruby-gems.rb"
       - "tools/test-linux-source-lock.rb"
@@ -60,6 +62,7 @@ on:
       - "tools/check-repository-policy.rb"
       - "tools/check-docs.rb"
       - "tools/check-linux-package-ci.rb"
+      - "tools/check-linux-glibc-compatibility.rb"
       - "tools/check-source-provenance.rb"
       - "tools/check-windows-package-ci.rb"
       - "tools/common.sh"
@@ -75,6 +78,7 @@ on:
       - "tools/test-windows-conda-consumer.ps1"
       - "tools/prepare-linux-conda-release.rb"
       - "tools/test-linux-conda-consumer.sh"
+      - "tools/test-linux-glibc-compatibility.rb"
       - "tools/test-linux-prefix-sanitizer.rb"
       - "tools/test-linux-ruby-gems.rb"
       - "tools/test-linux-source-lock.rb"
@@ -101,6 +105,7 @@ jobs:
           ruby tools/check-windows-package-ci.rb
           ruby tools/check-linux-package-ci.rb
           python3 tools/test-linux-conda-release.py
+          ruby tools/test-linux-glibc-compatibility.rb
           ruby tools/test-linux-prefix-sanitizer.rb
           ruby tools/test-linux-ruby-gems.rb
           ruby tools/test-license-corpus.rb

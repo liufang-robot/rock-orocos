@@ -70,6 +70,12 @@ activation_script="$repository_root/examples/pixi-consumer/scripts/activate-oroc
         "$activation_script" >&2
     exit 1
 }
+glibc_checker="$repository_root/tools/check-linux-glibc-compatibility.rb"
+[ -f "$glibc_checker" ] || {
+    printf 'missing Linux GLIBC compatibility checker: %s\n' \
+        "$glibc_checker" >&2
+    exit 1
+}
 
 readarray -t package_specs < <(
     ruby -rjson -e '
@@ -118,6 +124,9 @@ case ":$TYPELIB_PLUGIN_PATH:" in
 esac
 test -f "$CONDA_PREFIX/toolchain/include/orocos/rtt/RTT.hpp"
 ruby -e 'require "typelib"; require "orogen"'
+ruby "$OROCOS_GLIBC_CHECKER" \
+    --prefix "$CONDA_PREFIX/toolchain" \
+    --maximum-version 2.17
 orogen --help >/dev/null
 typegen --help >/dev/null
 deployer_output="$(deployer-opcua-gnulinux --version 2>&1 || true)"
@@ -145,6 +154,7 @@ for ((attempt = 1; attempt <= attempts; attempt += 1)); do
            -u OROCOS_TARGET \
            -u TYPELIB_PLUGIN_PATH \
            OROCOS_PIXI_ACTIVATION_SCRIPT="$activation_script" \
+           OROCOS_GLIBC_CHECKER="$glibc_checker" \
            pixi exec --force-reinstall --platform linux-64 \
            --spec "${package_specs[1]}" \
            --channel "$channel" --channel conda-forge \

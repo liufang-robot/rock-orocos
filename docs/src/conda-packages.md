@@ -27,7 +27,7 @@ channels = ["https://prefix.dev/liufang-robot/orocos", "conda-forge"]
 platforms = ["linux-64", "win-64"]
 
 [dependencies]
-orocos-dev = "==0.1.1"
+orocos-dev = "==0.1.2"
 
 [target.unix.activation]
 scripts = ["scripts/activate-orocos.sh"]
@@ -36,8 +36,8 @@ scripts = ["scripts/activate-orocos.sh"]
 scripts = ["scripts/activate-orocos.ps1"]
 ```
 
-Runtime-only users replace `orocos-dev = "==0.1.1"` with
-`orocos = "==0.1.1"` under `[dependencies]`.
+Runtime-only users replace `orocos-dev = "==0.1.2"` with
+`orocos = "==0.1.2"` under `[dependencies]`.
 
 Runtime-only Linux consumers remove `[target.unix.activation]`. The `orocos`
 package installs `etc/conda/activate.d/orocos-activate.sh`, which Pixi and

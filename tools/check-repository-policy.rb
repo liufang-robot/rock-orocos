@@ -203,6 +203,7 @@ else
     tools/check-repository-policy.rb
     tools/check-docs.rb
     tools/check-linux-package-ci.rb
+    tools/check-linux-glibc-compatibility.rb
     tools/check-source-provenance.rb
     tools/check-windows-package-ci.rb
     tools/common.sh
@@ -218,6 +219,7 @@ else
     tools/test-windows-conda-consumer.ps1
     tools/prepare-linux-conda-release.rb
     tools/test-linux-conda-consumer.sh
+    tools/test-linux-glibc-compatibility.rb
     tools/test-linux-prefix-sanitizer.rb
     tools/test-linux-ruby-gems.rb
     tools/test-linux-source-lock.rb
@@ -247,6 +249,7 @@ else
       "ruby tools/check-windows-package-ci.rb" => "repository policy workflow must run Windows package CI policy check",
       "ruby tools/check-linux-package-ci.rb" => "repository policy workflow must run Linux package CI policy check",
       "python3 tools/test-linux-conda-release.py" => "repository policy workflow must run Linux conda archive tests",
+      "ruby tools/test-linux-glibc-compatibility.rb" => "repository policy workflow must run Linux GLIBC compatibility tests",
       "ruby tools/test-linux-prefix-sanitizer.rb" => "repository policy workflow must run Linux prefix sanitizer tests",
       "ruby tools/test-linux-ruby-gems.rb" => "repository policy workflow must run Linux Ruby gem input tests",
       "ruby tools/test-license-corpus.rb" => "repository policy workflow must run license corpus regression tests",

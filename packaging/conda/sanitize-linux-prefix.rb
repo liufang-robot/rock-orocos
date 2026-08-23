@@ -50,7 +50,9 @@ owned_files.each do |path|
     updated.gsub!(";#{include_dir}", "")
     updated.gsub!("-I#{include_dir}", "")
     updated.gsub!(" -L#{library_dir}", "")
-    updated.gsub!(File.join(library_dir, "libpthread.a"), "pthread")
+    %w[libpthread.a libpthread.so].each do |library|
+      updated.gsub!(File.join(library_dir, library), "pthread")
+    end
   end
   updated.gsub!(
     %r{uri="file://#{Regexp.escape(repository_root)}/[^"]*/orocos\.ent"},
