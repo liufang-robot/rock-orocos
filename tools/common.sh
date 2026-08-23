@@ -287,6 +287,7 @@ EOF
     else
         cat >>"$OROCOS_ROCK_ROOT/.autoproj/Gemfile" <<'EOF'
 gem "autoproj", ">= 2.18.0"
+gem "facets", "= 3.1.0"
 config_path = File.join(__dir__, 'config.yml')
 if File.file?(config_path)
     require 'yaml'
