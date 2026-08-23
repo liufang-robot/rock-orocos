@@ -4,14 +4,17 @@ on:
   pull_request:
     paths:
       - ".github/workflows/windows-packages.yml"
+      - "examples/pixi-consumer/**"
       - "packaging/**"
       - "tools/build-windows-msvc.ps1"
       - "tools/check-windows-package-ci.rb"
       - "tools/test-windows-package-ci.rb"
       - "tools/export-windows-env.ps1"
       - "tools/install-ruby-tools.ps1"
+      - "tools/stage-license-corpus.rb"
       - "tools/prepare-windows-conda-release.ps1"
       - "tools/test-windows-conda-consumer.ps1"
+      - "tools/test-windows-env-batch.ps1"
       - "tools/test-windows-source-lock.ps1"
       - "tools/windows-generator-smoke/**"
       - "tools/windows-opcua-start-smoke.ops"
@@ -26,14 +29,17 @@ on:
       - main
     paths:
       - ".github/workflows/windows-packages.yml"
+      - "examples/pixi-consumer/**"
       - "packaging/**"
       - "tools/build-windows-msvc.ps1"
       - "tools/check-windows-package-ci.rb"
       - "tools/test-windows-package-ci.rb"
       - "tools/export-windows-env.ps1"
       - "tools/install-ruby-tools.ps1"
+      - "tools/stage-license-corpus.rb"
       - "tools/prepare-windows-conda-release.ps1"
       - "tools/test-windows-conda-consumer.ps1"
+      - "tools/test-windows-env-batch.ps1"
       - "tools/test-windows-source-lock.ps1"
       - "tools/windows-generator-smoke/**"
       - "tools/windows-opcua-start-smoke.ops"
@@ -64,7 +70,7 @@ concurrency:
 
 jobs:
   build-packages:
-    name: Build And Test Windows Packages
+    name: Windows packages / build and test
     if: >-
       github.event_name != 'release' ||
       (github.event.action == 'published' &&
@@ -95,6 +101,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Release commit $env:GITHUB_SHA is not reachable from protected main."
           }
+
+      - name: Validate Windows batch activation
+        shell: pwsh
+        run: >-
+          powershell.exe -NoProfile -ExecutionPolicy Bypass
+          -File tools/test-windows-env-batch.ps1
 
       - name: Set up locked Pixi package environment
         uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
@@ -233,7 +245,7 @@ jobs:
             packaging/conda/output/bld/**/CMakeFiles/CMakeError.log
 
   publish-packages:
-    name: Publish Windows Packages To Prefix
+    name: Windows packages / publish to Prefix
     needs: build-packages
     if: >-
       github.event_name == 'release' &&

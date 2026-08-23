@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+require "yaml"
+
 def package_test_case_arm(script, package_test)
   case_match = script.match(
     /^[ \t]*case\s+"\$PACKAGE_TEST"\s+in\s*$\n(?<body>.*?)(?=^[ \t]*esac\s*$)/m
@@ -86,6 +88,7 @@ package_test_contracts = {
   "rtt-opcua" => {
     script_tokens: [
       "-DRTT_OPCUA_WARNINGS_AS_ERRORS=ON",
+      "rtt_opcua_publication_selector_test",
       'build_targets toolchain/tools/rtt_opcua/build "${RTT_OPCUA_TEST_TARGETS[@]}"',
       "run_ctest toolchain/tools/rtt_opcua/build '^rtt_opcua_.*_test$'",
       "build_targets toolchain/tools/ocl/build ocl_opcua_deployment_test deployer-opcua ctaskbrowser-opcua",
@@ -126,6 +129,52 @@ if !File.file?(workflow_path)
 else
   contents = File.read(workflow_path)
 
+  begin
+    workflow = YAML.safe_load(contents, aliases: true)
+    package_test_job = workflow.fetch("jobs").fetch("package-test")
+    os_matrix = package_test_job.fetch("strategy").fetch("matrix").fetch("os")
+    compiler_policy = {
+      "ubuntu-22.04" => ["gcc-12", "g++-12"],
+      "ubuntu-24.04" => ["gcc", "g++"],
+      "debian-13" => ["gcc", "g++"]
+    }
+    compiler_policy.each do |artifact, (cc, cxx)|
+      entry = os_matrix.find { |candidate| candidate["artifact"] == artifact }
+      if !entry
+        errors << "package tests must define compiler policy for #{artifact}"
+      elsif entry["cc"] != cc || entry["cxx"] != cxx
+        errors << "#{entry.fetch("name", artifact)} package tests must use CC=#{cc} and CXX=#{cxx}"
+      end
+    end
+
+    job_env = package_test_job.fetch("env")
+    unless job_env["CC"] == "${{ matrix.os.cc }}" && job_env["CXX"] == "${{ matrix.os.cxx }}"
+      errors << "package tests must select CC and CXX from the OS matrix"
+    end
+
+    compiler_step = package_test_job.fetch("steps").find do |step|
+      step["name"] == "Install Ubuntu 22.04 test compiler"
+    end
+    if !compiler_step
+      errors << "package tests must install the Ubuntu 22.04 test compiler"
+    else
+      unless compiler_step["if"] == "matrix.os.artifact == 'ubuntu-22.04'"
+        errors << "the GCC 12 install must be limited to Ubuntu 22.04"
+      end
+      unless compiler_step.fetch("run", "").include?("gcc-12 g++-12")
+        errors << "the Ubuntu 22.04 compiler step must install gcc-12 and g++-12"
+      end
+      gcc_12_steps = package_test_job.fetch("steps").select do |step|
+        step.fetch("run", "").include?("gcc-12") || step.fetch("run", "").include?("g++-12")
+      end
+      unless gcc_12_steps == [compiler_step]
+        errors << "GCC 12 package installation must occur only in the Ubuntu 22.04 compiler step"
+      end
+    end
+  rescue Psych::SyntaxError, KeyError, TypeError => e
+    errors << "package test compiler policy is not parseable: #{e.message}"
+  end
+
   errors << "package tests must run on pull requests" unless contents.include?("pull_request:")
   errors << "package tests must support manual dispatch" unless contents.include?("workflow_dispatch:")
   errors << "package tests must not run for docs-only changes" if contents.match?(/docs\//)
@@ -139,6 +188,9 @@ else
   end
   errors << "package tests must use matrix-selected containers" unless contents.include?("image: ${{ matrix.os.image }}")
   errors << "package tests must use a fresh /tmp/orocos install prefix" unless contents.include?("OROCOS_PREFIX: /tmp/orocos")
+  unless contents.include?("LANG: C.UTF-8") && contents.include?("LC_ALL: C.UTF-8")
+    errors << "package tests must use a UTF-8 locale for Autoproj and dpkg metadata"
+  end
   errors << "package tests must not use the clean-room Docker /opt/orocos install prefix" if contents.include?("OROCOS_PREFIX: /opt/orocos")
   errors << "package tests must not install omniORB for no-CORBA builds" if contents.include?("libomniorb4-dev") || contents.include?("omniidl")
   errors << "package tests must be non-required while experimental" unless contents.include?("continue-on-error: true")

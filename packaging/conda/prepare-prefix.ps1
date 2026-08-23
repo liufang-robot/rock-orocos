@@ -8,6 +8,8 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
+$RubyExecutable = Get-Command ruby.exe -CommandType Application `
+    -ErrorAction Stop | Select-Object -First 1 -ExpandProperty Source
 
 function Resolve-RequiredDirectory {
     param(
@@ -263,52 +265,6 @@ function Convert-RttCMakeFiles {
     }
 }
 
-function Copy-LicenseMetadata {
-    param(
-        [string]$InstalledPrefix,
-        [string]$BuildWorkspace,
-        [string]$VcpkgInstalled,
-        [string]$SourceLockPath
-    )
-
-    $licenseRoot = Join-Path $InstalledPrefix "share\licenses\orocos"
-    New-Item -ItemType Directory -Force -Path $licenseRoot | Out-Null
-    Copy-Item -LiteralPath $SourceLockPath `
-        -Destination (Join-Path $licenseRoot "source-lock.json") -Force
-
-    $sourceRoot = Join-Path $BuildWorkspace "src"
-    foreach ($source in Get-ChildItem -LiteralPath $sourceRoot -Directory) {
-        $licenseFiles = @(
-            Get-ChildItem -LiteralPath $source.FullName -File |
-                Where-Object { $_.Name -match '^(LICENSE|COPYING|COPYRIGHT|NOTICE)' }
-        )
-        if ($licenseFiles.Count -eq 0) {
-            continue
-        }
-        $destination = Join-Path $licenseRoot $source.Name
-        New-Item -ItemType Directory -Force -Path $destination | Out-Null
-        $licenseFiles | Copy-Item -Destination $destination -Force
-    }
-
-    $vcpkgLicenseRoot = Join-Path $InstalledPrefix "share\licenses\vcpkg"
-    foreach ($port in Get-ChildItem -LiteralPath (Join-Path $VcpkgInstalled "share") -Directory) {
-        $metadata = @(
-            Get-ChildItem -LiteralPath $port.FullName -File |
-                Where-Object {
-                    $_.Name -eq "copyright" -or
-                    $_.Name -eq "vcpkg.spdx.json" -or
-                    $_.Name -match '^(LICENSE|COPYING|NOTICE)'
-                }
-        )
-        if ($metadata.Count -eq 0) {
-            continue
-        }
-        $destination = Join-Path $vcpkgLicenseRoot $port.Name
-        New-Item -ItemType Directory -Force -Path $destination | Out-Null
-        $metadata | Copy-Item -Destination $destination -Force
-    }
-}
-
 function Assert-NoBuildPathReferences {
     param(
         [string]$InstalledPrefix,
@@ -395,9 +351,21 @@ Write-Host "Bundled runtime DLLs: $($copiedRuntimeDependencies -join ', ')"
 Remove-PackagingSmokeArtifacts -InstalledPrefix $Prefix
 Convert-PkgConfigFiles -InstalledPrefix $Prefix -VcpkgInstalled $vcpkgInstalled
 Convert-RttCMakeFiles -InstalledPrefix $Prefix -VcpkgInstalled $vcpkgInstalled
-Copy-LicenseMetadata -InstalledPrefix $Prefix -BuildWorkspace $Workspace `
-    -VcpkgInstalled $vcpkgInstalled `
-    -SourceLockPath (Join-Path $RepositoryRoot "packaging\source-lock.json")
+$licenseStager = Join-Path $RepositoryRoot "tools\stage-license-corpus.rb"
+& $RubyExecutable @(
+    $licenseStager,
+    "--inventory", (Join-Path $RepositoryRoot "packaging\license-corpus.json"),
+    "--source-lock", (Join-Path $RepositoryRoot "packaging\source-lock.json"),
+    "--platform", "windows",
+    "--source-root", $Workspace,
+    "--gem-home", (Join-Path $Prefix "toolchain\gems"),
+    "--gem-cache", (Join-Path $RepositoryRoot ".ruby-gems"),
+    "--prefix", $Prefix,
+    "--vcpkg-share", (Join-Path $vcpkgInstalled "share")
+)
+if ($LASTEXITCODE -ne 0) {
+    throw "License corpus staging exited with code $LASTEXITCODE"
+}
 
 & (Join-Path $RepositoryRoot "tools\export-windows-env.ps1") `
     -Prefix $Prefix `

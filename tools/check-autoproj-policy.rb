@@ -34,6 +34,7 @@ root = File.expand_path("..", __dir__)
 manifest_path = File.join(root, "autoproj", "manifest")
 overrides_path = File.join(root, "autoproj", "overrides.yml")
 local_autobuild_path = File.join(root, "autoproj", "local.autobuild")
+init_path = File.join(root, "autoproj", "init.rb")
 install_path = File.join(root, "tools", "install.sh")
 bootstrap_path = File.join(root, "tools", "bootstrap.sh")
 install_autoproj_path = File.join(root, "tools", "install-autoproj.sh")
@@ -107,6 +108,7 @@ update_script = File.file?(update_path) ? File.read(update_path) : ""
 common_script = File.read(common_path)
 overrides_script = File.read(File.join(root, "autoproj", "overrides.rb"))
 local_autobuild_script = File.file?(local_autobuild_path) ? File.read(local_autobuild_path) : ""
+init_script = File.read(init_path)
 local_osdeps = File.file?(local_osdeps_path) ? File.read(local_osdeps_path) : ""
 local_osdeps_data = local_osdeps.empty? ? {} : (YAML.safe_load(local_osdeps) || {})
 export_env_script = File.read(export_env_path)
@@ -123,6 +125,16 @@ end
 errors << "update.sh: must disable osdeps" unless update_script.include?("--no-osdeps")
 if update_script.match?(/orocos_rock_autoproj\s+build/)
   errors << "update.sh: must not build packages"
+end
+
+unless init_script.include?('build_tools_prefix = ENV["OROCOS_ROCK_BUILD_TOOLS_PREFIX"]') &&
+       init_script.include?('Autoproj.env_add_path "PATH", File.join(build_tools_prefix, "bin")')
+  errors << "autoproj/init.rb: must preserve an explicitly selected package-build tool prefix"
+end
+unless init_script.include?('dependency_prefix = ENV["OROCOS_ROCK_DEPENDENCY_PREFIX"]') &&
+       init_script.include?('Autobuild::CMake.prefix_path << dependency_prefix') &&
+       init_script.include?('"PKG_CONFIG_PATH", File.join(dependency_prefix, relative_path)')
+  errors << "autoproj/init.rb: must preserve an explicitly selected package dependency prefix"
 end
 if update_script.match?(/--(?:force-)?reset/)
   errors << "update.sh: must not reset package repositories"
@@ -291,6 +303,10 @@ unless export_env_script.include?('CMAKE_PREFIX_PATH "\$OROCOS_PREFIX/toolchain"
   errors << "tools/export-env.sh: env.sh must prepend the installed toolchain prefix"
 end
 
+unless export_env_script.include?('TYPELIB_PLUGIN_PATH "\$OROCOS_PREFIX/toolchain/lib/typelib"')
+  errors << "tools/export-env.sh: env.sh must expose relocatable Typelib plugin discovery"
+end
+
 root_lib = export_env_script.index('LD_LIBRARY_PATH "\$OROCOS_PREFIX/lib"')
 toolchain_lib = export_env_script.index('LD_LIBRARY_PATH "\$OROCOS_PREFIX/toolchain/lib"')
 if root_lib && toolchain_lib && root_lib > toolchain_lib
@@ -303,9 +319,14 @@ if root_pkg_config && toolchain_pkg_config && root_pkg_config > toolchain_pkg_co
   errors << "tools/export-env.sh: toolchain pkg-config metadata must take precedence over root prefix metadata"
 end
 
-unless export_env_script.include?('GEM_HOME="\${GEM_HOME:-') &&
-       export_env_script.include?('toolchain/gems')
-  errors << "tools/export-env.sh: dev-env.sh must activate the installed Ruby gem home"
+unless export_env_script.include?('GEM_HOME="\$OROCOS_PREFIX/toolchain/gems"') &&
+       export_env_script.include?('ruby -rrubygems -e \'print Gem.default_dir\'') &&
+       export_env_script.include?('GEM_PATH="\$GEM_HOME:\$orocos_rock_default_gem_dir"')
+  errors << "tools/export-env.sh: dev-env.sh must isolate the installed Ruby gem home and retain default gems"
+end
+
+unless export_env_script.include?('toolchain/lib/ruby/$RUBY_VERSION_ABI/$RUBY_ARCH')
+  errors << "tools/export-env.sh: dev-env.sh must expose the installed native Ruby extension directory"
 end
 
 unless validate_install_script.include?('DEPLOYER="$(orocos_rock_target_deployer "$TARGET")"') &&
@@ -341,6 +362,17 @@ end
 
 unless validate_install_script.include?("typegen --help")
   errors << "tools/validate-install.sh: must smoke-test typegen"
+end
+
+unless validate_install_script.include?('.invalid-workspace-gem-home') &&
+       validate_install_script.include?('.invalid-workspace-gem-path') &&
+       validate_install_script.include?('ruby -e \'require "typelib"; require "orogen"\'')
+  errors << "tools/validate-install.sh: must reject inherited workspace gems and load the installed generator stack"
+end
+
+unless validate_install_script.include?('TYPELIB_PLUGIN_PATH') &&
+       validate_install_script.include?('toolchain/lib/typelib')
+  errors << "tools/validate-install.sh: must check installed Typelib plugin discovery"
 end
 
 unless File.file?(ruby_tools_path)

@@ -105,6 +105,7 @@ orocos_rock_prepend_path RTT_COMPONENT_PATH "\$OROCOS_PREFIX/toolchain/lib/oroco
 orocos_rock_prepend_path RTT_COMPONENT_PATH "\$OROCOS_PREFIX/toolchain/lib/orocos/plugins"
 orocos_rock_prepend_path RTT_COMPONENT_PATH "\$OROCOS_PREFIX/toolchain/lib64/orocos"
 orocos_rock_prepend_path RTT_COMPONENT_PATH "\$OROCOS_PREFIX/toolchain/lib64/orocos/plugins"
+orocos_rock_prepend_path TYPELIB_PLUGIN_PATH "\$OROCOS_PREFIX/toolchain/lib/typelib"
 
 OROCOS_TARGET="$TARGET"
 export OROCOS_TARGET
@@ -128,14 +129,11 @@ cat >"$PREFIX/dev-env.sh" <<EOF
 # shellcheck disable=SC1091
 . "$PREFIX/env.sh"
 
-GEM_HOME="\${GEM_HOME:-$PREFIX/toolchain/gems}"
+GEM_HOME="\$OROCOS_PREFIX/toolchain/gems"
 export GEM_HOME
 
-if [ -n "\${GEM_PATH:-}" ]; then
-    GEM_PATH="\$GEM_HOME:\$GEM_PATH"
-else
-    GEM_PATH="\$GEM_HOME"
-fi
+orocos_rock_default_gem_dir="\$(ruby -rrubygems -e 'print Gem.default_dir')"
+GEM_PATH="\$GEM_HOME:\$orocos_rock_default_gem_dir"
 export GEM_PATH
 
 orocos_rock_prepend_path() {
@@ -157,6 +155,8 @@ orocos_rock_prepend_path() {
 
 orocos_rock_prepend_path RUBYLIB "\$OROCOS_PREFIX/toolchain/lib/ruby/$RUBY_VERSION_ABI"
 orocos_rock_prepend_path RUBYLIB "\$OROCOS_PREFIX/toolchain/lib/$RUBY_ARCH/ruby/$RUBY_VERSION_ABI"
+orocos_rock_prepend_path RUBYLIB "\$OROCOS_PREFIX/toolchain/lib/ruby/$RUBY_VERSION_ABI/$RUBY_ARCH"
+unset orocos_rock_default_gem_dir
 unset -f orocos_rock_prepend_path
 EOF
 

@@ -181,6 +181,7 @@ case "$PACKAGE_TEST" in
             rtt_opcua_type_protocol_test
             rtt_opcua_object_model_test
             rtt_opcua_task_context_proxy_test
+            rtt_opcua_publication_selector_test
         )
         orocos_rock_info "Building native RTT OPC UA tests"
         build_targets toolchain/tools/rtt_opcua/build "${RTT_OPCUA_TEST_TARGETS[@]}"

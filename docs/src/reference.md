@@ -16,5 +16,7 @@ Most readers should start with the guides first:
   support.
 - [Dual-Organization Publication](./dual-organization-publication.md) defines
   publication policy.
+- [Packaging And Release](./release-guide.md) defines package construction and
+  the Prefix.dev release gate.
 - [Package Verification Matrix](./package-test-results.md) defines the
   maintained verification surface.

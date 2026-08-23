@@ -1,0 +1,80 @@
+name: Documentation
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/docs.yml"
+      - "README.md"
+      - "packaging/README.md"
+      - "docs/**"
+      - "examples/pixi-consumer/**"
+      - "tools/check-docs.rb"
+      - "pixi.toml"
+      - "pixi.lock"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/docs.yml"
+      - "README.md"
+      - "packaging/README.md"
+      - "docs/**"
+      - "examples/pixi-consumer/**"
+      - "tools/check-docs.rb"
+      - "pixi.toml"
+      - "pixi.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: documentation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Set up locked documentation environment
+        uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          pixi-version: v0.77.0
+          environments: docs
+          locked: true
+          cache: true
+
+      - name: Validate and build the manual
+        run: pixi run --locked -e docs docs-build
+
+      - name: Validate Pixi consumer activation example
+        run: >-
+          pixi workspace activation list
+          --manifest-path examples/pixi-consumer/pixi.toml
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4
+        with:
+          path: docs/book
+
+  deploy:
+    name: Deploy Documentation
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4

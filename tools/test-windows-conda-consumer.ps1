@@ -50,12 +50,35 @@ else {
     $channel = $ChannelUrl.TrimEnd("/")
 }
 
+$activationScript = (
+    Resolve-Path -LiteralPath (
+        Join-Path $PSScriptRoot "..\examples\pixi-consumer\scripts\activate-orocos.ps1"
+    )
+).Path
+
 $runtimeCommand = @'
 & {
-    . (Join-Path $env:CONDA_PREFIX 'Library\env.ps1')
+    $ErrorActionPreference = "Stop"
+    $expectedPrefix = [IO.Path]::GetFullPath(
+        (Join-Path $env:CONDA_PREFIX 'Library'))
+    if ([string]::IsNullOrWhiteSpace($env:OROCOS_PREFIX)) {
+        throw 'The orocos package hook did not set OROCOS_PREFIX.'
+    }
+    $actualPrefix = [IO.Path]::GetFullPath($env:OROCOS_PREFIX)
+    if (-not $actualPrefix.Equals(
+            $expectedPrefix,
+            [StringComparison]::OrdinalIgnoreCase)) {
+        throw "The orocos package hook set OROCOS_PREFIX to '$actualPrefix', expected '$expectedPrefix'."
+    }
+    if ($env:OROCOS_TARGET -ne "win32") {
+        throw "The orocos package hook set OROCOS_TARGET to '$env:OROCOS_TARGET', expected 'win32'."
+    }
     $developmentHeader = Join-Path $env:CONDA_PREFIX 'Library\include\orocos\rtt\RTT.hpp'
     if (Test-Path -LiteralPath $developmentHeader) {
         throw 'The runtime-only environment unexpectedly contains development headers.'
+    }
+    if (-not (Get-Command deployer-opcua-win32.exe -ErrorAction SilentlyContinue)) {
+        throw 'The orocos package hook did not add the runtime executable directory to PATH.'
     }
     deployer-opcua-win32.exe --check --no-consolelog
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -64,7 +87,8 @@ $runtimeCommand = @'
 
 $developmentCommand = @'
 & {
-    . (Join-Path $env:CONDA_PREFIX 'Library\dev-env.ps1')
+    $ErrorActionPreference = "Stop"
+    . $env:OROCOS_PIXI_ACTIVATION_SCRIPT
     $developmentHeader = Join-Path $env:CONDA_PREFIX 'Library\include\orocos\rtt\RTT.hpp'
     if (-not (Test-Path -LiteralPath $developmentHeader -PathType Leaf)) {
         throw 'The development environment is missing the RTT headers.'
@@ -84,6 +108,9 @@ function Invoke-PixiConsumer {
         [Parameter(Mandatory = $true)][string]$Command
     )
 
+    $encodedCommand = [Convert]::ToBase64String(
+        [Text.Encoding]::Unicode.GetBytes($Command)
+    )
     $arguments = @(
         "exec",
         "--force-reinstall",
@@ -93,7 +120,7 @@ function Invoke-PixiConsumer {
         "powershell.exe",
         "-NoProfile",
         "-ExecutionPolicy", "Bypass",
-        "-Command", $Command
+        "-EncodedCommand", $encodedCommand
     )
     & pixi @arguments
     if ($LASTEXITCODE -ne 0) {
@@ -110,6 +137,10 @@ else {
 $cacheRoot = Join-Path $cacheParent ("orocos-package-consumer-" + [guid]::NewGuid().ToString("N"))
 New-Item -ItemType Directory -Path $cacheRoot | Out-Null
 $previousCache = [Environment]::GetEnvironmentVariable("PIXI_CACHE_DIR", "Process")
+$previousActivationScript = [Environment]::GetEnvironmentVariable(
+    "OROCOS_PIXI_ACTIVATION_SCRIPT",
+    "Process"
+)
 
 try {
     for ($attempt = 1; $attempt -le $Attempts; $attempt += 1) {
@@ -117,8 +148,17 @@ try {
             $env:PIXI_CACHE_DIR = Join-Path $cacheRoot "attempt-$attempt"
             New-Item -ItemType Directory -Path $env:PIXI_CACHE_DIR | Out-Null
             Write-Host "Testing package consumers from $channel (attempt $attempt of $Attempts)."
+            Remove-Item Env:OROCOS_PIXI_ACTIVATION_SCRIPT -ErrorAction SilentlyContinue
             Invoke-PixiConsumer -Spec $runtimeSpec -Command $runtimeCommand
-            Invoke-PixiConsumer -Spec $developmentSpec -Command $developmentCommand
+            $env:OROCOS_PIXI_ACTIVATION_SCRIPT = $activationScript
+            try {
+                Invoke-PixiConsumer -Spec $developmentSpec -Command $developmentCommand
+            }
+            finally {
+                Remove-Item `
+                    Env:OROCOS_PIXI_ACTIVATION_SCRIPT `
+                    -ErrorAction SilentlyContinue
+            }
             Write-Host "Clean runtime and development consumer checks passed."
             return
         }
@@ -137,5 +177,11 @@ finally {
     }
     else {
         $env:PIXI_CACHE_DIR = $previousCache
+    }
+    if ($null -eq $previousActivationScript) {
+        Remove-Item Env:OROCOS_PIXI_ACTIVATION_SCRIPT -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:OROCOS_PIXI_ACTIVATION_SCRIPT = $previousActivationScript
     }
 }

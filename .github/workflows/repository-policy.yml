@@ -6,17 +6,38 @@ on:
       - "AGENTS.md"
       - "README.md"
       - ".github/workflows/repository-policy.yml"
+      - ".github/workflows/docs.yml"
+      - ".github/workflows/linux-packages.yml"
+      - ".github/workflows/native-toolchain.yml"
+      - ".github/workflows/windows-msvc.yml"
       - ".github/workflows/windows-packages.yml"
       - "docs/book/**"
       - "docs/src/**"
       - "docs/superpowers/**"
+      - "examples/pixi-consumer/**"
       - "tools/check-repository-policy.rb"
+      - "tools/check-docs.rb"
+      - "tools/check-linux-package-ci.rb"
       - "tools/check-source-provenance.rb"
       - "tools/check-windows-package-ci.rb"
+      - "tools/common.sh"
+      - "tools/inspect-conda-archive.py"
+      - "tools/install-autoproj.sh"
+      - "tools/install-ruby-tools.sh"
+      - "tools/locked-ruby-gems.rb"
+      - "tools/stage-license-corpus.rb"
       - "tools/prepare-windows-conda-release.ps1"
+      - "tools/test-pixi-consumer-activation.rb"
       - "tools/test-source-provenance.rb"
       - "tools/test-windows-package-ci.rb"
       - "tools/test-windows-conda-consumer.ps1"
+      - "tools/prepare-linux-conda-release.rb"
+      - "tools/test-linux-conda-consumer.sh"
+      - "tools/test-linux-prefix-sanitizer.rb"
+      - "tools/test-linux-ruby-gems.rb"
+      - "tools/test-linux-source-lock.rb"
+      - "tools/test-license-corpus.rb"
+      - "tools/test-linux-conda-release.py"
       - "packaging/**"
       - "pixi.toml"
       - "pixi.lock"
@@ -27,17 +48,38 @@ on:
       - "AGENTS.md"
       - "README.md"
       - ".github/workflows/repository-policy.yml"
+      - ".github/workflows/docs.yml"
+      - ".github/workflows/linux-packages.yml"
+      - ".github/workflows/native-toolchain.yml"
+      - ".github/workflows/windows-msvc.yml"
       - ".github/workflows/windows-packages.yml"
       - "docs/book/**"
       - "docs/src/**"
       - "docs/superpowers/**"
+      - "examples/pixi-consumer/**"
       - "tools/check-repository-policy.rb"
+      - "tools/check-docs.rb"
+      - "tools/check-linux-package-ci.rb"
       - "tools/check-source-provenance.rb"
       - "tools/check-windows-package-ci.rb"
+      - "tools/common.sh"
+      - "tools/inspect-conda-archive.py"
+      - "tools/install-autoproj.sh"
+      - "tools/install-ruby-tools.sh"
+      - "tools/locked-ruby-gems.rb"
+      - "tools/stage-license-corpus.rb"
       - "tools/prepare-windows-conda-release.ps1"
+      - "tools/test-pixi-consumer-activation.rb"
       - "tools/test-source-provenance.rb"
       - "tools/test-windows-package-ci.rb"
       - "tools/test-windows-conda-consumer.ps1"
+      - "tools/prepare-linux-conda-release.rb"
+      - "tools/test-linux-conda-consumer.sh"
+      - "tools/test-linux-prefix-sanitizer.rb"
+      - "tools/test-linux-ruby-gems.rb"
+      - "tools/test-linux-source-lock.rb"
+      - "tools/test-license-corpus.rb"
+      - "tools/test-linux-conda-release.py"
       - "packaging/**"
       - "pixi.toml"
       - "pixi.lock"
@@ -57,8 +99,16 @@ jobs:
           ruby tools/check-repository-policy.rb
           ruby tools/test-windows-package-ci.rb
           ruby tools/check-windows-package-ci.rb
+          ruby tools/check-linux-package-ci.rb
+          python3 tools/test-linux-conda-release.py
+          ruby tools/test-linux-prefix-sanitizer.rb
+          ruby tools/test-linux-ruby-gems.rb
+          ruby tools/test-license-corpus.rb
+          ruby tools/check-docs.rb
+          ruby tools/test-pixi-consumer-activation.rb
 
       - name: Check source provenance
         run: |
+          ruby tools/test-linux-source-lock.rb
           ruby tools/test-source-provenance.rb
           ruby tools/check-source-provenance.rb

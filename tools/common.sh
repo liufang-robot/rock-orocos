@@ -29,6 +29,26 @@ orocos_rock_require_file() {
     [ -f "$1" ] || orocos_rock_die "required file is missing: $1"
 }
 
+orocos_rock_set_ruby_gem_cache() {
+    local cache="$1"
+
+    [ -d "$cache" ] || orocos_rock_die "Ruby gem cache does not exist: $cache"
+    OROCOS_ROCK_RUBY_GEM_CACHE="$(cd "$cache" && pwd)"
+    export OROCOS_ROCK_RUBY_GEM_CACHE
+}
+
+orocos_rock_cached_gem_path() {
+    local gem_name="$1"
+    local gem_version="$2"
+    local gem_path
+
+    [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ] ||
+        orocos_rock_die "OROCOS_ROCK_RUBY_GEM_CACHE is not set"
+    gem_path="$OROCOS_ROCK_RUBY_GEM_CACHE/$gem_name-$gem_version.gem"
+    orocos_rock_require_file "$gem_path"
+    printf '%s\n' "$gem_path"
+}
+
 orocos_rock_cleanup_install_env_snapshot() {
     local snapshot="$1"
 
@@ -193,17 +213,60 @@ orocos_rock_prepare_autoproj_workspace() {
     orocos_rock_validate_target "$target"
     ruby_version="$(ruby -e 'print RUBY_VERSION')"
     ruby_executable="$(ruby -rrbconfig -e 'print RbConfig.ruby')"
-    bundler_executable="$(ruby -e 'gem "bundler"; print Gem.bin_path("bundler", "bundle")')"
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        bundler_executable="$(ruby -e 'gem "bundler", "= 2.6.9"; print Gem.bin_path("bundler", "bundle", "= 2.6.9")')"
+    else
+        bundler_executable="$(ruby -e 'gem "bundler"; print Gem.bin_path("bundler", "bundle")')"
+    fi
     mkdir -p "$OROCOS_ROCK_ROOT/.autoproj"
     mkdir -p "$OROCOS_ROCK_ROOT/.autoproj/bin"
-    cat >"$OROCOS_ROCK_ROOT/.autoproj/bin/bundle" <<EOF
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        locked_bundler_cache="$OROCOS_ROCK_ROOT/.autoproj/vendor/cache"
+        mkdir -p "$locked_bundler_cache"
+        find "$locked_bundler_cache" -mindepth 1 -delete
+        locked_gem_paths="$({ ruby "$OROCOS_ROCK_ROOT/tools/locked-ruby-gems.rb" paths \
+            "$OROCOS_ROCK_RUBY_GEM_CACHE"; } 2>&1)" || orocos_rock_die "$locked_gem_paths"
+        while IFS= read -r gem_path; do
+            cp -- "$gem_path" "$locked_bundler_cache/"
+        done <<<"$locked_gem_paths"
+    fi
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        cat >"$OROCOS_ROCK_ROOT/.autoproj/bin/bundle" <<EOF
+#! /bin/sh
+export BUNDLE_CACHE_PATH="$locked_bundler_cache"
+export BUNDLE_DISABLE_VERSION_CHECK=true
+case "\${1:-}" in
+    install)
+        shift
+        exec "$ruby_executable" "$bundler_executable" install --local "\$@"
+        ;;
+    *) exec "$ruby_executable" "$bundler_executable" "\$@" ;;
+esac
+EOF
+    else
+        cat >"$OROCOS_ROCK_ROOT/.autoproj/bin/bundle" <<EOF
 #! /bin/sh
 exec "$ruby_executable" "$bundler_executable" "\$@"
 EOF
+    fi
     chmod +x "$OROCOS_ROCK_ROOT/.autoproj/bin/bundle"
     cp "$OROCOS_ROCK_ROOT/.autoproj/bin/bundle" "$OROCOS_ROCK_ROOT/.autoproj/bin/bundler"
     autoproj_gem_path="$(orocos_rock_user_gem_path)"
-    cat >"$OROCOS_ROCK_ROOT/.autoproj/bin/autoproj" <<EOF
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        cat >"$OROCOS_ROCK_ROOT/.autoproj/bin/autoproj" <<EOF
+#!$ruby_executable
+require "rubygems"
+ENV["AUTOPROJ_CURRENT_ROOT"] = "$OROCOS_ROCK_ROOT"
+ENV["BUNDLE_GEMFILE"] ||= "$OROCOS_ROCK_ROOT/.autoproj/Gemfile"
+ENV["GEM_PATH"] = "$autoproj_gem_path"
+Gem.clear_paths
+require "$OROCOS_ROCK_ROOT/tools/locked-ruby-gems"
+OrocosRock::LockedRubyGems.activate_autoproj!
+gem "autoproj", "= 2.18.1"
+load Gem.bin_path("autoproj", "autoproj")
+EOF
+    else
+        cat >"$OROCOS_ROCK_ROOT/.autoproj/bin/autoproj" <<EOF
 #!$ruby_executable
 require "rubygems"
 ENV["AUTOPROJ_CURRENT_ROOT"] = "$OROCOS_ROCK_ROOT"
@@ -213,10 +276,16 @@ Gem.clear_paths
 gem "facets", "< 3.2"
 load Gem.bin_path("autoproj", "autoproj")
 EOF
+    fi
     chmod +x "$OROCOS_ROCK_ROOT/.autoproj/bin/autoproj"
     cat >"$OROCOS_ROCK_ROOT/.autoproj/Gemfile" <<EOF
 source "https://rubygems.org"
 ruby "$ruby_version" if respond_to?(:ruby)
+EOF
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        ruby "$OROCOS_ROCK_ROOT/tools/locked-ruby-gems.rb" gemfile >>"$OROCOS_ROCK_ROOT/.autoproj/Gemfile"
+    else
+        cat >>"$OROCOS_ROCK_ROOT/.autoproj/Gemfile" <<'EOF'
 gem "autoproj", ">= 2.18.0"
 config_path = File.join(__dir__, 'config.yml')
 if File.file?(config_path)
@@ -228,6 +297,7 @@ if File.file?(config_path)
         end
 end
 EOF
+    fi
     cat >"$OROCOS_ROCK_ROOT/.autoproj/config.yml" <<EOF
 prefix: "$prefix"
 gems_install_path: "$OROCOS_ROCK_ROOT/.autoproj/gems"
@@ -244,9 +314,15 @@ EOF
 orocos_rock_require_autoproj() {
     orocos_rock_require_command ruby
     gem_path="$(orocos_rock_user_gem_path)"
-    GEM_PATH="$gem_path" \
-        ruby -e 'gem "facets", "< 3.2"; gem "autoproj"; require "facets/kernel/constant"' >/dev/null 2>&1 ||
-        orocos_rock_die "Autoproj Ruby gems are not usable; run ./tools/install-autoproj.sh"
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        GEM_PATH="$gem_path" ruby "$OROCOS_ROCK_ROOT/tools/locked-ruby-gems.rb" activate \
+            >/dev/null 2>&1 ||
+            orocos_rock_die "locked Autoproj 2.18.1 Ruby gems are not usable"
+    else
+        GEM_PATH="$gem_path" \
+            ruby -e 'gem "facets", "< 3.2"; gem "autoproj"; require "facets/kernel/constant"' >/dev/null 2>&1 ||
+            orocos_rock_die "Autoproj Ruby gems are not usable; run ./tools/install-autoproj.sh"
+    fi
 }
 
 orocos_rock_workspace_gem_home() {
@@ -267,7 +343,12 @@ orocos_rock_install_workspace_gem() {
         orocos_rock_info "Installing $gem_name into workspace Ruby gems"
     fi
 
-    if [ -n "$cache_path" ]; then
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        [ -n "$gem_version" ] ||
+            orocos_rock_die "cached Ruby gem installs require an exact version: $gem_name"
+        locked_gem_path="$(orocos_rock_cached_gem_path "$gem_name" "$gem_version")"
+        gem install --install-dir "$workspace_gem_home" --local --no-document "$locked_gem_path"
+    elif [ -n "$cache_path" ]; then
         gem install --install-dir "$workspace_gem_home" --no-document "$cache_path"
     elif [ -n "$gem_version" ] && command -v curl >/dev/null 2>&1; then
         downloaded_gem_path="${TMPDIR:-/tmp}/$gem_name-$gem_version.gem"
@@ -300,8 +381,14 @@ orocos_rock_autoproj() {
     export XDG_DATA_HOME="${XDG_DATA_HOME:-$OROCOS_ROCK_ROOT/.autoproj/xdg}"
     export GEM_PATH
     GEM_PATH="$gem_path"
-    BUNDLE_GEMFILE="${BUNDLE_GEMFILE:-$OROCOS_ROCK_ROOT/.autoproj/Gemfile}" \
-        ruby -e 'gem "facets", "< 3.2"; load Gem.bin_path("autoproj", "autoproj")' -- "$@"
+    if [ -n "${OROCOS_ROCK_RUBY_GEM_CACHE:-}" ]; then
+        BUNDLE_GEMFILE="${BUNDLE_GEMFILE:-$OROCOS_ROCK_ROOT/.autoproj/Gemfile}" \
+            ruby -r"$OROCOS_ROCK_ROOT/tools/locked-ruby-gems.rb" \
+            -e 'OrocosRock::LockedRubyGems.activate_autoproj!; gem "autoproj", "= 2.18.1"; load Gem.bin_path("autoproj", "autoproj")' -- "$@"
+    else
+        BUNDLE_GEMFILE="${BUNDLE_GEMFILE:-$OROCOS_ROCK_ROOT/.autoproj/Gemfile}" \
+            ruby -e 'gem "facets", "< 3.2"; load Gem.bin_path("autoproj", "autoproj")' -- "$@"
+    fi
 }
 
 orocos_rock_source_workspace_env() {

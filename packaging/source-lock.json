@@ -67,6 +67,11 @@
       "revision": "3346b6ac682ad772b57d07b2386cdaef47e4abbe"
     },
     {
+      "name": "rock-package-set",
+      "repository": "https://github.com/rock-core/package_set.git",
+      "revision": "fbe56c735fd11dabe028301d0325630fb27a6939"
+    },
+    {
       "name": "vcpkg",
       "repository": "https://github.com/microsoft/vcpkg.git",
       "revision": "c5a15727ee70fddf0296f0d8aafc3f58916fefac"

@@ -1,7 +1,7 @@
 # Architecture
 
 This repository is a standalone toolchain boundary for rebuilding a focused
-Orocos/Rock stack on current Linux distributions.
+Orocos/Rock stack on current Linux distributions and native Windows.
 
 ## Decision
 

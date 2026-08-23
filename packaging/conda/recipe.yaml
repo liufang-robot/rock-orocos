@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.0"
+  version: "0.1.1"
   build_number: 0
 
 recipe:
@@ -13,12 +13,16 @@ source:
     use_gitignore: true
     filter:
       include:
+        - packaging/license-corpus.json
         - packaging/source-lock.json
         - packaging/conda/build.ps1
+        - packaging/conda/orocos-activate.bat
+        - packaging/conda/stage-runtime-hook.ps1
         - packaging/conda/prepare-prefix.ps1
         - tools/build-windows-msvc.ps1
         - tools/export-windows-env.ps1
         - tools/install-ruby-tools.ps1
+        - tools/stage-license-corpus.rb
         - tools/windows-source-lock.ps1
         - tools/windows-generator-smoke/**
         - tools/windows-opcua-start-smoke.ops
@@ -65,14 +69,18 @@ outputs:
       run_exports: false
     build:
       number: ${{ build_number }}
+      script:
+        file: stage-runtime-hook.ps1
       files:
         include:
           - Library/bin/*.dll
           - Library/bin/*.exe
           - Library/lib/orocos/**/*.dll
           - Library/lib/typelib/*.dll
+          - Library/env.bat
           - Library/env.ps1
-          - Library/share/licenses/**
+          - Library/share/licenses/orocos/**
+          - etc/conda/activate.d/orocos-activate.bat
     requirements:
       run:
         - vc14_runtime >=14.44,<15
@@ -82,12 +90,29 @@ outputs:
             exists:
               - Library/bin/deployer-opcua-win32.exe
               - Library/bin/readline.dll
+              - Library/env.bat
               - Library/env.ps1
+              - etc/conda/activate.d/orocos-activate.bat
+              - Library/share/licenses/orocos/LICENSES.md
+              - Library/share/licenses/orocos/manifest.json
               - Library/lib/orocos/win32/types/rtt-typekit-win32.dll
             not_exists:
               - Library/dev-env.ps1
               - Library/include/orocos/rtt/RTT.hpp
+              - Library/share/licenses/orocos-dev/LICENSES.md
       - script: test-runtime.ps1
+    about:
+      homepage: https://github.com/liufang-robot/rock-orocos
+      repository: https://github.com/liufang-robot/rock-orocos
+      documentation: https://liufang-robot.github.io/rock-orocos/
+      license: (MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND LicenseRef-open62541-base64-BSD AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices) AND LicenseRef-Windows-vcpkg-Bundled-Dependencies
+      license_file:
+        - ${{ PREFIX }}/Library/share/licenses/orocos/**
+      summary: Orocos RTT runtime with OCL and native OPC UA tools for Windows
+      description: |
+        A relocatable Windows Orocos runtime containing RTT, OCL deployers,
+        scripting support, type transports, and the native OPC UA server and
+        TaskBrowser client. Install orocos-dev for headers and generators.
 
   - package:
       name: orocos-dev
@@ -106,10 +131,11 @@ outputs:
           - Library/lib/pkgconfig/**
           - Library/lib/ruby/**
           - Library/share/**
+          - Library/share/licenses/orocos-dev/**
           - Library/toolchain/**
           - Library/vcpkg/**
         exclude:
-          - Library/share/licenses/**
+          - Library/share/licenses/orocos/**
     requirements:
       run:
         - ${{ pin_subpackage('orocos', exact=True) }}
@@ -126,23 +152,44 @@ outputs:
               - Library/dev-env.ps1
               - Library/include/orocos/rtt/RTT.hpp
               - Library/lib/cmake/orocos-rtt/orocos-rtt-config.cmake
+              - Library/share/licenses/orocos-dev/LICENSES.md
+              - Library/share/licenses/orocos-dev/manifest.json
               - Library/toolchain/bin/orogen.bat
               - Library/toolchain/bin/typegen.bat
               - Library/vcpkg/include/boost/version.hpp
             not_exists:
               - Library/bin/deployer-opcua-win32.exe
+              - Library/env.bat
               - Library/env.ps1
+              - etc/conda/activate.d/orocos-activate.bat
+              - Library/share/licenses/orocos/LICENSES.md
       - script: test-dev.ps1
         files:
           recipe:
             - test-data/**
+    about:
+      homepage: https://github.com/liufang-robot/rock-orocos
+      repository: https://github.com/liufang-robot/rock-orocos
+      documentation: https://liufang-robot.github.io/rock-orocos/
+      license: (MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND LicenseRef-open62541-base64-BSD AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices) AND LicenseRef-Windows-vcpkg-Bundled-Dependencies
+      license_file:
+        - ${{ PREFIX }}/Library/share/licenses/orocos-dev/**
+      summary: Orocos development SDK with OroGen and Typegen for Windows
+      description: |
+        Headers, CMake and pkg-config metadata, the bundled dependency SDK,
+        Ruby generator libraries, OroGen, and Typegen for building Orocos
+        components and typekits. The matching orocos runtime is installed
+        automatically.
 
 about:
   homepage: https://github.com/liufang-robot/rock-orocos
   repository: https://github.com/liufang-robot/rock-orocos
-  documentation: https://github.com/liufang-robot/rock-orocos/tree/main/docs/src
-  license: GPL-2.0-only
+  documentation: https://liufang-robot.github.io/rock-orocos/
+  license: (MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND LicenseRef-open62541-base64-BSD AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices) AND LicenseRef-Windows-vcpkg-Bundled-Dependencies
   summary: Native Windows Orocos runtime and development toolchain
+  description: |
+    A relocatable Orocos/Rock toolchain split into runtime and development
+    packages for native Windows consumers.
 
 extra:
   recipe-maintainers:

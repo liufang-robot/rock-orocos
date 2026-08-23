@@ -17,8 +17,14 @@ The exact prefix may be configurable later, but the contract should stay the
 same regardless of location.
 
 The native Windows Pixi build uses `install/windows-msvc` by default and
-exports the same runtime/development split through `env.ps1` and
+exports the same runtime/development split through `env.ps1`, `env.bat`, and
 `dev-env.ps1`.
+
+The published `orocos` and `orocos-dev` packages map the
+same split into a Pixi/Conda environment. On Linux, the scripts are installed
+at the environment root. On Windows, they are installed below
+`Library`. Package relocation may change the prefix location but not
+the behavior described here.
 
 ## Required Outputs
 
@@ -141,6 +147,7 @@ environment. At minimum, the script must:
 - expose the installed prefix through `CMAKE_PREFIX_PATH`
 - expose pkg-config metadata through `PKG_CONFIG_PATH`
 - expose Orocos plugin discovery paths for runtime tools
+- expose the installed Typelib loaders through `TYPELIB_PLUGIN_PATH`
 - expose the installed Ruby generator stack through `GEM_HOME`, `GEM_PATH`, or
   equivalent `RUBYLIB` setup
 - expose CMake config packages for installed internal toolchain dependencies,
@@ -160,6 +167,33 @@ environment containing `orocos-dev`; that package declares those Pixi-managed
 dependencies and installs the exact matching `orocos` runtime. The `win32`
 generator defaults to the Typelib transport; CORBA and mqueue are not part of
 the Windows contract.
+
+The packaged Windows runtime additionally provides `Library/env.bat` for
+explicit `cmd.exe` activation and
+`etc/conda/activate.d/orocos-activate.bat` for automatic Pixi/Conda package
+activation. Both runtime entrypoints derive `OROCOS_PREFIX` from the installed
+`Library` prefix, set `OROCOS_TARGET=win32`, and expose the same runtime and
+component discovery paths. The package hook calls `Library/env.bat --conda`;
+that mode preserves the standard Pixi/Conda `PATH` as a suffix, prepends the
+single Orocos plugin directory required for Windows DLL resolution, and
+applies the Orocos-specific discovery environment. Pixi/Conda already places
+`Library\bin` on `PATH`.
+Explicit `Library/env.bat` activation applies the standalone runtime paths with
+case-insensitive deduplication. The hook does not duplicate the environment
+model or invoke PowerShell.
+
+The packaged Linux runtime similarly provides
+`etc/conda/activate.d/orocos-activate.sh`. Pixi and Conda source this package
+hook automatically, and the hook sources the relocatable
+`$CONDA_PREFIX/env.sh`. Runtime-only Linux consumers therefore do not need a
+project `[target.unix.activation]` wrapper.
+
+On both platforms, `orocos-dev` receives the runtime hook through its exact
+dependency on `orocos`. Development setup remains the responsibility of
+`dev-env.sh` or `dev-env.ps1` and the downstream project's platform-specific
+Pixi activation wrapper. The Linux package does not install a development
+hook or automatically source `dev-env.sh`; there is no `dev-env.bat`
+contract on Windows.
 
 ## Validation Expectations
 

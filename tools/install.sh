@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
     cat <<'USAGE'
-Usage: ./tools/install.sh [--prefix PREFIX] [--target gnulinux|xenomai] [--no-export-env] [-- PACKAGE...]
+Usage: ./tools/install.sh [--prefix PREFIX] [--target gnulinux|xenomai] [--skip-osdeps] [--no-export-env] [-- PACKAGE...]
 
 Update and build the selected Autoproj package layout for the Orocos/Rock
 toolchain, then refresh the exported environment scripts.
@@ -16,6 +16,7 @@ toolchain, then refresh the exported environment scripts.
 Options:
   --prefix PREFIX  Installed toolchain prefix. Default: $OROCOS_PREFIX or ~/.orocos
   --target TARGET  Orocos target to build and export. Default: $OROCOS_TARGET or gnulinux
+  --skip-osdeps    Do not invoke the host operating-system package manager
   --no-export-env  Do not regenerate PREFIX/env.sh and PREFIX/dev-env.sh after build
   -h, --help       Show this help
 
@@ -26,6 +27,7 @@ USAGE
 PREFIX="$OROCOS_ROCK_DEFAULT_PREFIX"
 TARGET="$OROCOS_ROCK_DEFAULT_TARGET"
 EXPORT_ENV=1
+INSTALL_OSDEPS=1
 BUILD_ARGS=()
 SOURCE_PACKAGES=(farbot rtlog-cpp rtt open62541 open62541pp rtt_opcua ocl orogen typelib utilmm rtt_typelib)
 
@@ -43,6 +45,10 @@ while [ "$#" -gt 0 ]; do
             ;;
         --no-export-env)
             EXPORT_ENV=0
+            shift
+            ;;
+        --skip-osdeps)
+            INSTALL_OSDEPS=0
             shift
             ;;
         --)
@@ -83,9 +89,11 @@ GEM_PATH="$(orocos_rock_user_gem_path)" \
 orocos_rock_info "Checking C++20 package policy"
 ruby "$SCRIPT_DIR/check-cpp20-policy.rb"
 
-orocos_rock_info "Installing source-declared operating-system dependencies"
-orocos_rock_run_preserving_install_env "$PREFIX" \
-    orocos_rock_autoproj osdeps --no-interactive
+if [ "$INSTALL_OSDEPS" -eq 1 ]; then
+    orocos_rock_info "Installing source-declared operating-system dependencies"
+    orocos_rock_run_preserving_install_env "$PREFIX" \
+        orocos_rock_autoproj osdeps --no-interactive
+fi
 
 orocos_rock_info "Building Autoproj layout"
 orocos_rock_run_preserving_install_env "$PREFIX" \

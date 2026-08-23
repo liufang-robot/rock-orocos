@@ -1,0 +1,595 @@
+{
+  "schema_version": 1,
+  "aggregate_license": {
+    "linux": "MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND LicenseRef-open62541-base64-BSD AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices",
+    "windows": "(MIT AND BSD-2-Clause AND BSD-3-Clause AND LicenseRef-rtlog-cpp-Bundled-License-Exceptions AND LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception AND MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND LicenseRef-open62541-base64-BSD AND GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception AND CECILL-B AND LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices AND Ruby AND LicenseRef-Ruby-base64-Mixed-Legal-Notices AND LicenseRef-Ruby-facets-Mixed-Bundled-Notices) AND LicenseRef-Windows-vcpkg-Bundled-Dependencies"
+  },
+  "license_refs": [
+    {
+      "id": "LicenseRef-MetaRuby-Bundled-jQuery-Notices",
+      "description": "MetaRuby bundles four jQuery-era JavaScript files whose inline notices use mixed or underspecified MIT, BSD, and GPL declarations.",
+      "evidence": [
+        "sources/metaruby/lib/metaruby/gui/html/jquery.min.js",
+        "sources/metaruby/lib/metaruby/gui/html/jquery.selectfilter.js",
+        "sources/metaruby/lib/metaruby/gui/html/jquery.tagcloud.min.js",
+        "sources/metaruby/lib/metaruby/gui/html/jquery.tinysort.min.js"
+      ]
+    },
+    {
+      "id": "LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations",
+      "description": "The pinned MetaRuby gemspec declares BSD while the same source revision's Rock manifest declares LGPLv3; the corpus preserves both declarations without selecting one.",
+      "evidence": [
+        "sources/metaruby/metaruby.gemspec",
+        "sources/metaruby/manifest.xml"
+      ]
+    },
+    {
+      "id": "LicenseRef-OCL-GPL-2.0-Linking-Exception",
+      "description": "OCL's installed TableMarshaller.hpp is GPL-2.0-only with the project-specific template, macro, inline-function, compilation, and linking exception embedded in the header.",
+      "evidence": [
+        "sources/ocl/reporting/TableMarshaller.hpp"
+      ]
+    },
+    {
+      "id": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception",
+      "description": "Orocos RTT is GPL-2.0 with the project-specific template, macro, inline-function, compilation, and linking exception stated in COPYING.md.",
+      "evidence": [
+        "sources/rtt/COPYING.md"
+      ]
+    },
+    {
+      "id": "LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
+      "description": "RTT's bundled TLSF allocator declares LGPL and GPL terms plus its own executable-linking exception.",
+      "evidence": [
+        "sources/rtt/rtt/os/tlsf/COPYING"
+      ]
+    },
+    {
+      "id": "LicenseRef-Ruby-base64-Mixed-Legal-Notices",
+      "description": "The base64 gem combines its declared Ruby/BSD-2-Clause choice with public-domain, MIT, and old-style BSD portions documented by LEGAL.",
+      "evidence": [
+        "gems/base64-0.3.0/BSDL",
+        "gems/base64-0.3.0/COPYING",
+        "gems/base64-0.3.0/LEGAL"
+      ]
+    },
+    {
+      "id": "LicenseRef-Ruby-facets-Mixed-Bundled-Notices",
+      "description": "The facets gem combines its BSD-2-Clause gemspec declaration with Ruby, BSD-3-Clause, MIT, unspecified, and custom bundled notices preserved in LICENSE.txt and NOTICE.rdoc.",
+      "evidence": [
+        "gems/facets-3.1.0/LICENSE.txt",
+        "gems/facets-3.1.0/NOTICE.rdoc"
+      ]
+    },
+    {
+      "id": "LicenseRef-Windows-vcpkg-Bundled-Dependencies",
+      "description": "The Windows development package bundles a dynamically resolved, source-lock-bound vcpkg dependency SDK; manifest.json enumerates every copied notice path and SHA256.",
+      "evidence": [
+        "vcpkg/** (exact paths and SHA256 values in manifest.json)"
+      ]
+    },
+    {
+      "id": "LicenseRef-open62541-base64-BSD",
+      "description": "open62541's compiled bundled base64 implementation identifies its terms only as BSD, and the pinned dependency inventory does not specify a BSD variant.",
+      "evidence": [
+        "sources/open62541/deps/README.md",
+        "sources/open62541/deps/base64.c"
+      ]
+    },
+    {
+      "id": "LicenseRef-rtlog-cpp-Bundled-License-Exceptions",
+      "description": "rtlog-cpp's repository notice combines its MIT code license with bundled BSD-2-Clause, zlib, MIT-or-Unlicense, and fmt exception terms.",
+      "evidence": [
+        "sources/rtlog-cpp/LICENSE.md"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "name": "farbot",
+      "source_lock_name": "farbot",
+      "revision": "09fd406eef4778511e85b569e3e75cad3d5cf608",
+      "license": "MIT",
+      "checkouts": {
+        "linux": "toolchain/farbot",
+        "windows": "src/farbot"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "6c2c8987e36f2cda32de2ba94818bf0b49dc57a50b2dd0238778e628eb8d9428"
+        }
+      ]
+    },
+    {
+      "name": "metaruby",
+      "source_lock_name": "metaruby",
+      "revision": "26d25770fdad163226b5aede3f8f9b8364d22f4c",
+      "license": "LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices",
+      "checkouts": {
+        "linux": "tools/metaruby",
+        "windows": "src/metaruby"
+      },
+      "notices": [
+        {
+          "path": "lib/metaruby/gui/html/jquery.min.js",
+          "sha256": "e23a2a4e2d7c2b41ebcdd8ffc0679df7140eb7f52e1eebabf827a88182643c59"
+        },
+        {
+          "path": "lib/metaruby/gui/html/jquery.selectfilter.js",
+          "sha256": "d6f7526a0cb5bc6722cf5fa1232f6fc53f39dd479c3b5b60a1a16e0b8ee0a078"
+        },
+        {
+          "path": "lib/metaruby/gui/html/jquery.tagcloud.min.js",
+          "sha256": "f3e45807d9c62448094975d7d9f950dfdc60d8177380597ddb6b331f24101c21"
+        },
+        {
+          "path": "lib/metaruby/gui/html/jquery.tinysort.min.js",
+          "sha256": "11514b21698d2056fc3a747a64cb980512694b016ed4cfb207d008be8dfbf4dc"
+        },
+        {
+          "path": "manifest.xml",
+          "sha256": "7f507958968f80dfcca94916de86f5550cb59c2904cfcf50cc6f97f85747622b"
+        },
+        {
+          "path": "metaruby.gemspec",
+          "sha256": "8db8f3959ef83c3c660a11359db1b9029e07b8cb83040616a11caaf33d8ee294"
+        }
+      ]
+    },
+    {
+      "name": "ocl",
+      "source_lock_name": "ocl",
+      "revision": "b80710cd9ba3c1172e355c351d79e6dab016e214",
+      "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
+      "checkouts": {
+        "linux": "toolchain/tools/ocl",
+        "windows": "src/ocl"
+      },
+      "notices": [
+        {
+          "path": "deployment/DeploymentComponent.cpp",
+          "sha256": "a66b2bac4150b8e7a0513af616d2fd074a16792a1c18abaf486e0b7d8444d9b3"
+        },
+        {
+          "path": "manifest.xml",
+          "sha256": "8aab2e6d56475b570dba3668cce4934d2be3e623ca96942f521dba5e8d1438fa"
+        },
+        {
+          "path": "package.xml",
+          "sha256": "6779f94c72388cf76552d9d847205b4ac2dd5d1b922e0f9c389f83ff02a230a9"
+        },
+        {
+          "path": "reporting/TableMarshaller.hpp",
+          "sha256": "62bb00e72b69214187594699563bb928c22f34a129824df2a809f7861067b7c0"
+        },
+        {
+          "path": "scripts/shell/license.txt",
+          "sha256": "0f2ededb764836d3403c5002ba3dd25c1ff955fbff9cb1a2b56909a74840d57e"
+        },
+        {
+          "path": "taskbrowser/TaskBrowser.cpp",
+          "sha256": "d1c84f3a5b6b1e6b09e31d35b0fb32205a7b22d4b38a4af65f11013272332203"
+        }
+      ]
+    },
+    {
+      "name": "open62541",
+      "source_lock_name": "open62541",
+      "revision": "45e4cd3ef6c79a8e503d37c9f5c89fefe90d99db",
+      "license": "MPL-2.0 AND CC0-1.0 AND Apache-2.0 AND BSL-1.0 AND MIT AND BSD-3-Clause AND LicenseRef-open62541-base64-BSD",
+      "checkouts": {
+        "linux": "toolchain/open62541",
+        "windows": "src/open62541"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85"
+        },
+        {
+          "path": "LICENSE-CC0",
+          "sha256": "d93cc415382f0013088fa276d9cf82373badf244c78220a926f15ee46f0fe3c4"
+        },
+        {
+          "path": "deps/README.md",
+          "sha256": "2b211ebbbedf4baf96e8fadcc77ed9fd44668393cb79291084c847f093f9898b"
+        },
+        {
+          "path": "deps/base64.c",
+          "sha256": "786fbac5b6076caec15bf0ba4ff92da048c8fd247c04397ab3287c64f2697724"
+        },
+        {
+          "path": "deps/cj5.c",
+          "sha256": "6d8d3f7fc608ca04fbe7f26bfd7fb2110c2a5b92f57998691bb37c444efa2b01"
+        },
+        {
+          "path": "deps/cj5.h",
+          "sha256": "8b06827dc8a6a8d8b3c55389ba3022c14f131c7a4a597067187f77b50e5e6fd3"
+        },
+        {
+          "path": "deps/dtoa.c",
+          "sha256": "3c012b284feb982892a0fdaadedb12ffe5a7ce6179f4ad327c60f726ea6e1fd7"
+        },
+        {
+          "path": "deps/dtoa.h",
+          "sha256": "6c4658e37b925d04a2a8650815bfaa59d19c94dcfde8934ab24b9dd938911280"
+        },
+        {
+          "path": "deps/itoa.c",
+          "sha256": "4dcae275f05e382d7651846b7c7b44a739ae5db7116b6be10ae616ade28778e1"
+        },
+        {
+          "path": "deps/itoa.h",
+          "sha256": "b228b9c6c9c4ff2345c620e79443f183b349775ce1c7453386c9a7b0f06baf31"
+        },
+        {
+          "path": "deps/libc_time.c",
+          "sha256": "eaaa705f123d9ba6608bf777ae95dfe64e8f2d6d64cf13b7af5c3645a86e8582"
+        },
+        {
+          "path": "deps/mp_printf.c",
+          "sha256": "a2880fe6b878ba0e4544ebd648bf670de140465534d34a39fc25ed79acb26211"
+        },
+        {
+          "path": "deps/mp_printf.h",
+          "sha256": "ce8ee9daf7879fa2a58221269584778782ad4548dd37edf99de1eb724a2f30f9"
+        },
+        {
+          "path": "deps/open62541_queue.h",
+          "sha256": "0992ff6787795de0070cb7412ab864828fc5933c29b8315c0f54809143d71af9"
+        },
+        {
+          "path": "deps/parse_num.c",
+          "sha256": "99b52b38b73cc0de6962b4384417aa137d2c55aba678e4194d8f678e6fc726ed"
+        },
+        {
+          "path": "deps/pcg_basic.c",
+          "sha256": "e4b4b9f5f17c0f240d4e3806f20c2e73345131ef2a5b004e50a4f3f518e567bf"
+        },
+        {
+          "path": "deps/pcg_basic.h",
+          "sha256": "d85786cb6f68508bc07d7e8cd72a4e3d71ffedfb3aa008c30416ff3521bc3662"
+        },
+        {
+          "path": "deps/ziptree.c",
+          "sha256": "7ccfa0a5c3e305101fab24dc8ce829aa5dad4d6a61ab59fce1d4aa968ea59294"
+        },
+        {
+          "path": "deps/ziptree.h",
+          "sha256": "6384dc581e9027cef8c2efedb99f3c498fee731795d9e97204c915bd3e053b3c"
+        }
+      ]
+    },
+    {
+      "name": "open62541pp",
+      "source_lock_name": "open62541pp",
+      "revision": "b1696768b26a12d0f40fdac5ec62ad78d25fa236",
+      "license": "MPL-2.0",
+      "checkouts": {
+        "linux": "toolchain/open62541pp",
+        "windows": "src/open62541pp"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5"
+        }
+      ]
+    },
+    {
+      "name": "orogen",
+      "source_lock_name": "orogen",
+      "revision": "3346b6ac682ad772b57d07b2386cdaef47e4abbe",
+      "license": "GPL-2.0-or-later AND BSD-3-Clause AND LGPL-2.1-or-later",
+      "checkouts": {
+        "linux": "toolchain/tools/orogen",
+        "windows": "src/orogen"
+      },
+      "notices": [
+        {
+          "path": "LICENSE.txt",
+          "sha256": "0367f70dc397db5c5b85c2cca2e541f7b211fcad44e819dd503f6eba45d0b35a"
+        },
+        {
+          "path": "lib/orogen/templates/config/FindBoost.cmake",
+          "sha256": "e066f1205c59e9107ebd53e1b2d2702f0c9ee8f1232d7d14fba97a47c539021c"
+        },
+        {
+          "path": "lib/orogen/templates/typekit/package.xml",
+          "sha256": "8f14852f2ca225bdfddd00c46238e1d75f13f2b8de16612cf50c8678b6bfe8f1"
+        }
+      ]
+    },
+    {
+      "name": "rtlog-cpp",
+      "source_lock_name": "rtlog-cpp",
+      "revision": "5842ca36c69ad4ba34321eda80891c832298f161",
+      "license": "LicenseRef-rtlog-cpp-Bundled-License-Exceptions",
+      "checkouts": {
+        "linux": "toolchain/rtlog-cpp",
+        "windows": "src/rtlog-cpp"
+      },
+      "notices": [
+        {
+          "path": "LICENSE.md",
+          "sha256": "4a922bf0a093aa3722c31decf21a0755b6289854ef2ecf69208ab727b6960522"
+        }
+      ]
+    },
+    {
+      "name": "rtt",
+      "source_lock_name": "rtt",
+      "revision": "14e237f2c49fa2830f055b71b09f6921c3a07bee",
+      "license": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
+      "checkouts": {
+        "linux": "toolchain/tools/rtt",
+        "windows": "src/rtt"
+      },
+      "notices": [
+        {
+          "path": "COPYING.md",
+          "sha256": "093a7885b26c70705e14413a3ee0208afd526c0530243ee11ed5ab4ed941c1cf"
+        },
+        {
+          "path": "rtt/os/tlsf/COPYING",
+          "sha256": "37e355bdd04d9f472f78934775bb72b7a1ced25cadb4bf8e3cc5edb1801bc8dc"
+        }
+      ]
+    },
+    {
+      "name": "rtt_opcua",
+      "source_lock_name": "rtt_opcua",
+      "revision": "847669186f79dc206313e0f200604581d7031ad8",
+      "license": "LGPL-2.1-or-later",
+      "checkouts": {
+        "linux": "toolchain/tools/rtt_opcua",
+        "windows": "src/rtt_opcua"
+      },
+      "notices": [
+        {
+          "path": "LICENSE",
+          "sha256": "dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551"
+        },
+        {
+          "path": "manifest.xml",
+          "sha256": "7ccf045caccc446981c596cbceef0fd8b97c4b74520473222dd0f19013c8710d"
+        },
+        {
+          "path": "package.xml",
+          "sha256": "cadb8ab21f1267d759b20341d2709bdf78c5d18633807260160c967b77aed99a"
+        }
+      ]
+    },
+    {
+      "name": "rtt_typelib",
+      "source_lock_name": "rtt_typelib",
+      "revision": "c5b345a22036019f8ec4ed176299bab3b80aae0a",
+      "license": "GPL-2.0-or-later",
+      "checkouts": {
+        "linux": "toolchain/tools/rtt_typelib",
+        "windows": "src/rtt_typelib"
+      },
+      "notices": [
+        {
+          "path": "manifest.xml",
+          "sha256": "660aa5363034517c12f9a3f7d55e1e83f4cec58c26d55072ea32003f9877dd59"
+        },
+        {
+          "path": "package.xml",
+          "sha256": "cc738f409e97a3b3588731d2b2888ae69a0ef7700d15057bf33d7d31c1d45b75"
+        }
+      ]
+    },
+    {
+      "name": "typelib",
+      "source_lock_name": "typelib",
+      "revision": "efcd6fcfee995a3b6bf04764d8366e064cdead83",
+      "license": "CECILL-B",
+      "checkouts": {
+        "linux": "toolchain/tools/typelib",
+        "windows": "src/typelib"
+      },
+      "notices": [
+        {
+          "path": "LICENSE.fr.txt",
+          "sha256": "9bdf59c058f08fcf45be46223df939424123931009a632d3b508aa265d3b700f"
+        },
+        {
+          "path": "LICENSE.txt",
+          "sha256": "24e2c371ecc744e6b046a820e181e579dbc48932c11fa8b9d704efdf11252c48"
+        }
+      ]
+    },
+    {
+      "name": "utilmm",
+      "source_lock_name": "utilmm",
+      "revision": "fa212d0d232cf6d841edf9e9d4c43a26d223fedd",
+      "license": "CECILL-B",
+      "checkouts": {
+        "linux": "toolchain/tools/utilmm",
+        "windows": "src/utilmm"
+      },
+      "notices": [
+        {
+          "path": "LICENSE.fr.txt",
+          "sha256": "85f6c290766383712b93bd1874c8a97e16ce5bf35651b2f530d36ac7634f4c85"
+        },
+        {
+          "path": "LICENSE.txt",
+          "sha256": "590b84bda61a1562c260501aac68769dd751ca077d61dd634797ea858981eeec"
+        }
+      ]
+    },
+    {
+      "name": "utilrb",
+      "source_lock_name": "utilrb",
+      "revision": "0028fac920eac5d5f9332c3a3438dcf4b7562953",
+      "license": "BSD-3-Clause",
+      "checkouts": {
+        "linux": "toolchain/tools/utilrb",
+        "windows": "src/utilrb"
+      },
+      "notices": [
+        {
+          "path": "License.txt",
+          "sha256": "d399c3eb3c8eb10a646d52d312a90fb90080bd0cb54ad04907ebdc1b6fcb010b"
+        }
+      ]
+    }
+  ],
+  "ruby_gems": {
+    "remote": [
+      {
+        "name": "backports",
+        "version": "3.25.3",
+        "artifact": "backports-3.25.3.gem",
+        "sha256": "94298d32dc3c40ca15633b54e282780b49e2db0c045f602ea1907e4f63a17235",
+        "declared_licenses": [
+          "MIT"
+        ],
+        "license": "MIT",
+        "notices": [
+          {
+            "path": "LICENSE.txt",
+            "sha256": "1c9395683e9522c0831b6240516d360a78b9675bd86561ea837c2d28619e24a5"
+          }
+        ]
+      },
+      {
+        "name": "base64",
+        "version": "0.3.0",
+        "artifact": "base64-0.3.0.gem",
+        "sha256": "27337aeabad6ffae05c265c450490628ef3ebd4b67be58257393227588f5a97b",
+        "declared_licenses": [
+          "Ruby",
+          "BSD-2-Clause"
+        ],
+        "license": "LicenseRef-Ruby-base64-Mixed-Legal-Notices",
+        "notices": [
+          {
+            "path": "BSDL",
+            "sha256": "36a9a6e7347214bbba599a412617204e65bff065dcbe5c46f5cb454c80de9eb0"
+          },
+          {
+            "path": "COPYING",
+            "sha256": "967586d538a28955ec2541910cf63c5ac345fcdea94bfb1f1705a1f6eb36bcbb"
+          },
+          {
+            "path": "LEGAL",
+            "sha256": "bf3d56d47f8dfcaf3640e1287b2297bf7b310fe1226d6269a5380bbd868d8a42"
+          }
+        ]
+      },
+      {
+        "name": "facets",
+        "version": "3.1.0",
+        "artifact": "facets-3.1.0.gem",
+        "sha256": "7834a68824efbb35380ed7f6f590e01fb9a31a9466e317210e8803f72813c345",
+        "declared_licenses": [
+          "BSD-2-Clause"
+        ],
+        "license": "LicenseRef-Ruby-facets-Mixed-Bundled-Notices",
+        "notices": [
+          {
+            "path": "LICENSE.txt",
+            "sha256": "9ce2b368865d45e970f1fdb7633ca7035cbe2e0c3a7c99f1fe5ba527f67306e1"
+          },
+          {
+            "path": "NOTICE.rdoc",
+            "sha256": "779f78ce300d9aa426fbfacd5f8a859f68739a6065b03de06126ef113060abaa"
+          }
+        ]
+      },
+      {
+        "name": "kramdown",
+        "version": "2.5.2",
+        "artifact": "kramdown-2.5.2.gem",
+        "sha256": "1ba542204c66b6f9111ff00dcc26075b95b220b07f2905d8261740c82f7f02fa",
+        "declared_licenses": [
+          "MIT"
+        ],
+        "license": "MIT",
+        "notices": [
+          {
+            "path": "COPYING",
+            "sha256": "cc29f6a800189c6a0fa61756f52e3d4f0c13dc533a00705482998660f5b36f54"
+          }
+        ]
+      },
+      {
+        "name": "rake",
+        "version": "13.4.2",
+        "artifact": "rake-13.4.2.gem",
+        "sha256": "cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701",
+        "declared_licenses": [
+          "MIT"
+        ],
+        "license": "MIT",
+        "notices": [
+          {
+            "path": "MIT-LICENSE",
+            "sha256": "3e8179ae8e3354a22ad6c9f08a81ac2e7e39cf7b65c7dd97895cb23bf22cd48c"
+          }
+        ]
+      },
+      {
+        "name": "rexml",
+        "version": "3.4.4",
+        "artifact": "rexml-3.4.4.gem",
+        "sha256": "19e0a2c3425dfbf2d4fc1189747bdb2f849b6c5e74180401b15734bc97b5d142",
+        "declared_licenses": [
+          "BSD-2-Clause"
+        ],
+        "license": "BSD-2-Clause",
+        "notices": [
+          {
+            "path": "LICENSE.txt",
+            "sha256": "a5e3042dacb53eebda91f3b1caefbfec8307711df8c4ed1ed20e4e97c43307a4"
+          }
+        ]
+      }
+    ],
+    "source_built": [
+      {
+        "name": "metaruby",
+        "version": "1.0.0",
+        "source": "metaruby",
+        "declared_licenses": [
+          "BSD"
+        ],
+        "license": "LicenseRef-MetaRuby-Conflicting-BSD-LGPLv3-Declarations AND LicenseRef-MetaRuby-Bundled-jQuery-Notices"
+      },
+      {
+        "name": "orogen",
+        "version": "1.3.0",
+        "source": "orogen",
+        "declared_licenses": [
+          "LGPLv2+"
+        ],
+        "license": "GPL-2.0-or-later AND BSD-3-Clause AND LGPL-2.1-or-later"
+      },
+      {
+        "name": "utilrb",
+        "version": "3.2.0",
+        "source": "utilrb",
+        "declared_licenses": [
+          "BSD"
+        ],
+        "license": "BSD-3-Clause"
+      }
+    ]
+  },
+  "windows_vcpkg": {
+    "license": "LicenseRef-Windows-vcpkg-Bundled-Dependencies",
+    "exact_names": [
+      "copyright",
+      "vcpkg.spdx.json"
+    ],
+    "name_prefixes": [
+      "COPYING",
+      "LICENSE",
+      "NOTICE"
+    ]
+  }
+}

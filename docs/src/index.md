@@ -1,48 +1,46 @@
 # orocos-rock
 
-`orocos-rock` builds and installs a standalone Orocos/Rock dependency stack for
-current Linux distributions. It is a toolchain rebuild workspace, not an
-application repository.
+`orocos-rock` is a standalone distribution boundary for the Orocos
+RTT runtime and Rock generator stack. It supports current Linux distributions,
+Xenomai 3 source builds, and a native Windows MSVC toolchain.
 
-The output is one install prefix that downstream Orocos projects can use during
-configure, build, test, and deployment workflows.
+The output is a relocatable package environment or one installed prefix with
+two entrypoints:
+
+| Entrypoint | Purpose |
+|---|---|
+| `env.sh` / `env.ps1` | Run deployers, scripts, components, typekits, and OPC UA tools |
+| `dev-env.sh` / `dev-env.ps1` | Extend the runtime with headers, build metadata, OroGen, Typegen, and Ruby generator support |
 
 ## Start Here
 
-| Reader | Start with | What you get |
-|---|---|---|
-| Toolchain user | [User Guide](./user-guide.md) | Simple install and source commands |
-| Toolchain maintainer | [Maintainer Guide](./maintainer-guide.md) | Script flow, install effects, and validation rules |
-| Future contributor | [Planned Work / TODO](./todo/index.md) | Approved work that is not implemented |
+| Reader | Chapter |
+|---|---|
+| Installing or evaluating the toolchain | [Getting Started](./getting-started.md) |
+| Adding it to a Pixi workspace | [Pixi And Conda Packages](./conda-packages.md) |
+| Running deployments or updating a source install | [User Workflows](./user-guide.md) |
+| Maintaining sources, CI, or package releases | [Maintaining The Toolchain](./maintainer-guide.md) |
+| Changing a public guarantee | [Contracts And Reference](./reference.md) |
 
-Planned Work pages are design inputs, not part of the current install contract.
+## What Is Included
 
-## What This Repository Produces
+- Orocos RTT with scripting and the Linux mqueue transport
+- OCL deployers and TaskBrowser tools
+- `open62541`, `open62541pp`, and the native
+  `rtt_opcua` transport
+- Typelib and `rtt_typelib`
+- OroGen, Typegen, utilrb, and metaruby
+- environment scripts that are independent of workspace checkout paths
 
-A successful install provides:
+CORBA remains available in upstream sources but is disabled in this
+distribution.
 
-- Orocos RTT runtime tools
-- OCL deployer support
-- native OPC UA deployer and remote TaskBrowser support
-- RTT scripting support
-- generator tools such as `orogen` and `typegen`
-- `env.sh` for runtime use
-- `dev-env.sh` for downstream development
+## Repository Boundary
 
-The normal host prefix is `~/.orocos`.
+This repository owns toolchain selection, maintenance fork policy, installed
+prefix behavior, package construction, and validation. Application types,
+components, deployment semantics, and product integration stay in downstream
+repositories.
 
-> [!IMPORTANT]
-> Downstream projects should depend on the installed prefix, not on internal
-> checkout paths inside this workspace.
-
-## Maintenance Direction
-
-The public maintenance branches in this workspace carry build fixes for newer
-Linux distributions and newer compilers. Keep those fixes focused on the
-Orocos/Rock toolchain itself: runtime buildability, generator usability, warning
-cleanup, and install-prefix portability.
-
-## Policy Reference
-
-Use the [Reference](./reference.md) section when changing package selection,
-fork policy, install contracts, or bootstrap behavior.
+Planned work below `todo/` is design input and is not part of the
+current install contract.

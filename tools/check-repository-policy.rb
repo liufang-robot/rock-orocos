@@ -1,16 +1,49 @@
 #!/usr/bin/env ruby
 
 require "open3"
+require "yaml"
+
+SETUP_PIXI_ACTION = "prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347".freeze
+PIXI_ACTIVATION_COMMAND = "pixi workspace activation list " \
+                          "--manifest-path examples/pixi-consumer/pixi.toml"
+
+def executable_commands(step)
+  step.fetch("run", "").lines.map(&:strip).reject do |line|
+    line.empty? || line.start_with?("#")
+  end
+end
+
+def normalize_command(command)
+  command.to_s.gsub(/\s+/, " ").strip
+end
 
 root = File.expand_path("..", __dir__)
 agents_path = File.join(root, "AGENTS.md")
 readme_path = File.join(root, "README.md")
-workflow_path = File.join(root, ".github", "workflows", "repository-policy.yml")
+pixi_manifest_path = File.join(root, "pixi.toml")
+repository_workflow_path = File.join(root, ".github", "workflows", "repository-policy.yml")
+docs_workflow_path = File.join(root, ".github", "workflows", "docs.yml")
+linux_native_workflow_path = File.join(root, ".github", "workflows", "native-toolchain.yml")
+windows_native_workflow_path = File.join(root, ".github", "workflows", "windows-msvc.yml")
 xenomai3_path = File.join(root, "docs", "src", "xenomai3-integration.md")
 docs_src = File.join(root, "docs", "src")
 summary_path = File.join(docs_src, "SUMMARY.md")
 todo_dir = File.join(docs_src, "todo")
 errors = []
+
+if !File.file?(pixi_manifest_path)
+  errors << "missing pixi.toml"
+else
+  pixi_manifest = File.read(pixi_manifest_path)
+  package_dependencies = pixi_manifest[
+    /^\[feature\.package\.dependencies\]\s*$\n(.*?)(?=^\[|\z)/m, 1
+  ].to_s
+  %w[python zstd].each do |dependency|
+    unless package_dependencies.match?(/^#{Regexp.escape(dependency)}\s*=/)
+      errors << "Pixi package environment must explicitly depend on #{dependency}"
+    end
+  end
+end
 
 %w[docs/book docs/superpowers].each do |directory|
   tracked_files, git_status = Open3.capture2(
@@ -94,6 +127,31 @@ else
   end
 end
 
+{
+  linux_native_workflow_path => {
+    "workflow" => "Linux Native Toolchain",
+    "job" => "Linux native / ${{ matrix.os.name }}"
+  },
+  windows_native_workflow_path => {
+    "workflow" => "Windows Native Toolchain",
+    "job" => "Windows native / Windows 2022"
+  }
+}.each do |path, expected_names|
+  unless File.file?(path)
+    errors << "missing #{path.delete_prefix(root + File::SEPARATOR)}"
+    next
+  end
+
+  workflow = YAML.safe_load(File.read(path), aliases: true) || {}
+  platform = expected_names.fetch("workflow").split.first
+  unless workflow["name"] == expected_names.fetch("workflow")
+    errors << "#{platform} native workflow must use the platform-first display name"
+  end
+  unless workflow.dig("jobs", "build", "name") == expected_names.fetch("job")
+    errors << "#{platform} native build check must use the platform-first display name"
+  end
+end
+
 if !File.file?(xenomai3_path)
   errors << "missing docs/src/xenomai3-integration.md"
 else
@@ -110,40 +168,158 @@ else
   end
 end
 
-if !File.file?(workflow_path)
+if !File.file?(repository_workflow_path)
   errors << "missing .github/workflows/repository-policy.yml"
 else
-  workflow = File.read(workflow_path)
-
-  errors << "repository policy workflow must run on pull requests" unless workflow.include?("pull_request:")
-  errors << "repository policy workflow must run on pushes to main" unless workflow.include?("push:") && workflow.include?("- main")
-  errors << "repository policy workflow must support manual dispatch" unless workflow.include?("workflow_dispatch:")
-  %w[
-    "AGENTS.md"
-    "README.md"
-    ".github/workflows/repository-policy.yml"
-    ".github/workflows/windows-packages.yml"
-    "docs/book/**"
-    "docs/src/**"
-    "docs/superpowers/**"
-    "tools/check-repository-policy.rb"
-    "tools/check-source-provenance.rb"
-    "tools/check-windows-package-ci.rb"
-    "tools/prepare-windows-conda-release.ps1"
-    "tools/test-source-provenance.rb"
-    "tools/test-windows-package-ci.rb"
-    "tools/test-windows-conda-consumer.ps1"
-    "packaging/**"
-    "pixi.toml"
-    "pixi.lock"
-  ].each do |path|
-    errors << "repository policy workflow must watch #{path}" unless workflow.include?(path)
+  workflow = YAML.safe_load(File.read(repository_workflow_path), aliases: true) || {}
+  triggers = workflow["on"] || workflow[true] || {}
+  unless triggers.is_a?(Hash)
+    errors << "repository policy workflow must define structured workflow triggers"
+    triggers = {}
   end
-  errors << "repository policy workflow must run repository policy check" unless workflow.include?("ruby tools/check-repository-policy.rb")
-  errors << "repository policy workflow must run source provenance test" unless workflow.include?("ruby tools/test-source-provenance.rb")
-  errors << "repository policy workflow must run source provenance check" unless workflow.include?("ruby tools/check-source-provenance.rb")
-  errors << "repository policy workflow must run Windows package CI mutation tests" unless workflow.include?("ruby tools/test-windows-package-ci.rb")
-  errors << "repository policy workflow must run Windows package CI policy check" unless workflow.include?("ruby tools/check-windows-package-ci.rb")
+
+  pull_request = triggers.fetch("pull_request", {}) || {}
+  push = triggers.fetch("push", {}) || {}
+  errors << "repository policy workflow must run on pull requests" unless triggers.key?("pull_request")
+  errors << "repository policy workflow must run on pushes" unless triggers.key?("push")
+  unless Array(push["branches"]) == ["main"]
+    errors << "repository policy workflow pushes must be limited to main"
+  end
+  errors << "repository policy workflow must support manual dispatch" unless triggers.key?("workflow_dispatch")
+
+  required_paths = %w[
+    AGENTS.md
+    README.md
+    .github/workflows/docs.yml
+    .github/workflows/linux-packages.yml
+    .github/workflows/native-toolchain.yml
+    .github/workflows/repository-policy.yml
+    .github/workflows/windows-msvc.yml
+    .github/workflows/windows-packages.yml
+    docs/book/**
+    docs/src/**
+    docs/superpowers/**
+    examples/pixi-consumer/**
+    tools/check-repository-policy.rb
+    tools/check-docs.rb
+    tools/check-linux-package-ci.rb
+    tools/check-source-provenance.rb
+    tools/check-windows-package-ci.rb
+    tools/common.sh
+    tools/inspect-conda-archive.py
+    tools/install-autoproj.sh
+    tools/install-ruby-tools.sh
+    tools/locked-ruby-gems.rb
+    tools/stage-license-corpus.rb
+    tools/prepare-windows-conda-release.ps1
+    tools/test-pixi-consumer-activation.rb
+    tools/test-source-provenance.rb
+    tools/test-windows-package-ci.rb
+    tools/test-windows-conda-consumer.ps1
+    tools/prepare-linux-conda-release.rb
+    tools/test-linux-conda-consumer.sh
+    tools/test-linux-prefix-sanitizer.rb
+    tools/test-linux-ruby-gems.rb
+    tools/test-linux-source-lock.rb
+    tools/test-license-corpus.rb
+    tools/test-linux-conda-release.py
+    packaging/**
+    pixi.toml
+    pixi.lock
+  ].each do |path|
+    {
+      "pull requests" => Array(pull_request["paths"]),
+      "main pushes" => Array(push["paths"])
+    }.each do |trigger_name, paths|
+      errors << "repository policy workflow #{trigger_name} must watch #{path}" unless paths.include?(path)
+    end
+  end
+
+  policy_steps = Array(workflow.dig("jobs", "policy", "steps"))
+  repository_policy_step = policy_steps.find { |step| step["name"] == "Check repository policy" }
+  if repository_policy_step.nil?
+    errors << "repository policy workflow must define the Check repository policy step"
+  else
+    commands = executable_commands(repository_policy_step)
+    {
+      "ruby tools/check-repository-policy.rb" => "repository policy workflow must run repository policy check",
+      "ruby tools/test-windows-package-ci.rb" => "repository policy workflow must run Windows package CI mutation tests",
+      "ruby tools/check-windows-package-ci.rb" => "repository policy workflow must run Windows package CI policy check",
+      "ruby tools/check-linux-package-ci.rb" => "repository policy workflow must run Linux package CI policy check",
+      "python3 tools/test-linux-conda-release.py" => "repository policy workflow must run Linux conda archive tests",
+      "ruby tools/test-linux-prefix-sanitizer.rb" => "repository policy workflow must run Linux prefix sanitizer tests",
+      "ruby tools/test-linux-ruby-gems.rb" => "repository policy workflow must run Linux Ruby gem input tests",
+      "ruby tools/test-license-corpus.rb" => "repository policy workflow must run license corpus regression tests",
+      "ruby tools/check-docs.rb" => "repository policy workflow must run documentation policy check",
+      "ruby tools/test-pixi-consumer-activation.rb" => "repository policy workflow must run Pixi consumer activation tests"
+    }.each do |command, message|
+      errors << message unless commands.include?(command)
+    end
+  end
+
+  provenance_step = policy_steps.find { |step| step["name"] == "Check source provenance" }
+  if provenance_step.nil?
+    errors << "repository policy workflow must define the Check source provenance step"
+  else
+    commands = executable_commands(provenance_step)
+    {
+      "ruby tools/test-linux-source-lock.rb" => "repository policy workflow must run Linux source-lock test",
+      "ruby tools/test-source-provenance.rb" => "repository policy workflow must run source provenance test",
+      "ruby tools/check-source-provenance.rb" => "repository policy workflow must run source provenance check"
+    }.each do |command, message|
+      errors << message unless commands.include?(command)
+    end
+  end
+end
+
+if !File.file?(docs_workflow_path)
+  errors << "missing .github/workflows/docs.yml"
+else
+  docs_workflow = YAML.safe_load(File.read(docs_workflow_path), aliases: true) || {}
+  docs_triggers = docs_workflow["on"] || docs_workflow[true] || {}
+  docs_triggers = {} unless docs_triggers.is_a?(Hash)
+  docs_pull_request = docs_triggers.fetch("pull_request", {}) || {}
+  docs_push = docs_triggers.fetch("push", {}) || {}
+  {
+    "pull requests" => Array(docs_pull_request["paths"]),
+    "main pushes" => Array(docs_push["paths"])
+  }.each do |trigger_name, paths|
+    unless paths.include?("examples/pixi-consumer/**")
+      errors << "documentation workflow #{trigger_name} must watch examples/pixi-consumer/**"
+    end
+  end
+
+  docs_steps = Array(docs_workflow.dig("jobs", "build", "steps"))
+  setup_step = docs_steps.find { |step| step["name"] == "Set up locked documentation environment" }
+  if setup_step.nil?
+    errors << "documentation workflow must set up the locked documentation environment"
+  else
+    unless setup_step["uses"] == SETUP_PIXI_ACTION
+      errors << "documentation workflow must use the pinned setup-pixi action"
+    end
+    unless setup_step.dig("with", "pixi-version") == "v0.77.0"
+      errors << "documentation workflow must pin Pixi v0.77.0"
+    end
+    unless setup_step.dig("with", "environments") == "docs" &&
+           setup_step.dig("with", "locked") == true
+      errors << "documentation workflow must install the locked docs environment"
+    end
+  end
+
+  manual_index = docs_steps.index { |step| step["name"] == "Validate and build the manual" }
+  activation_index = docs_steps.index { |step| step["name"] == "Validate Pixi consumer activation example" }
+  errors << "documentation workflow must validate and build the manual" if manual_index.nil?
+  if activation_index.nil?
+    errors << "documentation workflow must validate the Pixi consumer activation example"
+  else
+    activation_step = docs_steps.fetch(activation_index)
+    unless normalize_command(activation_step["run"]) == PIXI_ACTIVATION_COMMAND
+      errors << "documentation workflow Pixi activation must use the exact parse-only command"
+    end
+  end
+  if manual_index && activation_index && activation_index != manual_index + 1
+    errors << "documentation workflow must validate Pixi activation immediately after the manual"
+  end
 end
 
 if !File.file?(summary_path)
