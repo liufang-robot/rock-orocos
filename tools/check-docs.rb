@@ -93,8 +93,8 @@ book_config = File.read(File.join(docs, "book.toml"))
 end
 
 readme = strip_html_comments(File.read(File.join(root, "README.md")))
-unless readme.include?("https://liufang-robot.github.io/rock-orocos/")
-  errors << "README.md must link to the published manual"
+unless readme.include?("(./docs/src)")
+  errors << "README.md must link to the manual sources"
 end
 unless File.read(File.join(root, "packaging", "README.md")).include?("../docs/src/release-guide.md")
   errors << "packaging/README.md must point to the canonical release guide"

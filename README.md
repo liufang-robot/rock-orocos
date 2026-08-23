@@ -58,10 +58,8 @@ transport and does not provide mqueue.
 
 ## Documentation
 
-The published manual is
-[liufang-robot.github.io/rock-orocos](https://liufang-robot.github.io/rock-orocos/).
-
-Build it locally through the locked documentation environment:
+The manual sources are under [`docs/src`](./docs/src). Build them locally
+through the locked documentation environment:
 
 ```bash
 pixi run --locked -e docs docs-build

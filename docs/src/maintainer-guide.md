@@ -29,8 +29,8 @@ The mdBook is the stable public documentation for the supported toolchain.
 - Do not commit workflow artifacts below `docs/superpowers/`, generated
   `docs/book/` output, temporary paths, or one-time execution transcripts.
 - Add every Markdown page below `docs/src/` to `SUMMARY.md`.
-- Build docs through `pixi run --locked -e docs docs-build`; pushes
-  to `main` publish the same checked output to GitHub Pages.
+- Build docs through `pixi run --locked -e docs docs-build`; CI validates the
+  same command but does not currently publish the output to GitHub Pages.
 
 Current source and the installed-prefix contract take precedence over stale
 design text.
