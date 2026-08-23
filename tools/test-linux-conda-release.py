@@ -140,7 +140,7 @@ def build_conda(
 
 
 def package_metadata(name, build, documented_paths):
-    depends = []
+    depends = ["__glibc >=2.17"]
     if name == "orocos-dev":
         depends.append(f"orocos ==0.1.0 {RUNTIME_BUILD}")
     return {

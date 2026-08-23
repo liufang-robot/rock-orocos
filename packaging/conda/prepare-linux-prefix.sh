@@ -53,4 +53,8 @@ ruby "$repository_root/packaging/conda/sanitize-linux-prefix.rb" \
     --repository-root "$repository_root" \
     --temporary-home "$temporary_home"
 
+ruby "$repository_root/tools/check-linux-glibc-compatibility.rb" \
+    --prefix "$prefix/toolchain" \
+    --maximum-version 2.17
+
 printf 'Prepared Linux Orocos package prefix: %s\n' "$prefix"

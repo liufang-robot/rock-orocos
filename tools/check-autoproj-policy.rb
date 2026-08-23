@@ -60,7 +60,10 @@ expected_sources = {
   "open62541" => { "url" => "https://github.com/open62541/open62541.git", "tag" => "v1.4.15" },
   "open62541pp" => { "url" => "https://github.com/open62541pp/open62541pp.git", "tag" => "v0.21.2" },
   "rtt" => { "url" => "https://github.com/liufang-robot/rtt.git", "branch" => "dev" },
-  "rtt_opcua" => { "url" => "https://github.com/liufang-robot/rtt_opcua.git", "branch" => "dev" },
+  "rtt_opcua" => {
+    "url" => "https://github.com/liufang-robot/rtt_opcua.git",
+    "branch" => "fix/proxy-shutdown-lost-wakeup"
+  },
   "ocl" => { "url" => "https://github.com/liufang-robot/ocl.git", "branch" => "dev" },
   "orogen" => {
     "url" => "https://github.com/liufang-robot/tools-orogen.git",

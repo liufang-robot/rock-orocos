@@ -27,7 +27,7 @@ version_control:
   - rtt_opcua:
     type: git
     url: https://github.com/liufang-robot/rtt_opcua.git
-    branch: dev
+    branch: fix/proxy-shutdown-lost-wakeup
 
 overrides:
   - rtt:

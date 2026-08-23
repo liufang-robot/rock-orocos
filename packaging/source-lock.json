@@ -29,7 +29,7 @@
     {
       "name": "rtt_opcua",
       "repository": "https://github.com/liufang-robot/rtt_opcua.git",
-      "revision": "847669186f79dc206313e0f200604581d7031ad8"
+      "revision": "4b2609564defb185887ca22ce8ae8db2503e7da0"
     },
     {
       "name": "ocl",

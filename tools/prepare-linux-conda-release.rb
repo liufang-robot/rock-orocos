@@ -130,6 +130,11 @@ def validate_package_set(records)
   development = by_name.fetch("orocos-dev")
   runtime_index = runtime.fetch(:metadata).fetch("index")
   development_index = development.fetch(:metadata).fetch("index")
+  [runtime_index, development_index].each do |index|
+    unless index.fetch("depends").include?("__glibc >=2.17")
+      raise "#{index.fetch('name')} must declare the Linux GLIBC 2.17 baseline"
+    end
+  end
   version = runtime_index.fetch("version")
   unless development_index.fetch("version") == version
     raise "runtime and development package versions do not match"

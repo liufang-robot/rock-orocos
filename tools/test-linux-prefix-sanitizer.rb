@@ -24,7 +24,7 @@ Dir.mktmpdir("orocos-prefix-sanitizer.") do |directory|
   File.write(
     File.join(toolchain, "metadata.txt"),
     "-I#{sysroot}/usr/include -L#{sysroot}/usr/lib " \
-      "#{sysroot}/usr/lib/libpthread.a\n"
+      "#{sysroot}/usr/lib/libpthread.a #{sysroot}/usr/lib/libpthread.so\n"
   )
   File.write(
     File.join(toolchain, "catalog.xml"),

@@ -27,6 +27,12 @@ source payload exactly.
 
 ## Compatibility Constraints
 
+The Linux build uses Rattler's C standard-library variant with the conda-forge
+glibc 2.17 baseline. Both published outputs declare `__glibc >=2.17`, and the
+build rejects package-owned ELF files that reference a newer GLIBC symbol
+version. Do not remove or raise this baseline without an intentional platform
+support decision and matching consumer coverage.
+
 The Linux recipe currently selects Boost `1.84.x`. Boost 1.85 removed the
 numbered `boost::function` argument aliases still used by the pinned RTT
 source. Lift this upper bound only after RTT uses signature traits for those
@@ -44,7 +50,8 @@ Pull requests, pushes to `main`, and manual runs:
 6. stage `source-lock.json`, `release-manifest.json`, and
    `SHA256SUMS.txt`;
 7. install both exact builds through a clean local-channel Pixi cache; and
-8. retain the verified bundle as a workflow artifact.
+8. install and execute both exact Linux builds again on Ubuntu 22.04; and
+9. retain the verified bundle as a workflow artifact.
 
 These events never upload to Prefix.dev.
 

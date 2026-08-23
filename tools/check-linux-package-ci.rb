@@ -10,10 +10,10 @@ ACTION_PINS = {
 }.freeze
 
 ACTION_COUNTS = {
-  "actions/checkout" => 2,
-  "prefix-dev/setup-pixi" => 2,
+  "actions/checkout" => 3,
+  "prefix-dev/setup-pixi" => 3,
   "actions/upload-artifact" => 2,
-  "actions/download-artifact" => 1
+  "actions/download-artifact" => 2
 }.freeze
 
 def normalize(value)
@@ -61,8 +61,11 @@ end
 root = File.expand_path("..", __dir__)
 workflow_path = File.join(root, ".github", "workflows", "linux-packages.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe-linux.yaml")
+variant_path = File.join(root, "packaging", "conda", "linux-variants.yaml")
+pixi_path = File.join(root, "pixi.toml")
 build_path = File.join(root, "packaging", "conda", "build-linux.sh")
 sanitizer_path = File.join(root, "packaging", "conda", "sanitize-linux-prefix.rb")
+glibc_checker_path = File.join(root, "tools", "check-linux-glibc-compatibility.rb")
 hook_path = File.join(root, "packaging", "conda", "orocos-activate.sh")
 prefix_preparation_path = File.join(root, "packaging", "conda", "prepare-linux-prefix.sh")
 runtime_test_path = File.join(root, "packaging", "conda", "test-runtime-linux.sh")
@@ -78,8 +81,9 @@ else
   workflow = YAML.safe_load(contents, aliases: true)
   triggers = workflow["on"] || workflow[true] || {}
   jobs = workflow.fetch("jobs", {})
-  unless jobs.keys.sort == %w[build-packages publish-packages]
-    errors << "Linux package CI must define exactly build-packages and publish-packages"
+  expected_jobs = %w[build-packages publish-packages test-linux-compatibility]
+  unless jobs.keys.sort == expected_jobs.sort
+    errors << "Linux package CI must define build, compatibility, and publish jobs"
   end
 
   pull_request = triggers.fetch("pull_request", {}) || {}
@@ -119,12 +123,16 @@ else
   end
 
   build = jobs.fetch("build-packages", {})
+  compatibility = jobs.fetch("test-linux-compatibility", {})
   publish = jobs.fetch("publish-packages", {})
   unless build["name"] == "Linux packages / build and test"
     errors << "Linux package build check must use the platform-first display name"
   end
   unless publish["name"] == "Linux packages / publish to Prefix"
     errors << "Linux package publish check must use the platform-first display name"
+  end
+  unless compatibility["name"] == "Linux packages / Ubuntu 22.04 compatibility"
+    errors << "Linux compatibility check must use the platform-first display name"
   end
   expected_guard = "github.event.action == 'published' && " \
                    "github.event.release.prerelease == false && " \
@@ -138,7 +146,14 @@ else
   unless build["runs-on"] == "ubuntu-24.04" && build["timeout-minutes"].to_i >= 180
     errors << "Linux package build must use ubuntu-24.04 with a release-sized timeout"
   end
-  errors << "Linux Prefix publication must depend on the verified build" unless publish["needs"] == "build-packages"
+  unless compatibility["needs"] == "build-packages" &&
+         compatibility["runs-on"] == "ubuntu-22.04" &&
+         compatibility["timeout-minutes"].to_i >= 45
+    errors << "Linux compatibility test must consume the verified build on Ubuntu 22.04"
+  end
+  unless Array(publish["needs"]).sort == %w[build-packages test-linux-compatibility]
+    errors << "Linux Prefix publication must depend on the build and compatibility checks"
+  end
   unless publish.fetch("permissions", {}) == {
     "contents" => "read", "id-token" => "write"
   }
@@ -149,12 +164,21 @@ else
   end
 
   build_steps = Array(build["steps"])
+  compatibility_steps = Array(compatibility["steps"])
   publish_steps = Array(publish["steps"])
   check_release_checkout(build_steps, "Linux package build", errors)
   check_release_checkout(publish_steps, "Linux Prefix publication", errors)
   build_runs = build_steps.filter_map { |step| step["run"] }.join("\n")
+  compatibility_runs = compatibility_steps.filter_map { |step| step["run"] }.join("\n")
   publish_runs = publish_steps.filter_map { |step| step["run"] }.join("\n")
-  all_runs = "#{build_runs}\n#{publish_runs}"
+  all_runs = "#{build_runs}\n#{compatibility_runs}\n#{publish_runs}"
+
+  unless compatibility_runs.include?("tools/prepare-linux-conda-release.rb") &&
+         compatibility_runs.include?('--expected-repository-commit "$GITHUB_SHA"') &&
+         compatibility_runs.include?("rattler-index") &&
+         compatibility_runs.include?('--local-channel "$compatibility_channel"')
+    errors << "Ubuntu 22.04 compatibility job must verify, index, install, and execute the exact bundle"
+  end
 
   {
     "locked Pixi setup" => "environments: package",
@@ -205,6 +229,26 @@ end
 
 errors << "missing packaging/conda/sanitize-linux-prefix.rb" unless File.file?(sanitizer_path)
 
+glibc_baseline = nil
+if !File.file?(variant_path)
+  errors << "missing packaging/conda/linux-variants.yaml"
+else
+  variants = YAML.safe_load(File.read(variant_path), aliases: true)
+  unless variants["c_stdlib"] == ["sysroot"] &&
+         Array(variants["c_stdlib_version"]).size == 1 &&
+         variants["c_stdlib_version"].first.to_s.match?(/\A\d+\.\d+\z/)
+    errors << "Linux variants must select one explicit sysroot C standard-library baseline"
+  else
+    glibc_baseline = variants["c_stdlib_version"].first.to_s
+  end
+end
+
+if !File.file?(pixi_path)
+  errors << "missing pixi.toml"
+elsif File.read(pixi_path).scan('"packaging/conda/linux-variants.yaml"').size != 2
+  errors << "Linux package render and build tasks must both load linux-variants.yaml"
+end
+
 if !File.file?(recipe_path)
   errors << "missing packaging/conda/recipe-linux.yaml"
 else
@@ -246,6 +290,25 @@ else
   exact_runtime_dependency = "${{ pin_subpackage('orocos', exact=True) }}"
   unless development_requirements.count(exact_runtime_dependency) == 1
     errors << "Linux orocos-dev must retain exactly one exact dependency on orocos"
+  end
+
+  if glibc_baseline
+    glibc_requirement = "__glibc >=#{glibc_baseline}"
+    {
+      "orocos" => runtime_requirements,
+      "orocos-dev" => development_requirements
+    }.each do |name, requirements|
+      unless requirements.count(glibc_requirement) == 1
+        errors << "Linux #{name} must require exactly #{glibc_requirement}"
+      end
+    end
+  end
+
+  staging_build = Array(recipe["outputs"]).find do |output|
+    output.dig("staging", "name") == "orocos-linux-build"
+  end
+  unless Array(staging_build&.dig("requirements", "build")).include?("${{ stdlib('c') }}")
+    errors << "Linux staging build must pair its compilers with the C standard library"
   end
 
   activation_hook = "etc/conda/activate.d/orocos-activate.sh"
@@ -329,6 +392,16 @@ else
   }.each do |contract, token|
     errors << "Linux prefix preparation must stage #{contract}" unless prefix_preparation.include?(token)
   end
+  if glibc_baseline
+    unless prefix_preparation.include?("check-linux-glibc-compatibility.rb") &&
+           prefix_preparation.include?("--maximum-version #{glibc_baseline}")
+      errors << "Linux prefix preparation must enforce the configured GLIBC baseline"
+    end
+  end
+end
+
+unless File.file?(glibc_checker_path)
+  errors << "missing tools/check-linux-glibc-compatibility.rb"
 end
 
 if !File.file?(runtime_test_path)
@@ -415,7 +488,9 @@ else
     deployer-opcua-gnulinux
     TYPELIB_PLUGIN_PATH
     OROCOS_PIXI_ACTIVATION_SCRIPT
+    OROCOS_GLIBC_CHECKER
     activate-orocos.sh
+    check-linux-glibc-compatibility.rb
   ].each do |token|
     errors << "Linux consumer test must check #{token}" unless consumer.include?(token)
   end
@@ -484,6 +559,8 @@ else
       'test "$GEM_HOME" = "$CONDA_PREFIX/toolchain/gems"',
     "the installed generator libraries" =>
       'ruby -e \'require "typelib"; require "orogen"\'',
+    "the final package GLIBC symbol baseline" =>
+      '--maximum-version 2.17',
     "OroGen" => "orogen --help",
     "Typegen" => "typegen --help"
   }.each do |contract, token|
