@@ -84,7 +84,11 @@ module OrocosRock
           "rtlog-cpp" => { "type" => "git", "url" => repositories.fetch("rtlog-cpp"), "branch" => "main" },
           "open62541" => { "type" => "git", "url" => repositories.fetch("open62541"), "tag" => "v1.4.15" },
           "open62541pp" => { "type" => "git", "url" => repositories.fetch("open62541pp"), "tag" => "v0.21.2" },
-          "rtt_opcua" => { "type" => "git", "url" => repositories.fetch("rtt_opcua"), "branch" => "dev" }
+          "rtt_opcua" => {
+            "type" => "git",
+            "url" => repositories.fetch("rtt_opcua"),
+            "branch" => "fix/proxy-shutdown-lost-wakeup"
+          }
         },
         "overrides" => {
           "rtt" => { "type" => "git", "url" => repositories.fetch("rtt"), "branch" => "dev" },
