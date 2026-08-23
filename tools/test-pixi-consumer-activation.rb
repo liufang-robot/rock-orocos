@@ -9,6 +9,7 @@ EXAMPLE = File.join(ROOT, "examples", "pixi-consumer")
 MANIFEST = File.join(EXAMPLE, "pixi.toml")
 UNIX_SCRIPT = File.join(EXAMPLE, "scripts", "activate-orocos.sh")
 WINDOWS_SCRIPT = File.join(EXAMPLE, "scripts", "activate-orocos.ps1")
+RECIPE = File.join(ROOT, "packaging", "conda", "recipe.yaml")
 
 def assert(condition, message)
   raise message unless condition
@@ -26,14 +27,16 @@ def activate(prefix)
   )
 end
 
-[MANIFEST, UNIX_SCRIPT, WINDOWS_SCRIPT].each do |path|
+[MANIFEST, UNIX_SCRIPT, WINDOWS_SCRIPT, RECIPE].each do |path|
   assert(File.file?(path), "missing consumer activation file: #{path}")
 end
 
 manifest = File.read(MANIFEST)
+package_version = File.read(RECIPE)[/^  version:\s*"([^"]+)"\s*$/, 1]
+assert(package_version, "missing package version in #{RECIPE}")
 [
   'channels = ["https://prefix.dev/liufang-robot/orocos", "conda-forge"]',
-  'orocos-dev = "==0.1.0"',
+  %Q{orocos-dev = "==#{package_version}"},
   "[target.unix.activation]",
   'scripts = ["scripts/activate-orocos.sh"]',
   "[target.win.activation]",

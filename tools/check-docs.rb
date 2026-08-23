@@ -27,7 +27,12 @@ root = File.expand_path("..", __dir__)
 docs = File.join(root, "docs")
 source = File.join(docs, "src")
 summary_path = File.join(source, "SUMMARY.md")
+recipe_path = File.join(root, "packaging", "conda", "recipe.yaml")
 errors = []
+
+recipe = File.read(recipe_path)
+package_version = recipe[/^  version:\s*"([^"]+)"\s*$/, 1]
+abort "missing package version in packaging/conda/recipe.yaml" unless package_version
 
 unless File.file?(summary_path)
   abort "missing docs/src/SUMMARY.md"
@@ -130,8 +135,14 @@ end
 example_manifest_path = File.join(root, "examples", "pixi-consumer", "pixi.toml")
 if !File.file?(example_manifest_path)
   errors << "missing examples/pixi-consumer/pixi.toml"
-elsif !File.read(example_manifest_path).include?(activation_block)
-  errors << "examples/pixi-consumer/pixi.toml is missing the exact target activation TOML"
+else
+  example_manifest = File.read(example_manifest_path)
+  unless example_manifest.include?(activation_block)
+    errors << "examples/pixi-consumer/pixi.toml is missing the exact target activation TOML"
+  end
+  unless example_manifest.include?(%Q{orocos-dev = "==#{package_version}"})
+    errors << "examples/pixi-consumer/pixi.toml must select orocos-dev==#{package_version}"
+  end
 end
 
 [
@@ -179,7 +190,10 @@ if install_with_pixi.nil?
 else
   example_url = "https://github.com/liufang-robot/rock-orocos/tree/main/examples/pixi-consumer"
   errors << "Install With Pixi must link to the canonical consumer example" unless install_with_pixi.include?(example_url)
-  errors << "Install With Pixi must select orocos-dev==0.1.0" unless install_with_pixi.include?("orocos-dev==0.1.0")
+  expected_dependency = "orocos-dev==#{package_version}"
+  unless install_with_pixi.include?(expected_dependency)
+    errors << "Install With Pixi must select #{expected_dependency}"
+  end
   unless fenced_command?(install_with_pixi, "pixi shell")
     errors << "Install With Pixi must contain a fenced pixi shell command"
   end

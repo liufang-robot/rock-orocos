@@ -210,8 +210,9 @@ if !File.file?(recipe_path)
 else
   recipe_contents = File.read(recipe_path)
   recipe = YAML.safe_load(recipe_contents, aliases: true)
-  unless recipe.dig("context", "build_number") == 1
-    errors << "Linux package recipe build number must be 1 for automatic runtime activation"
+  build_number = recipe.dig("context", "build_number")
+  unless build_number.is_a?(Integer) && build_number >= 0
+    errors << "Linux package recipe build number must be a non-negative integer"
   end
 
   local_source = Array(recipe["source"]).find { |source| source["path"] == "../.." }

@@ -16,7 +16,7 @@ Add the public channel and install the development SDK:
 ```bash
 pixi workspace channel add https://prefix.dev/liufang-robot/orocos
 pixi workspace channel add conda-forge
-pixi add orocos-dev==0.1.0
+pixi add orocos-dev==0.1.1
 ```
 
 The SDK installs the exact matching `orocos` runtime. Linux users source

@@ -11,6 +11,7 @@ FIXTURE_PATHS = %w[
   examples/pixi-consumer/scripts/activate-orocos.ps1
   packaging/conda/build.ps1
   packaging/conda/orocos-activate.bat
+  packaging/conda/recipe-linux.yaml
   packaging/conda/recipe.yaml
   packaging/conda/stage-runtime-hook.ps1
   packaging/conda/test-runtime.ps1
@@ -360,12 +361,21 @@ wrapper_mutations = {
 }
 
 recipe_mutations = {
-  "reused published Windows build number" => [
-    "Windows package recipe build number must be greater than published build 0",
+  "desynchronized Windows package version" => [
+    "Linux and Windows package recipes must use the same version and build number",
+    lambda do |contents|
+      contents.sub(
+        /^  version: "[^"]+"$/,
+        '  version: "999.0.0"'
+      )
+    end
+  ],
+  "negative Windows build number" => [
+    "Windows package recipe build number must be a non-negative integer",
     lambda do |contents|
       contents.sub(
         /^  build_number: \d+$/,
-        "  build_number: 0"
+        "  build_number: -1"
       )
     end
   ],

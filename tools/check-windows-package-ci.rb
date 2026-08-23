@@ -80,6 +80,7 @@ end
 root = File.expand_path("..", __dir__)
 workflow_path = File.join(root, ".github", "workflows", "windows-packages.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe.yaml")
+linux_recipe_path = File.join(root, "packaging", "conda", "recipe-linux.yaml")
 build_path = File.join(root, "packaging", "conda", "build.ps1")
 runtime_stage_path = File.join(
   root, "packaging", "conda", "stage-runtime-hook.ps1"
@@ -282,9 +283,20 @@ unless File.file?(recipe_path)
   errors << "missing packaging/conda/recipe.yaml"
 else
   recipe = File.read(recipe_path)
+  version = recipe[/^  version:\s*"([^"]+)"\s*$/, 1]
   build_number = recipe[/^  build_number:\s*(\d+)\s*$/, 1]
-  unless build_number && build_number.to_i > 0
-    errors << "Windows package recipe build number must be greater than published build 0"
+  unless build_number
+    errors << "Windows package recipe build number must be a non-negative integer"
+  end
+  if !File.file?(linux_recipe_path)
+    errors << "missing packaging/conda/recipe-linux.yaml"
+  else
+    linux_recipe = File.read(linux_recipe_path)
+    linux_version = linux_recipe[/^  version:\s*"([^"]+)"\s*$/, 1]
+    linux_build_number = linux_recipe[/^  build_number:\s*(\d+)\s*$/, 1]
+    unless version && version == linux_version && build_number == linux_build_number
+      errors << "Linux and Windows package recipes must use the same version and build number"
+    end
   end
   unless recipe.include?(%q{${{ compiler('cxx') }}})
     errors << "Windows package recipe must activate the MSVC x64 build environment"
