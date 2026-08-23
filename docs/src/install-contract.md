@@ -174,8 +174,10 @@ explicit `cmd.exe` activation and
 activation. Both runtime entrypoints derive `OROCOS_PREFIX` from the installed
 `Library` prefix, set `OROCOS_TARGET=win32`, and expose the same runtime and
 component discovery paths. The package hook calls `Library/env.bat --conda`;
-that mode preserves the standard Pixi/Conda `PATH`, which already contains
-`Library\bin`, while applying the Orocos-specific discovery environment.
+that mode preserves the standard Pixi/Conda `PATH` as a suffix, prepends the
+single Orocos plugin directory required for Windows DLL resolution, and
+applies the Orocos-specific discovery environment. Pixi/Conda already places
+`Library\bin` on `PATH`.
 Explicit `Library/env.bat` activation applies the standalone runtime paths with
 case-insensitive deduplication. The hook does not duplicate the environment
 model or invoke PowerShell.

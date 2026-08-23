@@ -187,7 +187,9 @@ if ($rattlerPath.Length -lt 6500 -or $rattlerPath.Length -gt 7600) {
 $staleHookDiscoveryPath = "C:\stale-orocos-discovery"
 $hookPkgConfig = Join-Path $libraryPrefix "lib\pkgconfig"
 $hookTypelib = Join-Path $libraryPrefix "lib\typelib"
+$hookRuntimePlugins = Join-Path $libraryPrefix "lib\orocos\win32\plugins"
 $hookRttTypes = Join-Path $libraryPrefix "lib\orocos\win32\types"
+$hookExpectedPath = "$hookRuntimePlugins;$rattlerPath"
 $createdHookPkgConfig = -not (Test-Path -LiteralPath $hookPkgConfig `
     -PathType Container)
 if ($createdHookPkgConfig) {
@@ -211,12 +213,13 @@ try {
     Assert-EnvironmentValue `
         -Environment $hookEnvironment -Name "OROCOS_TARGET" -Expected "win32"
     Assert-EnvironmentValueExact `
-        -Environment $hookEnvironment -Name "PATH" -Expected $rattlerPath
+        -Environment $hookEnvironment -Name "PATH" -Expected $hookExpectedPath
     Assert-EnvironmentValue `
         -Environment $hookEnvironment `
         -Name "PKG_CONFIG_LIBDIR" -Expected $hookPkgConfig
 
     $hookExpectedPathEntries = @(
+        [PSCustomObject]@{ Name = "PATH"; Path = $hookRuntimePlugins },
         [PSCustomObject]@{
             Name = "RTT_COMPONENT_PATH"
             Path = $hookRttTypes

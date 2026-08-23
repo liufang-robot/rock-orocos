@@ -110,6 +110,7 @@ $fakeBin = Join-Path $testRoot "fake-bin"
 $fakeRuby = Join-Path $fakeBin "ruby.cmd"
 $callerPath = Join-Path $testRoot "capture-environment.bat"
 $preservedPath = Join-Path $testRoot "preserved"
+$runtimePluginPath = Join-Path $libraryPrefix "lib\orocos\win32\plugins"
 $componentPath = Join-Path $libraryPrefix "lib\orocos\win32\types"
 $pkgConfigPath = Join-Path $libraryPrefix "lib\pkgconfig"
 $typelibPath = Join-Path $libraryPrefix "lib\typelib"
@@ -121,6 +122,7 @@ try {
             $hookDirectory,
             $fakeBin,
             $preservedPath,
+            $runtimePluginPath,
             $componentPath,
             $pkgConfigPath,
             $typelibPath
@@ -173,9 +175,15 @@ try {
         -Environment $environment -Name "OROCOS_PREFIX" -Expected $libraryPrefix
     Assert-EnvironmentValue `
         -Environment $environment -Name "OROCOS_TARGET" -Expected "win32"
-    if ($environment["PATH"] -cne $rattlerPath) {
-        throw "Conda-owned PATH changed during package activation."
+    $expectedPath = "$runtimePluginPath;$rattlerPath"
+    if ($environment["PATH"] -cne $expectedPath) {
+        throw "Package activation did not prepend only the runtime loader path."
     }
+    Assert-PathEntryCount `
+        -Environment $environment `
+        -Name "PATH" `
+        -ExpectedPath $runtimePluginPath `
+        -ExpectedCount 1
     foreach ($entry in @(
             [PSCustomObject]@{ Name = "RTT_COMPONENT_PATH"; Path = $componentPath },
             [PSCustomObject]@{ Name = "PKG_CONFIG_PATH"; Path = $pkgConfigPath },

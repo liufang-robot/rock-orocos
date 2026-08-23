@@ -400,7 +400,10 @@ else
     "directory existence filtering" => "if not exist",
     "case-insensitive path deduplication" => "if /I",
     "Conda-owned PATH preservation" =>
-      '@if /I "%~1"=="--conda" goto orocos_runtime_path_ready',
+      '@if /I not "%~1"=="--conda" goto orocos_full_runtime_path',
+    "the Conda runtime loader directory" =>
+      '@call :orocos_add_candidate "%OROCOS_PREFIX%\lib\orocos\@TARGET@\plugins"',
+    "the full standalone runtime path branch" => ":orocos_full_runtime_path",
     "the package-mode runtime path boundary" => ":orocos_runtime_path_ready",
     "caller-preserving success" => "exit /b 0"
   }.each do |contract, token|
@@ -474,11 +477,14 @@ else
   exact_path_tokens = [
     "function Assert-EnvironmentValueExact {",
     "[StringComparison]::Ordinal",
-    '-Environment $hookEnvironment -Name "PATH" -Expected $rattlerPath'
+    '$hookRuntimePlugins = Join-Path $libraryPrefix "lib\orocos\win32\plugins"',
+    '$hookExpectedPath = "$hookRuntimePlugins;$rattlerPath"',
+    '-Environment $hookEnvironment -Name "PATH" -Expected $hookExpectedPath',
+    '[PSCustomObject]@{ Name = "PATH"; Path = $hookRuntimePlugins }'
   ]
   unless exact_path_tokens.all? { |token| runtime_test.include?(token) } &&
          runtime_test.scan(/\bAssert-EnvironmentValueExact\b/).size >= 2
-    errors << "Windows runtime package test must preserve Conda PATH with case-sensitive equality"
+    errors << "Windows runtime package test must prepend the loader path while preserving Conda PATH"
   end
 
   conda_discovery_tokens = [

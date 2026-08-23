@@ -487,12 +487,21 @@ exporter_mutations = {
     "generated env.bat must not use scoped activation or helper subprocesses",
     ->(contents) { contents.sub("@rem Call this file", "@setlocal\n@rem Call this file") }
   ],
-  "batch activation rebuilds Conda-owned PATH" => [
+  "batch activation omits the Conda loader path branch" => [
     "generated env.bat must implement Conda-owned PATH preservation",
     lambda do |contents|
       contents.sub(
-        '@if /I "%~1"=="--conda" goto orocos_runtime_path_ready',
+        '@if /I not "%~1"=="--conda" goto orocos_full_runtime_path',
         '@rem missing Conda PATH boundary'
+      )
+    end
+  ],
+  "batch activation omits the Conda runtime loader directory" => [
+    "generated env.bat must implement the Conda runtime loader directory",
+    lambda do |contents|
+      contents.sub(
+        '@call :orocos_add_candidate "%OROCOS_PREFIX%\lib\orocos\@TARGET@\plugins"',
+        '@rem missing Conda runtime loader directory'
       )
     end
   ],
@@ -583,14 +592,12 @@ runtime_test_mutations = {
     "Windows runtime package test must cover a Rattler-length inherited PATH",
     ->(contents) { contents.sub("$rattlerPathEntries = @(", "$shortPathEntries = @(") }
   ],
-  "runtime test weakens exact Conda PATH preservation" => [
-    "Windows runtime package test must preserve Conda PATH with case-sensitive equality",
+  "runtime test omits the Conda loader path prefix" => [
+    "Windows runtime package test must prepend the loader path while preserving Conda PATH",
     lambda do |contents|
-      replace_occurrence(
-        contents,
-        "Assert-EnvironmentValueExact",
-        "Assert-EnvironmentValue",
-        1
+      contents.sub(
+        '$hookExpectedPath = "$hookRuntimePlugins;$rattlerPath"',
+        '$hookExpectedPath = $rattlerPath'
       )
     end
   ],
