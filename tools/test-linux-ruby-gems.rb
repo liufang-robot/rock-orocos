@@ -269,6 +269,50 @@ Dir.mktmpdir("orocos-linux-ruby-gems-") do |directory|
   )
 end
 
+Dir.mktmpdir("orocos-online-autoproj-") do |directory|
+  bin = File.join(directory, "bin")
+  workspace = File.join(directory, "workspace")
+  FileUtils.mkdir_p(bin)
+  FileUtils.mkdir_p(workspace)
+  File.write(
+    File.join(bin, "ruby"),
+    <<~SH
+      #!/bin/sh
+      case "$*" in
+        *"print RUBY_VERSION"*) printf '%s' "3.0.2" ;;
+        *"print RbConfig.ruby"*) printf '%s' "/fixture/ruby" ;;
+        *"Gem.bin_path"*) printf '%s' "/fixture/bundle" ;;
+        *"paths = [Gem.user_dir]"*) printf '%s' "/fixture/gems" ;;
+        *) exit 0 ;;
+      esac
+    SH
+  )
+  FileUtils.chmod(0o755, File.join(bin, "ruby"))
+
+  prepare_command = <<~'SH'
+    . "$1"
+    OROCOS_ROCK_ROOT="$2"
+    unset OROCOS_ROCK_RUBY_GEM_CACHE
+    orocos_rock_prepare_autoproj_workspace "$3" none gnulinux
+  SH
+  stdout, stderr, status = Open3.capture3(
+    { "PATH" => "#{bin}:/usr/bin:/bin" },
+    "bash", "-c", prepare_command, "online-workspace",
+    COMMON, workspace, File.join(directory, "prefix")
+  )
+  assert(
+    status.success?,
+    "could not prepare online Autoproj workspace: #{stdout}#{stderr}"
+  )
+
+  gemfile = File.read(File.join(workspace, ".autoproj", "Gemfile"))
+  facets_declarations = gemfile.lines.grep(/^gem "facets"/).map(&:chomp)
+  assert(
+    facets_declarations == ['gem "facets", "= 3.1.0"'],
+    "online Gemfile must pin the Ruby 3.0-compatible Facets release: #{facets_declarations.inspect}"
+  )
+end
+
 Dir.mktmpdir("orocos-locked-autoproj-") do |directory|
   cache = File.join(directory, "cache")
   bin = File.join(directory, "bin")

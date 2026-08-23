@@ -452,8 +452,9 @@ else
 end
 
 unless common_script.include?('.autoproj/Gemfile') &&
-       common_script.include?('gem "autoproj", ">= 2.18.0"')
-  errors << "tools/common.sh: must create .autoproj/Gemfile for Autoproj bundler osdeps"
+       common_script.include?('gem "autoproj", ">= 2.18.0"') &&
+       common_script.include?('gem "facets", "= 3.1.0"')
+  errors << "tools/common.sh: must create .autoproj/Gemfile with the Ruby 3.0-compatible Facets pin"
 end
 
 unless common_script.include?('rtt_corba_implementation: none')
