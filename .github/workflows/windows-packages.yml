@@ -61,6 +61,7 @@ env:
   PREFIX_CHANNEL: liufang-robot/orocos
   PUBLIC_CHANNEL_URL: https://prefix.dev/liufang-robot/orocos
   RELEASE_BUNDLE: packaging/conda/output/release
+  OROCOS_VCPKG_ROOT: ${{ github.workspace }}/.cache/vcpkg/root
   VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.cache/vcpkg/archives
   VCPKG_DOWNLOADS: ${{ github.workspace }}/.cache/vcpkg/downloads
 
@@ -117,15 +118,40 @@ jobs:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
 
+      - name: Identify vcpkg cache compatibility
+        id: vcpkg-cache-compatibility
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} `
+            "Microsoft Visual Studio\Installer\vswhere.exe"
+          if (-not (Test-Path -LiteralPath $vswhere -PathType Leaf)) {
+            throw "Cannot identify MSVC for the installed vcpkg cache."
+          }
+          $installationVersion = [string](& $vswhere -latest -products "*" `
+            -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+            -property installationVersion)
+          $installationVersion = $installationVersion.Trim()
+          if ([string]::IsNullOrWhiteSpace($installationVersion)) {
+            throw "vswhere did not return an MSVC installation version."
+          }
+          "msvc=$installationVersion" >> $env:GITHUB_OUTPUT
+
+      - name: Restore installed vcpkg tree
+        id: vcpkg-installed-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .cache/vcpkg/root/installed
+          key: windows-vcpkg-installed-v1-windows-2022-msvc-${{ steps.vcpkg-cache-compatibility.outputs.msvc }}-x64-windows-${{ hashFiles('packaging/source-lock.json', 'tools/build-windows-msvc.ps1') }}
+
       - name: Restore vcpkg downloads and binary packages
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: |
             .cache/vcpkg/archives
             .cache/vcpkg/downloads
-          key: windows-vcpkg-x64-${{ hashFiles('packaging/source-lock.json', 'tools/build-windows-msvc.ps1') }}
+          key: windows-vcpkg-artifacts-v2-windows-2022-msvc-${{ steps.vcpkg-cache-compatibility.outputs.msvc }}-x64-windows-${{ hashFiles('packaging/source-lock.json', 'tools/build-windows-msvc.ps1') }}
           restore-keys: |
-            windows-vcpkg-x64-
+            windows-vcpkg-artifacts-v2-windows-2022-msvc-${{ steps.vcpkg-cache-compatibility.outputs.msvc }}-x64-windows-
 
       - name: Validate Windows source lock
         shell: pwsh
@@ -149,6 +175,20 @@ jobs:
           $ErrorActionPreference = $savedErrorActionPreference
           if ($buildExitCode -ne 0) {
             exit $buildExitCode
+          }
+
+      - name: Verify reusable vcpkg tree
+        shell: pwsh
+        run: |
+          $installedStatus = Join-Path $env:OROCOS_VCPKG_ROOT `
+            "installed\vcpkg\status"
+          $readinessMarker = Join-Path $env:OROCOS_VCPKG_ROOT `
+            ".orocos-package-cache-ready"
+          if (-not (Test-Path -LiteralPath $installedStatus -PathType Leaf)) {
+            throw "The package build did not populate the reusable vcpkg tree."
+          }
+          if (-not (Test-Path -LiteralPath $readinessMarker -PathType Leaf)) {
+            throw "The package build did not use the configured vcpkg root."
           }
 
       - name: Report package build failure

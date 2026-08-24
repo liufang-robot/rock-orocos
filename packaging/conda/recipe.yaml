@@ -61,6 +61,10 @@ outputs:
     build:
       script:
         file: build.ps1
+        env:
+          OROCOS_VCPKG_ROOT: ${{ env.get("OROCOS_VCPKG_ROOT", default="") }}
+          VCPKG_DEFAULT_BINARY_CACHE: ${{ env.get("VCPKG_DEFAULT_BINARY_CACHE", default="") }}
+          VCPKG_DOWNLOADS: ${{ env.get("VCPKG_DOWNLOADS", default="") }}
 
   - package:
       name: orocos

@@ -245,6 +245,49 @@ mutations = {
                  "    secrets: inherit\n" \
                  "    permissions: write-all\n"
     end
+  ],
+  "missing persistent vcpkg root" => [
+    "Windows package CI must place the reusable vcpkg root outside disposable package paths",
+    ->(contents) { contents.sub(/^  OROCOS_VCPKG_ROOT:.*\n/, "") }
+  ],
+  "installed vcpkg cache includes the checkout" => [
+    "Windows package CI must cache only the exact compatible installed vcpkg tree",
+    ->(contents) { contents.sub("path: .cache/vcpkg/root/installed", "path: .cache/vcpkg/root") }
+  ],
+  "installed vcpkg cache omits the source lock" => [
+    "Windows package CI must cache only the exact compatible installed vcpkg tree",
+    lambda do |contents|
+      contents.sub(
+        "hashFiles('packaging/source-lock.json', 'tools/build-windows-msvc.ps1')",
+        "hashFiles('tools/build-windows-msvc.ps1')"
+      )
+    end
+  ],
+  "installed vcpkg cache uses a fallback key" => [
+    "The installed vcpkg tree must not use compatibility-weakening restore keys",
+    lambda do |contents|
+      contents.sub(
+        /^(          key: windows-vcpkg-installed[^\n]+\n)/,
+        "\\1          restore-keys: windows-vcpkg-installed-v1-\n"
+      )
+    end
+  ],
+  "vcpkg caches omit the MSVC boundary" => [
+    "Windows package CI must cache only the exact compatible installed vcpkg tree",
+    lambda do |contents|
+      contents.sub(
+        '${{ steps.vcpkg-cache-compatibility.outputs.msvc }}',
+        'unknown-msvc'
+      )
+    end
+  ],
+  "missing vcpkg MSVC identification" => [
+    "Windows package CI must identify the exact MSVC compatibility boundary for vcpkg caches",
+    ->(contents) { contents.sub("vswhere.exe", "compiler-locator.exe") }
+  ],
+  "missing reusable vcpkg verification" => [
+    "Windows package CI must verify that Rattler populated the configured vcpkg root",
+    ->(contents) { contents.sub('"installed\vcpkg\status"', '"missing\vcpkg\status"') }
   ]
 }
 
@@ -420,6 +463,10 @@ recipe_mutations = {
   "missing clean development package acceptance" => [
     "orocos-dev must run the clean generator package acceptance test",
     ->(contents) { contents.sub(/^\s+- script: test-dev\.ps1\r?\n/, "") }
+  ],
+  "recipe omits isolated vcpkg cache forwarding" => [
+    "Windows package recipe must explicitly forward isolated vcpkg cache paths",
+    ->(contents) { contents.sub(/^\s+OROCOS_VCPKG_ROOT:.*\r?\n/, "") }
   ]
 }
 
@@ -435,6 +482,14 @@ build_mutations = {
   "package staging retains duplicate generator smoke tests" => [
     "Windows package staging must skip duplicated generator smoke tests",
     ->(contents) { contents.sub(/^\s*-SkipGeneratorSmokeTests\r?\n/, "") }
+  ],
+  "package staging ignores the persistent vcpkg root" => [
+    "Windows package staging must use an absolute configured vcpkg root with a disposable fallback",
+    ->(contents) { contents.sub('"OROCOS_VCPKG_ROOT"', '"IGNORED_VCPKG_ROOT"') }
+  ],
+  "package staging omits the cache readiness marker" => [
+    "Windows package staging must use an absolute configured vcpkg root with a disposable fallback",
+    ->(contents) { contents.sub('".orocos-package-cache-ready"', '".missing-cache-marker"') }
   ]
 }
 

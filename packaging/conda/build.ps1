@@ -32,7 +32,18 @@ $temporaryParent = (Resolve-Path -LiteralPath ([IO.Path]::GetTempPath())).Path
 $temporaryRoot = Join-Path $temporaryParent `
     ("orocos-rb-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
 $workspace = Join-Path $temporaryRoot "b"
-$vcpkgRoot = Join-Path $temporaryRoot "v"
+$configuredVcpkgRoot = [Environment]::GetEnvironmentVariable(
+    "OROCOS_VCPKG_ROOT",
+    [EnvironmentVariableTarget]::Process)
+if ([string]::IsNullOrWhiteSpace($configuredVcpkgRoot)) {
+    $vcpkgRoot = Join-Path $temporaryRoot "v"
+} else {
+    if (-not [IO.Path]::IsPathRooted($configuredVcpkgRoot)) {
+        throw "OROCOS_VCPKG_ROOT must be an absolute path."
+    }
+    $vcpkgRoot = [IO.Path]::GetFullPath($configuredVcpkgRoot)
+    Write-Host "Using persistent vcpkg root: $vcpkgRoot"
+}
 $temporaryProfile = Join-Path $temporaryRoot "p"
 $temporaryLocalAppData = Join-Path $temporaryProfile "AppData\Local"
 $temporaryAppData = Join-Path $temporaryProfile "AppData\Roaming"
@@ -91,6 +102,13 @@ try {
         -Workspace $workspace `
         -VcpkgRoot $vcpkgRoot `
         -RepositoryRoot $repositoryRoot
+
+    if (-not [string]::IsNullOrWhiteSpace($configuredVcpkgRoot)) {
+        Set-Content `
+            -LiteralPath (Join-Path $vcpkgRoot ".orocos-package-cache-ready") `
+            -Value "ready" `
+            -NoNewline
+    }
 } finally {
     foreach ($name in $profileEnvironmentNames) {
         $savedValue = $savedProfileEnvironment[$name]
