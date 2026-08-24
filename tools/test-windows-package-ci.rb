@@ -467,6 +467,10 @@ recipe_mutations = {
   "recipe omits isolated vcpkg cache forwarding" => [
     "Windows package recipe must explicitly forward isolated vcpkg cache paths",
     ->(contents) { contents.sub(/^\s+OROCOS_VCPKG_ROOT:.*\r?\n/, "") }
+  ],
+  "recipe omits Ninja" => [
+    "Windows package recipe must provide the locked Ninja build tool",
+    ->(contents) { contents.sub(/^\s+- ninja .*\r?\n/, "") }
   ]
 }
 
@@ -490,6 +494,14 @@ build_mutations = {
   "package staging omits the cache readiness marker" => [
     "Windows package staging must use an absolute configured vcpkg root with a disposable fallback",
     ->(contents) { contents.sub('".orocos-package-cache-ready"', '".missing-cache-marker"') }
+  ],
+  "package staging falls back to Visual Studio" => [
+    "Windows package staging must use Ninja with scoped external warning suppression",
+    ->(contents) { contents.sub("-Generator Ninja", '-Generator "Visual Studio 17 2022"') }
+  ],
+  "package staging omits scoped warning suppression" => [
+    "Windows package staging must use Ninja with scoped external warning suppression",
+    ->(contents) { contents.sub(/^\s*-SuppressExternalWarnings\s*`?\r?\n/, "") }
   ]
 }
 
@@ -501,6 +513,15 @@ development_test_mutations = {
   "development package omits Typegen regeneration" => [
     "Windows development package test must generate, regenerate, and install a clean Typegen project",
     ->(contents) { contents.sub("--target regen", "--target wrong") }
+  ],
+  "development package suppresses maintained angle headers" => [
+    "Windows development package test must keep Orocos header warnings visible",
+    lambda do |contents|
+      contents.sub(
+        '$externalOptions += "/external:W0"',
+        '$externalOptions += "/external:anglebrackets /external:W0"'
+      )
+    end
   ]
 }
 
@@ -514,6 +535,16 @@ native_workflow_mutations = {
         "-OrogenRef \"$env:OROGEN_REF\" `\n            -SkipGeneratorSmokeTests 2>&1 |"
       )
     end
+  ],
+  "native workflow suppresses maintained warnings" => [
+    "Windows native CI must retain Visual Studio and maintained warning coverage",
+    lambda do |contents|
+      replace_normalized(
+        contents,
+        '-OrogenRef "$env:OROGEN_REF" 2>&1 |',
+        "-OrogenRef \"$env:OROGEN_REF\" `\n            -SuppressExternalWarnings 2>&1 |"
+      )
+    end
   ]
 }
 
@@ -525,6 +556,16 @@ pixi_manifest_mutations = {
         contents,
         '    "tools/build-windows-msvc.ps1",',
         "    \"tools/build-windows-msvc.ps1\",\n    \"-SkipGeneratorSmokeTests\","
+      )
+    end
+  ],
+  "default Windows task selects Ninja" => [
+    "the default Windows build task must retain Visual Studio and maintained warning coverage",
+    lambda do |contents|
+      replace_normalized(
+        contents,
+        '    "tools/build-windows-msvc.ps1",',
+        "    \"tools/build-windows-msvc.ps1\",\n    \"-Generator\",\n    \"Ninja\","
       )
     end
   ]
@@ -739,6 +780,19 @@ builder_mutations = {
   "unguarded generator smoke work" => [
     "Windows builder must guard smoke builds, artifacts, and executions with the skip switch",
     ->(contents) { contents.gsub("if (-not $SkipGeneratorSmokeTests) {", "if ($true) {") }
+  ],
+  "builder loses Ninja generator layout" => [
+    "Windows builder must support both Visual Studio and Ninja generator layouts",
+    ->(contents) { contents.sub('$CMakeGeneratorArguments = @("-G", $Generator)', '$CMakeGeneratorArguments = @("-G", "Visual Studio 17 2022")') }
+  ],
+  "builder suppresses maintained angle headers" => [
+    "Windows builder must keep maintained Orocos header warnings visible",
+    lambda do |contents|
+      contents.sub(
+        '$externalOptions += "/external:W0"',
+        '$externalOptions += "/external:anglebrackets /external:W0"'
+      )
+    end
   ]
 }
 

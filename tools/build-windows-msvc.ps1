@@ -7,6 +7,7 @@ param(
     [string]$RubyGemCache,
     [switch]$RelocatablePrefix,
     [switch]$SkipGeneratorSmokeTests,
+    [switch]$SuppressExternalWarnings,
     [string]$FarbotRepository = "https://github.com/liufang-robot/farbot.git",
     [string]$RtlogRepository = "https://github.com/liufang-robot/rtlog-cpp.git",
     [string]$RttRepository = "https://github.com/liufang-robot/rtt.git",
@@ -108,6 +109,31 @@ function Convert-ToFullPath {
     param([string]$Path)
 
     $executionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
+}
+
+function Get-MsvcExternalWarningArguments {
+    param([string]$DependencyInclude)
+
+    $externalIncludes = @($DependencyInclude)
+    foreach ($candidate in @($env:INCLUDE -split ";")) {
+        if ($candidate -match '(?i)\\(?:Microsoft Visual Studio|Windows Kits)\\') {
+            $externalIncludes += $candidate
+        }
+    }
+    $externalOptions = @()
+    foreach ($candidate in @($externalIncludes | Sort-Object -Unique)) {
+        if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+            $fullPath = [IO.Path]::GetFullPath($candidate)
+            $externalOptions += "/external:I`"$fullPath`""
+        }
+    }
+    $externalOptions += "/external:W0"
+    $externalFlags = $externalOptions -join " "
+
+    @(
+        "-DCMAKE_C_FLAGS=$externalFlags",
+        "-DCMAKE_CXX_FLAGS=$externalFlags"
+    )
 }
 
 function Resolve-GitRepository {
@@ -358,6 +384,21 @@ $OrogenRepository = Resolve-GitRepository $OrogenRepository
 $VcpkgRepository = Resolve-GitRepository $VcpkgRepository
 $Platform = "x64"
 $VcpkgTriplet = "x64-windows"
+$IsVisualStudioGenerator = $Generator.StartsWith(
+    "Visual Studio ",
+    [StringComparison]::OrdinalIgnoreCase)
+$IsMultiConfigurationGenerator = (
+    $IsVisualStudioGenerator -or
+    $Generator.Equals("Ninja Multi-Config", [StringComparison]::OrdinalIgnoreCase))
+$CMakeGeneratorArguments = @("-G", $Generator)
+if ($IsVisualStudioGenerator) {
+    $CMakeGeneratorArguments += @("-A", $Platform)
+}
+$CMakeInstallTarget = if ($IsMultiConfigurationGenerator) {
+    "INSTALL"
+} else {
+    "install"
+}
 $prefixForCMake = $Prefix -replace "\\", "/"
 $rttDefaultPluginPath = if ($RelocatablePrefix) {
     "."
@@ -393,6 +434,11 @@ $OclBuild = Join-Path $Workspace "build\ocl"
 $UtilmmBuild = Join-Path $Workspace "build\utilmm"
 $TypelibBuild = Join-Path $Workspace "build\typelib"
 $RttTypelibBuild = Join-Path $Workspace "build\rtt_typelib"
+$RttTypelibTestExecutable = if ($IsMultiConfigurationGenerator) {
+    Join-Path $RttTypelibBuild "Release\get_marshaller_for_test.exe"
+} else {
+    Join-Path $RttTypelibBuild "get_marshaller_for_test.exe"
+}
 $GeneratorSmokeSource = Join-Path $Workspace "smoke\orogen"
 $GeneratorSmokeBuild = Join-Path $Workspace "smoke\build"
 $TypegenSmokeSource = Join-Path $Workspace "smoke\typegen"
@@ -450,6 +496,12 @@ Invoke-Step "Set up vcpkg" {
 $VcpkgToolchain = Join-Path $VcpkgRoot "scripts\buildsystems\vcpkg.cmake"
 $VcpkgInstalled = Join-Path $VcpkgRoot "installed\$VcpkgTriplet"
 $VcpkgBin = Join-Path $VcpkgInstalled "bin"
+$CMakeExternalWarningArguments = if ($SuppressExternalWarnings) {
+    @(Get-MsvcExternalWarningArguments `
+        -DependencyInclude (Join-Path $VcpkgInstalled "include"))
+} else {
+    @()
+}
 
 Invoke-Step "Install vcpkg dependencies" {
     Invoke-NativeWithRetry (Join-Path $VcpkgRoot "vcpkg.exe") install `
@@ -468,17 +520,20 @@ Invoke-Step "Install vcpkg dependencies" {
 }
 
 Invoke-Step "Configure farbot" {
-    Invoke-Native cmake -S $FarbotSource -B $FarbotBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $FarbotSource -B $FarbotBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
         -DCMAKE_BUILD_TYPE=Release
 }
 
 Invoke-Step "Install farbot" {
-    Invoke-Native cmake --build $FarbotBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $FarbotBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Configure rtlog-cpp" {
-    Invoke-Native cmake -S $RtlogSource -B $RtlogBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $RtlogSource -B $RtlogBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_PREFIX_PATH="$Prefix" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
         -DRTLOG_BUILD_TESTS=OFF `
@@ -486,11 +541,13 @@ Invoke-Step "Configure rtlog-cpp" {
 }
 
 Invoke-Step "Install rtlog-cpp" {
-    Invoke-Native cmake --build $RtlogBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $RtlogBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Configure RTT" {
-    Invoke-Native cmake -S $RttSource -B $RttBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $RttSource -B $RttBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -510,11 +567,13 @@ Invoke-Step "Configure RTT" {
 }
 
 Invoke-Step "Install RTT" {
-    Invoke-Native cmake --build $RttBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $RttBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Configure open62541" {
-    Invoke-Native cmake -S $Open62541Source -B $Open62541Build -G $Generator -A $Platform `
+    Invoke-Native cmake -S $Open62541Source -B $Open62541Build @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
         -DBUILD_SHARED_LIBS=ON `
         -DUA_NAMESPACE_ZERO=REDUCED `
@@ -526,12 +585,14 @@ Invoke-Step "Configure open62541" {
 }
 
 Invoke-Step "Install open62541" {
-    Invoke-Native cmake --build $Open62541Build --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $Open62541Build --config Release `
+        --target $CMakeInstallTarget --parallel 4
     Write-Open62541PkgConfig -PrefixPath $Prefix -Version $Open62541Version
 }
 
 Invoke-Step "Configure open62541pp" {
-    Invoke-Native cmake -S $Open62541ppSource -B $Open62541ppBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $Open62541ppSource -B $Open62541ppBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_PREFIX_PATH="$Prefix" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
         -DBUILD_SHARED_LIBS=ON `
@@ -543,11 +604,13 @@ Invoke-Step "Configure open62541pp" {
 }
 
 Invoke-Step "Install open62541pp" {
-    Invoke-Native cmake --build $Open62541ppBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $Open62541ppBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Configure rtt_opcua" {
-    Invoke-Native cmake -S $RttOpcuaSource -B $RttOpcuaBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $RttOpcuaSource -B $RttOpcuaBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -559,13 +622,15 @@ Invoke-Step "Configure rtt_opcua" {
 }
 
 Invoke-Step "Install rtt_opcua" {
-    Invoke-Native cmake --build $RttOpcuaBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $RttOpcuaBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Configure OCL" {
     $env:PKG_CONFIG_PATH = Join-Path $Prefix "lib\pkgconfig"
     $env:PKG_CONFIG_LIBDIR = $env:PKG_CONFIG_PATH
-    Invoke-Native cmake -S $OclSource -B $OclBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $OclSource -B $OclBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -597,11 +662,13 @@ Invoke-Step "Build OCL deployer tools" {
 }
 
 Invoke-Step "Install OCL" {
-    Invoke-Native cmake --build $OclBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $OclBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Configure utilmm" {
-    Invoke-Native cmake -S $UtilmmSource -B $UtilmmBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $UtilmmSource -B $UtilmmBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -611,13 +678,15 @@ Invoke-Step "Configure utilmm" {
 }
 
 Invoke-Step "Install utilmm" {
-    Invoke-Native cmake --build $UtilmmBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $UtilmmBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Configure Typelib" {
     $env:PKG_CONFIG_PATH = Join-Path $Prefix "lib\pkgconfig"
     $env:PKG_CONFIG_LIBDIR = $env:PKG_CONFIG_PATH
-    Invoke-Native cmake -S $TypelibSource -B $TypelibBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $TypelibSource -B $TypelibBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -630,13 +699,15 @@ Invoke-Step "Configure Typelib" {
 }
 
 Invoke-Step "Install Typelib" {
-    Invoke-Native cmake --build $TypelibBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $TypelibBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Configure rtt_typelib" {
     $env:PKG_CONFIG_PATH = Join-Path $Prefix "lib\pkgconfig"
     $env:PKG_CONFIG_LIBDIR = $env:PKG_CONFIG_PATH
-    Invoke-Native cmake -S $RttTypelibSource -B $RttTypelibBuild -G $Generator -A $Platform `
+    Invoke-Native cmake -S $RttTypelibSource -B $RttTypelibBuild @CMakeGeneratorArguments `
+        @CMakeExternalWarningArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -647,7 +718,8 @@ Invoke-Step "Configure rtt_typelib" {
 }
 
 Invoke-Step "Install rtt_typelib" {
-    Invoke-Native cmake --build $RttTypelibBuild --config Release --target INSTALL --parallel 4
+    Invoke-Native cmake --build $RttTypelibBuild --config Release `
+        --target $CMakeInstallTarget --parallel 4
 }
 
 Invoke-Step "Install Ruby generator tools" {
@@ -693,13 +765,14 @@ if (-not $SkipGeneratorSmokeTests) {
 
     Invoke-Step "Build Windows OroGen smoke project" {
         Invoke-Native cmake -S $GeneratorSmokeSource -B $GeneratorSmokeBuild `
-            -G $Generator -A $Platform `
+            @CMakeGeneratorArguments `
+            @CMakeExternalWarningArguments `
             -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
             -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
             -DCMAKE_INSTALL_PREFIX="$Prefix" `
             -DCMAKE_BUILD_TYPE=Release
         Invoke-Native cmake --build $GeneratorSmokeBuild --config Release `
-            --target INSTALL --parallel 4
+            --target $CMakeInstallTarget --parallel 4
     }
 
     Invoke-Step "Generate Windows Typegen smoke project" {
@@ -726,7 +799,8 @@ if (-not $SkipGeneratorSmokeTests) {
     Invoke-Step "Build Windows Typegen smoke project" {
         . (Join-Path $Prefix "dev-env.ps1")
         Invoke-Native cmake -S $TypegenSmokeSource -B $TypegenSmokeBuild `
-            -G $Generator -A $Platform `
+            @CMakeGeneratorArguments `
+            @CMakeExternalWarningArguments `
             -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
             -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
             -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -748,7 +822,7 @@ if (-not $SkipGeneratorSmokeTests) {
             $env:PATH = $savedPath
         }
         Invoke-Native cmake --build $TypegenSmokeBuild --config Release `
-            --target INSTALL --parallel 4
+            --target $CMakeInstallTarget --parallel 4
     }
 } else {
     Write-Host "Skipping workspace generator smoke tests; package acceptance tests cover the packaged generators."
@@ -847,7 +921,7 @@ Invoke-Step "Validate Windows prefix" {
         throw "Windows runtime environment must load the core RTT typekit first"
     }
 
-    Invoke-Native (Join-Path $RttTypelibBuild "Release\get_marshaller_for_test.exe")
+    Invoke-Native $RttTypelibTestExecutable
 
     $orogenVersionOutput = Get-NativeOutput `
         $RubyExecutable `
