@@ -348,6 +348,8 @@ else
   unless normalized_builder.include?('$CMakeGeneratorArguments = @("-G", $Generator)') &&
          normalized_builder.include?('if ($IsVisualStudioGenerator) {') &&
          normalized_builder.include?('$CMakeGeneratorArguments += @("-A", $Platform)') &&
+         normalized_builder.include?('-EnableExceptions:(-not $IsVisualStudioGenerator)') &&
+         normalized_builder.include?('$cxxOptions += "/EHsc"') &&
          normalized_builder.include?('--target $CMakeInstallTarget') &&
          normalized_builder.include?('Invoke-Native $RttTypelibTestExecutable')
     errors << "Windows builder must support both Visual Studio and Ninja generator layouts"
@@ -355,7 +357,7 @@ else
   unless normalized_builder.include?('Join-Path $VcpkgInstalled "include"') &&
          normalized_builder.include?("Microsoft Visual Studio|Windows Kits") &&
          normalized_builder.include?('/external:W0') &&
-         normalized_builder.scan("@CMakeExternalWarningArguments").size >= 12
+         normalized_builder.scan("@CMakeCompilerFlagArguments").size >= 12
     errors << "Windows builder must suppress only vcpkg and MSVC system-header warnings"
   end
   if normalized_builder.include?("/external:anglebrackets") ||

@@ -785,6 +785,10 @@ builder_mutations = {
     "Windows builder must support both Visual Studio and Ninja generator layouts",
     ->(contents) { contents.sub('$CMakeGeneratorArguments = @("-G", $Generator)', '$CMakeGeneratorArguments = @("-G", "Visual Studio 17 2022")') }
   ],
+  "builder omits Ninja exception semantics" => [
+    "Windows builder must support both Visual Studio and Ninja generator layouts",
+    ->(contents) { contents.sub('$cxxOptions += "/EHsc"', '$cxxOptions += "/EHs-"') }
+  ],
   "builder suppresses maintained angle headers" => [
     "Windows builder must keep maintained Orocos header warnings visible",
     lambda do |contents|

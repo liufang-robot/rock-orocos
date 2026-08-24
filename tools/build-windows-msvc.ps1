@@ -111,29 +111,45 @@ function Convert-ToFullPath {
     $executionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
 }
 
-function Get-MsvcExternalWarningArguments {
-    param([string]$DependencyInclude)
-
-    $externalIncludes = @($DependencyInclude)
-    foreach ($candidate in @($env:INCLUDE -split ";")) {
-        if ($candidate -match '(?i)\\(?:Microsoft Visual Studio|Windows Kits)\\') {
-            $externalIncludes += $candidate
-        }
-    }
-    $externalOptions = @()
-    foreach ($candidate in @($externalIncludes | Sort-Object -Unique)) {
-        if (-not [string]::IsNullOrWhiteSpace($candidate)) {
-            $fullPath = [IO.Path]::GetFullPath($candidate)
-            $externalOptions += "/external:I`"$fullPath`""
-        }
-    }
-    $externalOptions += "/external:W0"
-    $externalFlags = $externalOptions -join " "
-
-    @(
-        "-DCMAKE_C_FLAGS=$externalFlags",
-        "-DCMAKE_CXX_FLAGS=$externalFlags"
+function Get-MsvcCompilerFlagArguments {
+    param(
+        [string]$DependencyInclude,
+        [switch]$EnableExceptions,
+        [switch]$SuppressExternalWarnings
     )
+
+    $cOptions = @()
+    $cxxOptions = @()
+    if ($EnableExceptions) {
+        $cxxOptions += "/EHsc"
+    }
+    if ($SuppressExternalWarnings) {
+        $externalIncludes = @($DependencyInclude)
+        foreach ($candidate in @($env:INCLUDE -split ";")) {
+            if ($candidate -match '(?i)\\(?:Microsoft Visual Studio|Windows Kits)\\') {
+                $externalIncludes += $candidate
+            }
+        }
+        $externalOptions = @()
+        foreach ($candidate in @($externalIncludes | Sort-Object -Unique)) {
+            if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+                $fullPath = [IO.Path]::GetFullPath($candidate)
+                $externalOptions += "/external:I`"$fullPath`""
+            }
+        }
+        $externalOptions += "/external:W0"
+        $cOptions += $externalOptions
+        $cxxOptions += $externalOptions
+    }
+
+    $cmakeArguments = @()
+    if ($cOptions.Count -gt 0) {
+        $cmakeArguments += "-DCMAKE_C_FLAGS=$($cOptions -join ' ')"
+    }
+    if ($cxxOptions.Count -gt 0) {
+        $cmakeArguments += "-DCMAKE_CXX_FLAGS=$($cxxOptions -join ' ')"
+    }
+    $cmakeArguments
 }
 
 function Resolve-GitRepository {
@@ -496,12 +512,12 @@ Invoke-Step "Set up vcpkg" {
 $VcpkgToolchain = Join-Path $VcpkgRoot "scripts\buildsystems\vcpkg.cmake"
 $VcpkgInstalled = Join-Path $VcpkgRoot "installed\$VcpkgTriplet"
 $VcpkgBin = Join-Path $VcpkgInstalled "bin"
-$CMakeExternalWarningArguments = if ($SuppressExternalWarnings) {
-    @(Get-MsvcExternalWarningArguments `
-        -DependencyInclude (Join-Path $VcpkgInstalled "include"))
-} else {
-    @()
-}
+$CMakeCompilerFlagArguments = @(
+    Get-MsvcCompilerFlagArguments `
+        -DependencyInclude (Join-Path $VcpkgInstalled "include") `
+        -EnableExceptions:(-not $IsVisualStudioGenerator) `
+        -SuppressExternalWarnings:$SuppressExternalWarnings
+)
 
 Invoke-Step "Install vcpkg dependencies" {
     Invoke-NativeWithRetry (Join-Path $VcpkgRoot "vcpkg.exe") install `
@@ -521,7 +537,7 @@ Invoke-Step "Install vcpkg dependencies" {
 
 Invoke-Step "Configure farbot" {
     Invoke-Native cmake -S $FarbotSource -B $FarbotBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
         -DCMAKE_BUILD_TYPE=Release
 }
@@ -533,7 +549,7 @@ Invoke-Step "Install farbot" {
 
 Invoke-Step "Configure rtlog-cpp" {
     Invoke-Native cmake -S $RtlogSource -B $RtlogBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_PREFIX_PATH="$Prefix" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
         -DRTLOG_BUILD_TESTS=OFF `
@@ -547,7 +563,7 @@ Invoke-Step "Install rtlog-cpp" {
 
 Invoke-Step "Configure RTT" {
     Invoke-Native cmake -S $RttSource -B $RttBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -573,7 +589,7 @@ Invoke-Step "Install RTT" {
 
 Invoke-Step "Configure open62541" {
     Invoke-Native cmake -S $Open62541Source -B $Open62541Build @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
         -DBUILD_SHARED_LIBS=ON `
         -DUA_NAMESPACE_ZERO=REDUCED `
@@ -592,7 +608,7 @@ Invoke-Step "Install open62541" {
 
 Invoke-Step "Configure open62541pp" {
     Invoke-Native cmake -S $Open62541ppSource -B $Open62541ppBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_PREFIX_PATH="$Prefix" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
         -DBUILD_SHARED_LIBS=ON `
@@ -610,7 +626,7 @@ Invoke-Step "Install open62541pp" {
 
 Invoke-Step "Configure rtt_opcua" {
     Invoke-Native cmake -S $RttOpcuaSource -B $RttOpcuaBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -630,7 +646,7 @@ Invoke-Step "Configure OCL" {
     $env:PKG_CONFIG_PATH = Join-Path $Prefix "lib\pkgconfig"
     $env:PKG_CONFIG_LIBDIR = $env:PKG_CONFIG_PATH
     Invoke-Native cmake -S $OclSource -B $OclBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -668,7 +684,7 @@ Invoke-Step "Install OCL" {
 
 Invoke-Step "Configure utilmm" {
     Invoke-Native cmake -S $UtilmmSource -B $UtilmmBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -686,7 +702,7 @@ Invoke-Step "Configure Typelib" {
     $env:PKG_CONFIG_PATH = Join-Path $Prefix "lib\pkgconfig"
     $env:PKG_CONFIG_LIBDIR = $env:PKG_CONFIG_PATH
     Invoke-Native cmake -S $TypelibSource -B $TypelibBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -707,7 +723,7 @@ Invoke-Step "Configure rtt_typelib" {
     $env:PKG_CONFIG_PATH = Join-Path $Prefix "lib\pkgconfig"
     $env:PKG_CONFIG_LIBDIR = $env:PKG_CONFIG_PATH
     Invoke-Native cmake -S $RttTypelibSource -B $RttTypelibBuild @CMakeGeneratorArguments `
-        @CMakeExternalWarningArguments `
+        @CMakeCompilerFlagArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -766,7 +782,7 @@ if (-not $SkipGeneratorSmokeTests) {
     Invoke-Step "Build Windows OroGen smoke project" {
         Invoke-Native cmake -S $GeneratorSmokeSource -B $GeneratorSmokeBuild `
             @CMakeGeneratorArguments `
-            @CMakeExternalWarningArguments `
+            @CMakeCompilerFlagArguments `
             -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
             -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
             -DCMAKE_INSTALL_PREFIX="$Prefix" `
@@ -800,7 +816,7 @@ if (-not $SkipGeneratorSmokeTests) {
         . (Join-Path $Prefix "dev-env.ps1")
         Invoke-Native cmake -S $TypegenSmokeSource -B $TypegenSmokeBuild `
             @CMakeGeneratorArguments `
-            @CMakeExternalWarningArguments `
+            @CMakeCompilerFlagArguments `
             -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
             -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
             -DCMAKE_INSTALL_PREFIX="$Prefix" `
