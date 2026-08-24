@@ -18,11 +18,19 @@ function Invoke-BatchEnvironment {
         [string]$BatchPath,
         [ValidateRange(1, 4)]
         [int]$Calls = 1,
-        [hashtable]$InitialEnvironment = @{}
+        [hashtable]$InitialEnvironment = @{},
+        [string]$FollowupBatchPath,
+        [ValidateRange(0, 4)]
+        [int]$FollowupCalls = 0,
+        [string[]]$RemoveEnvironmentVariables = @()
     )
 
     if (-not (Test-Path -LiteralPath $BatchPath -PathType Leaf)) {
         throw "Batch activation entrypoint does not exist: $BatchPath"
+    }
+    if ($FollowupCalls -gt 0 -and
+        -not (Test-Path -LiteralPath $FollowupBatchPath -PathType Leaf)) {
+        throw "Batch follow-up entrypoint does not exist: $FollowupBatchPath"
     }
 
     $callerRoot = Join-Path ([IO.Path]::GetTempPath()) `
@@ -33,6 +41,10 @@ function Invoke-BatchEnvironment {
         $callerLines = @()
         for ($index = 0; $index -lt $Calls; $index += 1) {
             $callerLines += '@call "{0}"' -f $BatchPath
+            $callerLines += '@if errorlevel 1 exit /b %ERRORLEVEL%'
+        }
+        for ($index = 0; $index -lt $FollowupCalls; $index += 1) {
+            $callerLines += '@call "{0}"' -f $FollowupBatchPath
             $callerLines += '@if errorlevel 1 exit /b %ERRORLEVEL%'
         }
         $callerLines += "@set"
@@ -48,6 +60,14 @@ function Invoke-BatchEnvironment {
         $startInfo.CreateNoWindow = $true
         $startInfo.RedirectStandardOutput = $true
         $startInfo.RedirectStandardError = $true
+        foreach ($name in @($startInfo.EnvironmentVariables.Keys)) {
+            if ([string]$name -like "__OROCOS_ROCK_*") {
+                $startInfo.EnvironmentVariables.Remove([string]$name)
+            }
+        }
+        foreach ($name in $RemoveEnvironmentVariables) {
+            $startInfo.EnvironmentVariables.Remove($name)
+        }
         foreach ($entry in $InitialEnvironment.GetEnumerator()) {
             $startInfo.EnvironmentVariables[[string]$entry.Key] = [string]$entry.Value
         }
@@ -116,6 +136,31 @@ function Assert-EnvironmentValueExact {
     }
 }
 
+function Assert-EnvironmentAbsent {
+    param(
+        [Collections.Generic.IDictionary[string, string]]$Environment,
+        [string]$Name
+    )
+
+    if ($Environment.ContainsKey($Name)) {
+        throw "$Name remained set to '$($Environment[$Name])'."
+    }
+}
+
+function Assert-NoOrocosHookState {
+    param(
+        [Collections.Generic.IDictionary[string, string]]$Environment
+    )
+
+    $leakedState = @(
+        $Environment.Keys |
+            Where-Object { $_ -like "__OROCOS_ROCK_*" }
+    )
+    if ($leakedState.Count -ne 0) {
+        throw "Orocos package hooks leaked state: $($leakedState -join ', ')"
+    }
+}
+
 function Get-PathEntries {
     param(
         [Collections.Generic.IDictionary[string, string]]$Environment,
@@ -167,6 +212,7 @@ function Assert-PathEntriesUnique {
 
 $runtimeBatch = Join-Path $libraryPrefix "env.bat"
 $activationHook = Join-Path $condaPrefix "etc\conda\activate.d\orocos-activate.bat"
+$deactivationHook = Join-Path $condaPrefix "etc\conda\deactivate.d\orocos-deactivate.bat"
 $minimalBatchPath = Split-Path -Parent $env:ComSpec
 $batchEnvironment = Invoke-BatchEnvironment -BatchPath $runtimeBatch -Calls 2 `
     -InitialEnvironment @{ PATH = $minimalBatchPath }
@@ -190,6 +236,25 @@ $hookTypelib = Join-Path $libraryPrefix "lib\typelib"
 $hookRuntimePlugins = Join-Path $libraryPrefix "lib\orocos\win32\plugins"
 $hookRttTypes = Join-Path $libraryPrefix "lib\orocos\win32\types"
 $hookExpectedPath = "$hookRuntimePlugins;$rattlerPath"
+$hookManagedVariables = @(
+    "OROCOS_PREFIX",
+    "OROCOS_TARGET",
+    "RTT_COMPONENT_PATH",
+    "PKG_CONFIG_LIBDIR",
+    "PKG_CONFIG_PATH",
+    "TYPELIB_PLUGIN_PATH",
+    "CMAKE_PREFIX_PATH"
+)
+$hookInitialEnvironment = @{
+    PATH = $rattlerPath
+    OROCOS_PREFIX = "C:\stale-orocos-prefix"
+    OROCOS_TARGET = "stale-target"
+    RTT_COMPONENT_PATH = $staleHookDiscoveryPath
+    PKG_CONFIG_LIBDIR = "C:\stale-pkg-config-libdir"
+    PKG_CONFIG_PATH = $staleHookDiscoveryPath
+    TYPELIB_PLUGIN_PATH = $staleHookDiscoveryPath
+    CMAKE_PREFIX_PATH = $staleHookDiscoveryPath
+}
 $createdHookPkgConfig = -not (Test-Path -LiteralPath $hookPkgConfig `
     -PathType Container)
 if ($createdHookPkgConfig) {
@@ -198,16 +263,8 @@ if ($createdHookPkgConfig) {
 try {
     $hookEnvironment = Invoke-BatchEnvironment `
         -BatchPath $activationHook `
-        -InitialEnvironment @{
-            PATH = $rattlerPath
-            OROCOS_PREFIX = "C:\stale-orocos-prefix"
-            OROCOS_TARGET = "stale-target"
-            RTT_COMPONENT_PATH = $staleHookDiscoveryPath
-            PKG_CONFIG_LIBDIR = "C:\stale-pkg-config-libdir"
-            PKG_CONFIG_PATH = $staleHookDiscoveryPath
-            TYPELIB_PLUGIN_PATH = $staleHookDiscoveryPath
-            CMAKE_PREFIX_PATH = $staleHookDiscoveryPath
-        }
+        -Calls 2 `
+        -InitialEnvironment $hookInitialEnvironment
     Assert-EnvironmentValue `
         -Environment $hookEnvironment -Name "OROCOS_PREFIX" -Expected $libraryPrefix
     Assert-EnvironmentValue `
@@ -249,6 +306,38 @@ try {
             -ExpectedPath $staleHookDiscoveryPath `
             -ExpectedCount 1
     }
+
+    $restoredHookEnvironment = Invoke-BatchEnvironment `
+        -BatchPath $activationHook `
+        -Calls 2 `
+        -FollowupBatchPath $deactivationHook `
+        -FollowupCalls 2 `
+        -InitialEnvironment $hookInitialEnvironment
+    foreach ($entry in $hookInitialEnvironment.GetEnumerator()) {
+        Assert-EnvironmentValueExact `
+            -Environment $restoredHookEnvironment `
+            -Name ([string]$entry.Key) `
+            -Expected ([string]$entry.Value)
+    }
+    Assert-NoOrocosHookState -Environment $restoredHookEnvironment
+
+    $preexistingPluginPath = "$hookRuntimePlugins;$rattlerPath"
+    $unsetHookEnvironment = Invoke-BatchEnvironment `
+        -BatchPath $activationHook `
+        -Calls 2 `
+        -FollowupBatchPath $deactivationHook `
+        -FollowupCalls 2 `
+        -RemoveEnvironmentVariables $hookManagedVariables `
+        -InitialEnvironment @{ PATH = $preexistingPluginPath }
+    Assert-EnvironmentValueExact `
+        -Environment $unsetHookEnvironment `
+        -Name "PATH" `
+        -Expected $preexistingPluginPath
+    foreach ($name in $hookManagedVariables) {
+        Assert-EnvironmentAbsent `
+            -Environment $unsetHookEnvironment -Name $name
+    }
+    Assert-NoOrocosHookState -Environment $unsetHookEnvironment
 } finally {
     if ($createdHookPkgConfig) {
         Remove-Item -LiteralPath $hookPkgConfig -Force

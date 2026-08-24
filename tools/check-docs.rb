@@ -123,6 +123,10 @@ else
     "Windows runtime batch entrypoint" => 'Library\env.bat',
     "Windows package activation hook" =>
       'etc\conda\activate.d\orocos-activate.bat',
+    "Windows package deactivation hook" =>
+      'etc\conda\deactivate.d\orocos-deactivate.bat',
+    "Linux package deactivation hook" =>
+      'etc/conda/deactivate.d/orocos-deactivate.sh',
     "runtime-only Windows package activation" =>
       'Runtime-only Windows consumers do not need `[target.win.activation]`'
   }.each do |contract, token|
@@ -176,6 +180,10 @@ install_contract = strip_html_comments(
   "Windows batch runtime entrypoint" => '`env.bat`',
   "Windows Conda activation hook" =>
     '`etc/conda/activate.d/orocos-activate.bat`',
+  "Windows Conda deactivation hook" =>
+    '`etc/conda/deactivate.d/orocos-deactivate.bat`',
+  "Linux Conda deactivation hook" =>
+    '`etc/conda/deactivate.d/orocos-deactivate.sh`',
   "PowerShell compatibility entrypoint" => '`env.ps1`',
   "development entrypoint" => '`dev-env.ps1`'
 }.each do |contract, token|

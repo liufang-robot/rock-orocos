@@ -17,6 +17,7 @@ source:
         - packaging/source-lock.json
         - packaging/conda/build.ps1
         - packaging/conda/orocos-activate.bat
+        - packaging/conda/orocos-deactivate.bat
         - packaging/conda/stage-runtime-hook.ps1
         - packaging/conda/prepare-prefix.ps1
         - tools/build-windows-msvc.ps1
@@ -86,6 +87,7 @@ outputs:
           - Library/env.ps1
           - Library/share/licenses/orocos/**
           - etc/conda/activate.d/orocos-activate.bat
+          - etc/conda/deactivate.d/orocos-deactivate.bat
     requirements:
       run:
         - vc14_runtime >=14.44,<15
@@ -98,6 +100,7 @@ outputs:
               - Library/env.bat
               - Library/env.ps1
               - etc/conda/activate.d/orocos-activate.bat
+              - etc/conda/deactivate.d/orocos-deactivate.bat
               - Library/share/licenses/orocos/LICENSES.md
               - Library/share/licenses/orocos/manifest.json
               - Library/lib/orocos/win32/types/rtt-typekit-win32.dll
@@ -167,6 +170,7 @@ outputs:
               - Library/env.bat
               - Library/env.ps1
               - etc/conda/activate.d/orocos-activate.bat
+              - etc/conda/deactivate.d/orocos-deactivate.bat
               - Library/share/licenses/orocos/LICENSES.md
       - script: test-dev.ps1
         files:

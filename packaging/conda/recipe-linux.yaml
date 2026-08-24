@@ -18,6 +18,7 @@ source:
         - packaging/source-lock.json
         - packaging/conda/build-linux.sh
         - packaging/conda/orocos-activate.sh
+        - packaging/conda/orocos-deactivate.sh
         - packaging/conda/prepare-linux-prefix.sh
         - packaging/conda/sanitize-linux-prefix.rb
         - packaging/conda/test-runtime-linux.sh
@@ -162,6 +163,7 @@ outputs:
         include:
           - env.sh
           - etc/conda/activate.d/orocos-activate.sh
+          - etc/conda/deactivate.d/orocos-deactivate.sh
           - share/licenses/orocos/**
           - toolchain/bin/ctaskbrowser*
           - toolchain/bin/deployer*
@@ -191,6 +193,7 @@ outputs:
             exists:
               - env.sh
               - etc/conda/activate.d/orocos-activate.sh
+              - etc/conda/deactivate.d/orocos-deactivate.sh
               - share/licenses/orocos/LICENSES.md
               - share/licenses/orocos/manifest.json
               - toolchain/bin/deployer-opcua-gnulinux
@@ -267,6 +270,7 @@ outputs:
             not_exists:
               - env.sh
               - etc/conda/activate.d/orocos-activate.sh
+              - etc/conda/deactivate.d/orocos-deactivate.sh
               - share/licenses/orocos/LICENSES.md
               - toolchain/bin/deployer-opcua-gnulinux
       - script: test-dev-linux.sh

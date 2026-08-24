@@ -1,2 +1,49 @@
+@if defined __OROCOS_ROCK_CONDA_ACTIVE goto orocos_activate_runtime
+
+@set "__OROCOS_ROCK_OROCOS_PREFIX_SET=0"
+@if defined OROCOS_PREFIX set "__OROCOS_ROCK_OROCOS_PREFIX_SET=1"
+@set "__OROCOS_ROCK_OROCOS_PREFIX_VALUE=%OROCOS_PREFIX%"
+@set "__OROCOS_ROCK_OROCOS_TARGET_SET=0"
+@if defined OROCOS_TARGET set "__OROCOS_ROCK_OROCOS_TARGET_SET=1"
+@set "__OROCOS_ROCK_OROCOS_TARGET_VALUE=%OROCOS_TARGET%"
+@set "__OROCOS_ROCK_RTT_COMPONENT_PATH_SET=0"
+@if defined RTT_COMPONENT_PATH set "__OROCOS_ROCK_RTT_COMPONENT_PATH_SET=1"
+@set "__OROCOS_ROCK_RTT_COMPONENT_PATH_VALUE=%RTT_COMPONENT_PATH%"
+@set "__OROCOS_ROCK_PKG_CONFIG_LIBDIR_SET=0"
+@if defined PKG_CONFIG_LIBDIR set "__OROCOS_ROCK_PKG_CONFIG_LIBDIR_SET=1"
+@set "__OROCOS_ROCK_PKG_CONFIG_LIBDIR_VALUE=%PKG_CONFIG_LIBDIR%"
+@set "__OROCOS_ROCK_PKG_CONFIG_PATH_SET=0"
+@if defined PKG_CONFIG_PATH set "__OROCOS_ROCK_PKG_CONFIG_PATH_SET=1"
+@set "__OROCOS_ROCK_PKG_CONFIG_PATH_VALUE=%PKG_CONFIG_PATH%"
+@set "__OROCOS_ROCK_TYPELIB_PLUGIN_PATH_SET=0"
+@if defined TYPELIB_PLUGIN_PATH set "__OROCOS_ROCK_TYPELIB_PLUGIN_PATH_SET=1"
+@set "__OROCOS_ROCK_TYPELIB_PLUGIN_PATH_VALUE=%TYPELIB_PLUGIN_PATH%"
+@set "__OROCOS_ROCK_CMAKE_PREFIX_PATH_SET=0"
+@if defined CMAKE_PREFIX_PATH set "__OROCOS_ROCK_CMAKE_PREFIX_PATH_SET=1"
+@set "__OROCOS_ROCK_CMAKE_PREFIX_PATH_VALUE=%CMAKE_PREFIX_PATH%"
+
+@for %%I in ("%~dp0..\..\..\Library\.") do set "__OROCOS_ROCK_HOOK_PATH_CANDIDATE=%%~fI\lib\orocos\win32\plugins"
+@set "__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT=0"
+@set "__OROCOS_ROCK_HOOK_PATH_SCAN=%PATH%"
+:orocos_activate_next_path_value
+@if not defined __OROCOS_ROCK_HOOK_PATH_SCAN goto orocos_activate_path_scanned
+@if not "%__OROCOS_ROCK_HOOK_PATH_SCAN:~0,1%"==";" goto orocos_activate_split_path_value
+@set "__OROCOS_ROCK_HOOK_PATH_SCAN=%__OROCOS_ROCK_HOOK_PATH_SCAN:~1%"
+@goto orocos_activate_next_path_value
+
+:orocos_activate_split_path_value
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_HOOK_PATH_SCAN%") do set "__OROCOS_ROCK_HOOK_PATH_CURRENT=%%E"
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_HOOK_PATH_SCAN%") do set "__OROCOS_ROCK_HOOK_PATH_SCAN=%%F"
+@if /I "%__OROCOS_ROCK_HOOK_PATH_CURRENT%"=="%__OROCOS_ROCK_HOOK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT=1"
+@if "%__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT%"=="1" goto orocos_activate_path_scanned
+@goto orocos_activate_next_path_value
+
+:orocos_activate_path_scanned
+@set "__OROCOS_ROCK_HOOK_PATH_CANDIDATE="
+@set "__OROCOS_ROCK_HOOK_PATH_SCAN="
+@set "__OROCOS_ROCK_HOOK_PATH_CURRENT="
+@set "__OROCOS_ROCK_CONDA_ACTIVE=1"
+
+:orocos_activate_runtime
 @call "%~dp0..\..\..\Library\env.bat" --conda
 @exit /b %ERRORLEVEL%

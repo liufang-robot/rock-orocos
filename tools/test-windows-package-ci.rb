@@ -12,6 +12,7 @@ FIXTURE_PATHS = %w[
   examples/pixi-consumer/scripts/activate-orocos.ps1
   packaging/conda/build.ps1
   packaging/conda/orocos-activate.bat
+  packaging/conda/orocos-deactivate.bat
   packaging/conda/recipe-linux.yaml
   packaging/conda/recipe.yaml
   packaging/conda/stage-runtime-hook.ps1
@@ -442,6 +443,17 @@ recipe_mutations = {
       )
     end
   ],
+  "missing runtime deactivation hook package ownership" => [
+    "orocos runtime output must own and test the Conda runtime deactivation hook",
+    lambda do |contents|
+      replace_occurrence(
+        contents,
+        "          - etc/conda/deactivate.d/orocos-deactivate.bat\n",
+        "",
+        0
+      )
+    end
+  ],
   "development package claims runtime batch" => [
     "orocos-dev output must explicitly exclude the generated batch runtime entrypoint",
     lambda do |contents|
@@ -449,8 +461,23 @@ recipe_mutations = {
     end
   ],
   "missing activation hook recipe source" => [
-    "Windows package recipe must include the Conda activation hook source",
+    "Windows package recipe must include the Conda activation hook source exactly once",
     ->(contents) { contents.sub("        - packaging/conda/orocos-activate.bat\n", "") }
+  ],
+  "missing deactivation hook recipe source" => [
+    "Windows package recipe must include the Conda deactivation hook source exactly once",
+    ->(contents) { contents.sub("        - packaging/conda/orocos-deactivate.bat\n", "") }
+  ],
+  "development package claims runtime deactivation hook" => [
+    "orocos-dev output must explicitly exclude the Conda runtime deactivation hook",
+    lambda do |contents|
+      replace_occurrence(
+        contents,
+        "              - etc/conda/deactivate.d/orocos-deactivate.bat\n",
+        "",
+        1
+      )
+    end
   ],
   "missing runtime hook staging script source" => [
     "Windows package recipe must include the runtime hook staging script source",
@@ -476,7 +503,7 @@ recipe_mutations = {
 
 build_mutations = {
   "activation hook staged by shared build cache" => [
-    "Windows shared staging cache must not install the runtime activation hook",
+    "Windows shared staging cache must not install runtime lifecycle hooks",
     lambda do |contents|
       contents + "\n" +
         '$activationHookSource = Join-Path $repositoryRoot "packaging\conda\orocos-activate.bat"' +
@@ -586,19 +613,68 @@ runtime_stage_mutations = {
     end
   ],
   "missing runtime activation hook copy" => [
-    "Windows runtime output must stage the activation hook copy",
+    "Windows runtime output must copy exactly two lifecycle hooks",
     ->(contents) { contents.sub("Copy-Item", "Write-Output") }
+  ],
+  "deactivation hook staged below Library prefix" => [
+    "Windows runtime output must stage the Conda prefix deactivation directory",
+    lambda do |contents|
+      contents.sub(
+        'Join-Path $env:PREFIX "etc\conda\deactivate.d"',
+        'Join-Path $env:LIBRARY_PREFIX "etc\conda\deactivate.d"'
+      )
+    end
+  ],
+  "missing runtime deactivation hook copy" => [
+    "Windows runtime output must copy exactly two lifecycle hooks",
+    lambda do |contents|
+      replace_occurrence(contents, "Copy-Item", "Write-Output", 1)
+    end
   ]
 }
 
 hook_mutations = {
   "activation hook calls PowerShell entrypoint" => [
-    "Windows package activation hook must only call Library\\env.bat and propagate failure",
+    "Windows package activation hook must preserve lifecycle state, call Library\\env.bat in Conda mode, and propagate failure",
     ->(contents) { contents.sub("Library\\env.bat", "Library\\env.ps1") }
   ],
   "activation hook omits Conda mode" => [
-    "Windows package activation hook must only call Library\\env.bat and propagate failure",
+    "Windows package activation hook must preserve lifecycle state, call Library\\env.bat in Conda mode, and propagate failure",
     ->(contents) { contents.sub('Library\\env.bat" --conda', 'Library\\env.bat"') }
+  ],
+  "activation hook overwrites lifecycle backups" => [
+    "Windows package activation hook must preserve lifecycle state, call Library\\env.bat in Conda mode, and propagate failure",
+    lambda do |contents|
+      contents.sub(
+        "@if defined __OROCOS_ROCK_CONDA_ACTIVE goto orocos_activate_runtime",
+        "@rem missing repeated-activation guard"
+      )
+    end
+  ]
+}
+
+deactivation_hook_mutations = {
+  "deactivation hook keeps the package loader path" => [
+    "Windows package deactivation hook must restore the pre-activation environment and clean lifecycle state",
+    lambda do |contents|
+      contents.sub(
+        '@set "PATH=%__OROCOS_ROCK_HOOK_PATH_NEW:~1%"',
+        '@rem missing PATH cleanup'
+      )
+    end
+  ],
+  "deactivation hook does not restore a discovery variable" => [
+    "Windows package deactivation hook must restore the pre-activation environment and clean lifecycle state",
+    ->(contents) { contents.sub('@set "RTT_COMPONENT_PATH="', '@rem missing RTT restoration') }
+  ],
+  "deactivation hook leaks lifecycle state" => [
+    "Windows package deactivation hook must restore the pre-activation environment and clean lifecycle state",
+    lambda do |contents|
+      contents.sub(
+        '@set "__OROCOS_ROCK_CONDA_ACTIVE="',
+        '@rem leaked lifecycle marker'
+      )
+    end
   ]
 }
 
@@ -746,6 +822,15 @@ runtime_test_mutations = {
       )
     end
   ],
+  "runtime test skips the package deactivation hook" => [
+    "Windows runtime package test must cover the package deactivation hook",
+    lambda do |contents|
+      contents.sub(
+        'Join-Path $condaPrefix "etc\conda\deactivate.d\orocos-deactivate.bat"',
+        'Join-Path $condaPrefix "missing-orocos-deactivate.bat"'
+      )
+    end
+  ],
   "runtime test omits a Rattler-length inherited PATH" => [
     "Windows runtime package test must cover a Rattler-length inherited PATH",
     ->(contents) { contents.sub("$rattlerPathEntries = @(", "$shortPathEntries = @(") }
@@ -765,6 +850,28 @@ runtime_test_mutations = {
       contents.sub(
         /^\$hookPkgConfig = .*?^}\r?\n(?=\r?\n\$fixtureRoot)/m,
         ""
+      )
+    end
+  ],
+  "runtime test does not repeat deactivation" => [
+    "Windows runtime package test must cover reversible and idempotent package hooks",
+    ->(contents) { contents.sub("-FollowupCalls 2", "-FollowupCalls 1") }
+  ],
+  "runtime test inherits variables in the unset fixture" => [
+    "Windows runtime package test must cover reversible and idempotent package hooks",
+    lambda do |contents|
+      contents.sub(
+        '-RemoveEnvironmentVariables $hookManagedVariables',
+        '-RemoveEnvironmentVariables @()'
+      )
+    end
+  ],
+  "runtime test omits hook-state cleanup assertions" => [
+    "Windows runtime package test must cover reversible and idempotent package hooks",
+    lambda do |contents|
+      contents.sub(
+        "function Assert-NoOrocosHookState {",
+        "function Ignore-OrocosHookState {"
       )
     end
   ]
@@ -823,6 +930,7 @@ wrong_rejections = []
   "packaging/conda/recipe.yaml" => recipe_mutations,
   "packaging/conda/build.ps1" => build_mutations,
   "packaging/conda/orocos-activate.bat" => hook_mutations,
+  "packaging/conda/orocos-deactivate.bat" => deactivation_hook_mutations,
   "packaging/conda/stage-runtime-hook.ps1" => runtime_stage_mutations,
   "packaging/conda/test-dev.ps1" => development_test_mutations,
   "packaging/conda/test-runtime.ps1" => runtime_test_mutations,
