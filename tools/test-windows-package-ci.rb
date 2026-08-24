@@ -284,6 +284,10 @@ mutations = {
   "missing vcpkg MSVC identification" => [
     "Windows package CI must identify the exact MSVC compatibility boundary for vcpkg caches",
     ->(contents) { contents.sub("vswhere.exe", "compiler-locator.exe") }
+  ],
+  "missing reusable vcpkg verification" => [
+    "Windows package CI must verify that Rattler populated the configured vcpkg root",
+    ->(contents) { contents.sub('"installed\vcpkg\status"', '"missing\vcpkg\status"') }
   ]
 }
 
@@ -459,6 +463,10 @@ recipe_mutations = {
   "missing clean development package acceptance" => [
     "orocos-dev must run the clean generator package acceptance test",
     ->(contents) { contents.sub(/^\s+- script: test-dev\.ps1\r?\n/, "") }
+  ],
+  "recipe omits isolated vcpkg cache forwarding" => [
+    "Windows package recipe must explicitly forward isolated vcpkg cache paths",
+    ->(contents) { contents.sub(/^\s+OROCOS_VCPKG_ROOT:.*\r?\n/, "") }
   ]
 }
 
@@ -478,6 +486,10 @@ build_mutations = {
   "package staging ignores the persistent vcpkg root" => [
     "Windows package staging must use an absolute configured vcpkg root with a disposable fallback",
     ->(contents) { contents.sub('"OROCOS_VCPKG_ROOT"', '"IGNORED_VCPKG_ROOT"') }
+  ],
+  "package staging omits the cache readiness marker" => [
+    "Windows package staging must use an absolute configured vcpkg root with a disposable fallback",
+    ->(contents) { contents.sub('".orocos-package-cache-ready"', '".missing-cache-marker"') }
   ]
 }
 

@@ -102,6 +102,13 @@ try {
         -Workspace $workspace `
         -VcpkgRoot $vcpkgRoot `
         -RepositoryRoot $repositoryRoot
+
+    if (-not [string]::IsNullOrWhiteSpace($configuredVcpkgRoot)) {
+        Set-Content `
+            -LiteralPath (Join-Path $vcpkgRoot ".orocos-package-cache-ready") `
+            -Value "ready" `
+            -NoNewline
+    }
 } finally {
     foreach ($name in $profileEnvironmentNames) {
         $savedValue = $savedProfileEnvironment[$name]

@@ -197,6 +197,11 @@ else
   errors << "Windows package build must test the source lock" unless build_runs.include?("tools/test-windows-source-lock.ps1")
   errors << "Windows package build must render the recipe" unless build_runs.include?("pixi run --locked package-render")
   errors << "Windows package build must build and test both packages" unless build_runs.include?("pixi run --locked package-build")
+  unless build_runs.include?('Join-Path $env:OROCOS_VCPKG_ROOT') &&
+         build_runs.include?('"installed\vcpkg\status"') &&
+         build_runs.include?('".orocos-package-cache-ready"')
+    errors << "Windows package CI must verify that Rattler populated the configured vcpkg root"
+  end
   errors << "Windows package build must prepare a verified release bundle" unless build_runs.include?("tools/prepare-windows-conda-release.ps1") && build_runs.include?("-Mode Stage")
   errors << "Windows package build must test clean local-channel consumers" unless build_runs.include?("tools/test-windows-conda-consumer.ps1") && build_runs.include?("-LocalChannelPath packaging/conda/output")
   upload_artifact = pinned_action("actions/upload-artifact")
@@ -387,6 +392,15 @@ else
   unless recipe.include?(%q{${{ compiler('cxx') }}})
     errors << "Windows package recipe must activate the MSVC x64 build environment"
   end
+  [
+    'OROCOS_VCPKG_ROOT: ${{ env.get("OROCOS_VCPKG_ROOT", default="") }}',
+    'VCPKG_DEFAULT_BINARY_CACHE: ${{ env.get("VCPKG_DEFAULT_BINARY_CACHE", default="") }}',
+    'VCPKG_DOWNLOADS: ${{ env.get("VCPKG_DOWNLOADS", default="") }}'
+  ].each do |forwarding|
+    unless recipe.include?(forwarding)
+      errors << "Windows package recipe must explicitly forward isolated vcpkg cache paths"
+    end
+  end
   expected_repository = "https://github.com/liufang-robot/rock-orocos"
   expected_documentation = "https://liufang-robot.github.io/rock-orocos/"
   {
@@ -452,7 +466,8 @@ else
   unless build_script.include?('"OROCOS_VCPKG_ROOT"') &&
          build_script.include?("[IO.Path]::IsPathRooted($configuredVcpkgRoot)") &&
          build_script.include?('$vcpkgRoot = Join-Path $temporaryRoot "v"') &&
-         build_script.include?("$vcpkgRoot = [IO.Path]::GetFullPath($configuredVcpkgRoot)")
+         build_script.include?("$vcpkgRoot = [IO.Path]::GetFullPath($configuredVcpkgRoot)") &&
+         build_script.include?('Join-Path $vcpkgRoot ".orocos-package-cache-ready"')
     errors << "Windows package staging must use an absolute configured vcpkg root with a disposable fallback"
   end
   if build_script.include?("orocos-activate.bat") ||

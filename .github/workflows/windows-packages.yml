@@ -177,6 +177,20 @@ jobs:
             exit $buildExitCode
           }
 
+      - name: Verify reusable vcpkg tree
+        shell: pwsh
+        run: |
+          $installedStatus = Join-Path $env:OROCOS_VCPKG_ROOT `
+            "installed\vcpkg\status"
+          $readinessMarker = Join-Path $env:OROCOS_VCPKG_ROOT `
+            ".orocos-package-cache-ready"
+          if (-not (Test-Path -LiteralPath $installedStatus -PathType Leaf)) {
+            throw "The package build did not populate the reusable vcpkg tree."
+          }
+          if (-not (Test-Path -LiteralPath $readinessMarker -PathType Leaf)) {
+            throw "The package build did not use the configured vcpkg root."
+          }
+
       - name: Report package build failure
         if: failure()
         shell: pwsh
