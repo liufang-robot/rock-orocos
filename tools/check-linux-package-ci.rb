@@ -67,6 +67,9 @@ build_path = File.join(root, "packaging", "conda", "build-linux.sh")
 sanitizer_path = File.join(root, "packaging", "conda", "sanitize-linux-prefix.rb")
 glibc_checker_path = File.join(root, "tools", "check-linux-glibc-compatibility.rb")
 hook_path = File.join(root, "packaging", "conda", "orocos-activate.sh")
+deactivation_hook_path = File.join(
+  root, "packaging", "conda", "orocos-deactivate.sh"
+)
 prefix_preparation_path = File.join(root, "packaging", "conda", "prepare-linux-prefix.sh")
 runtime_test_path = File.join(root, "packaging", "conda", "test-runtime-linux.sh")
 development_test_path = File.join(root, "packaging", "conda", "test-dev-linux.sh")
@@ -261,9 +264,13 @@ else
 
   local_source = Array(recipe["source"]).find { |source| source["path"] == "../.." }
   local_source_files = Array(local_source&.dig("filter", "include"))
-  hook_source_path = "packaging/conda/orocos-activate.sh"
-  unless local_source_files.count(hook_source_path) == 1
-    errors << "Linux package recipe must include the runtime activation hook source exactly once"
+  {
+    "activation" => "packaging/conda/orocos-activate.sh",
+    "deactivation" => "packaging/conda/orocos-deactivate.sh"
+  }.each do |lifecycle, hook_source_path|
+    unless local_source_files.count(hook_source_path) == 1
+      errors << "Linux package recipe must include the runtime #{lifecycle} hook source exactly once"
+    end
   end
 
   package_outputs = Array(recipe["outputs"]).filter_map do |output|
@@ -311,7 +318,6 @@ else
     errors << "Linux staging build must pair its compilers with the C standard library"
   end
 
-  activation_hook = "etc/conda/activate.d/orocos-activate.sh"
   runtime_output = package_outputs["orocos"] || {}
   development_output = package_outputs["orocos-dev"] || {}
   runtime_files = Array(runtime_output.dig("build", "files", "include"))
@@ -320,20 +326,25 @@ else
   runtime_not_exists = package_content_files(runtime_output, "not_exists")
   development_exists = package_content_files(development_output, "exists")
   development_not_exists = package_content_files(development_output, "not_exists")
-  unless runtime_files.count(activation_hook) == 1
-    errors << "Linux orocos output must own the runtime activation hook exactly once"
-  end
-  unless runtime_exists.count(activation_hook) == 1
-    errors << "Linux orocos package contents must require the runtime activation hook"
-  end
-  if runtime_not_exists.include?(activation_hook)
-    errors << "Linux orocos package contents must not exclude the runtime activation hook"
-  end
-  if development_files.include?(activation_hook) || development_exists.include?(activation_hook)
-    errors << "Linux orocos-dev output must not own the runtime activation hook"
-  end
-  unless development_not_exists.count(activation_hook) == 1
-    errors << "Linux orocos-dev package contents must explicitly exclude the runtime activation hook"
+  {
+    "activation" => "etc/conda/activate.d/orocos-activate.sh",
+    "deactivation" => "etc/conda/deactivate.d/orocos-deactivate.sh"
+  }.each do |lifecycle, hook|
+    unless runtime_files.count(hook) == 1
+      errors << "Linux orocos output must own the runtime #{lifecycle} hook exactly once"
+    end
+    unless runtime_exists.count(hook) == 1
+      errors << "Linux orocos package contents must require the runtime #{lifecycle} hook"
+    end
+    if runtime_not_exists.include?(hook)
+      errors << "Linux orocos package contents must not exclude the runtime #{lifecycle} hook"
+    end
+    if development_files.include?(hook) || development_exists.include?(hook)
+      errors << "Linux orocos-dev output must not own the runtime #{lifecycle} hook"
+    end
+    unless development_not_exists.count(hook) == 1
+      errors << "Linux orocos-dev package contents must explicitly exclude the runtime #{lifecycle} hook"
+    end
   end
 
   {
@@ -351,27 +362,69 @@ else
   end
 end
 
-expected_hook = <<~'SH'
-  #!/bin/sh
-
-  if [ -z "${CONDA_PREFIX:-}" ]; then
-      printf '%s\n' 'Cannot activate Orocos runtime: CONDA_PREFIX is not set.' >&2
-      return 1
-  fi
-
-  if [ ! -f "$CONDA_PREFIX/env.sh" ]; then
-      printf 'Cannot activate Orocos runtime: missing %s.\n' \
-          "$CONDA_PREFIX/env.sh" >&2
-      return 1
-  fi
-
-  # shellcheck disable=SC1091
-  . "$CONDA_PREFIX/env.sh"
-SH
 if !File.file?(hook_path)
   errors << "missing packaging/conda/orocos-activate.sh"
-elsif File.read(hook_path).gsub("\r\n", "\n") != expected_hook
-  errors << "Linux package activation hook must validate CONDA_PREFIX and source only the relocatable $CONDA_PREFIX/env.sh"
+else
+  activation_hook = File.read(hook_path).gsub("\r\n", "\n")
+  activation_tokens = [
+    'if [ -z "${CONDA_PREFIX:-}" ]; then',
+    'if [ ! -f "$CONDA_PREFIX/env.sh" ]; then',
+    'if [ "${__OROCOS_ROCK_CONDA_ACTIVE:-}" != "1" ]; then',
+    '__OROCOS_ROCK_ACTIVATION_PREFIX=$CONDA_PREFIX',
+    '__OROCOS_ROCK_PATH_PREFIX_BIN_PRESENT=',
+    '__OROCOS_ROCK_PATH_TOOLCHAIN_BIN_PRESENT=',
+    '. "$CONDA_PREFIX/env.sh"'
+  ]
+  %w[
+    OROCOS_PREFIX
+    OROCOS_TARGET
+    LD_LIBRARY_PATH
+    CMAKE_PREFIX_PATH
+    PKG_CONFIG_PATH
+    RTT_COMPONENT_PATH
+    TYPELIB_PLUGIN_PATH
+  ].each do |name|
+    activation_tokens << "__OROCOS_ROCK_#{name}_SET=${" + name + "+x}"
+    activation_tokens << "__OROCOS_ROCK_#{name}_VALUE=${" + name + "-}"
+  end
+  unless activation_tokens.all? { |token| activation_hook.include?(token) } &&
+         activation_hook.scan(/^\. "\$CONDA_PREFIX\/env\.sh"$/).size == 1 &&
+         !activation_hook.include?("dev-env.sh")
+    errors << "Linux package activation hook must preserve lifecycle state and source only the relocatable $CONDA_PREFIX/env.sh"
+  end
+end
+
+if !File.file?(deactivation_hook_path)
+  errors << "missing packaging/conda/orocos-deactivate.sh"
+else
+  deactivation_hook = File.read(deactivation_hook_path).gsub("\r\n", "\n")
+  deactivation_tokens = [
+    'if [ "${__OROCOS_ROCK_CONDA_ACTIVE:-}" != "1" ]; then',
+    "orocos_rock_remove_first_path_entry() {",
+    '"$__OROCOS_ROCK_ACTIVATION_PREFIX/bin"',
+    '"$__OROCOS_ROCK_ACTIVATION_PREFIX/toolchain/bin"',
+    "unset __OROCOS_ROCK_CONDA_ACTIVE",
+    "unset -f orocos_rock_remove_first_path_entry"
+  ]
+  %w[
+    OROCOS_PREFIX
+    OROCOS_TARGET
+    LD_LIBRARY_PATH
+    CMAKE_PREFIX_PATH
+    PKG_CONFIG_PATH
+    RTT_COMPONENT_PATH
+    TYPELIB_PLUGIN_PATH
+  ].each do |name|
+    deactivation_tokens <<
+      'if [ "${__OROCOS_ROCK_' + name + '_SET:-}" = "x" ]; then'
+    deactivation_tokens <<
+      name + '=${__OROCOS_ROCK_' + name + '_VALUE-}'
+    deactivation_tokens << "unset __OROCOS_ROCK_#{name}_SET"
+    deactivation_tokens << "unset __OROCOS_ROCK_#{name}_VALUE"
+  end
+  unless deactivation_tokens.all? { |token| deactivation_hook.include?(token) }
+    errors << "Linux package deactivation hook must restore the pre-activation environment and clean lifecycle state"
+  end
 end
 
 if !File.file?(prefix_preparation_path)
@@ -388,7 +441,17 @@ else
     "the sourced activation hook with mode 0644" =>
       'install -m 0644 "$activation_hook_source"',
     "the canonical activation hook destination" =>
-      '"$activation_hook_directory/orocos-activate.sh"'
+      '"$activation_hook_directory/orocos-activate.sh"',
+    "the repository-owned deactivation hook" =>
+      'deactivation_hook_source="$repository_root/packaging/conda/orocos-deactivate.sh"',
+    "the Conda prefix deactivation directory" =>
+      'deactivation_hook_directory="$prefix/etc/conda/deactivate.d"',
+    "the deactivation directory with mode 0755" =>
+      'install -d -m 0755 "$deactivation_hook_directory"',
+    "the sourced deactivation hook with mode 0644" =>
+      'install -m 0644 "$deactivation_hook_source"',
+    "the canonical deactivation hook destination" =>
+      '"$deactivation_hook_directory/orocos-deactivate.sh"'
   }.each do |contract, token|
     errors << "Linux prefix preparation must stage #{contract}" unless prefix_preparation.include?(token)
   end
@@ -411,6 +474,8 @@ else
   {
     "the installed package activation hook" =>
       'test -f "$PREFIX/etc/conda/activate.d/orocos-activate.sh"',
+    "the installed package deactivation hook" =>
+      'test -f "$PREFIX/etc/conda/deactivate.d/orocos-deactivate.sh"',
     "the Conda activation prefix" => 'test -n "${CONDA_PREFIX:-}"',
     "the resolved Conda prefix" =>
       'resolved_conda_prefix="$(cd "$CONDA_PREFIX" && pwd)"',
@@ -421,7 +486,12 @@ else
     "the automatically activated Orocos prefix" =>
       'test "$OROCOS_PREFIX" = "$PREFIX"',
     "the automatically activated gnulinux target" =>
-      'test "$OROCOS_TARGET" = "gnulinux"'
+      'test "$OROCOS_TARGET" = "gnulinux"',
+    "repeated package activation" => '. "$activation_hook"',
+    "repeated package deactivation" => '. "$deactivation_hook"',
+    "originally unset environment restoration" =>
+      'unset "${managed_variables[@]}"',
+    "package hook state cleanup" => "assert_no_orocos_hook_state"
   }.each do |contract, line|
     unless runtime_test.lines.any? { |candidate| candidate.strip == line }
       errors << "Linux runtime package test must check #{contract}"

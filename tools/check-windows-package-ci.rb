@@ -88,6 +88,9 @@ runtime_stage_path = File.join(
 )
 builder_path = File.join(root, "tools", "build-windows-msvc.ps1")
 hook_path = File.join(root, "packaging", "conda", "orocos-activate.bat")
+deactivation_hook_path = File.join(
+  root, "packaging", "conda", "orocos-deactivate.bat"
+)
 runtime_test_path = File.join(root, "packaging", "conda", "test-runtime.ps1")
 development_test_path = File.join(root, "packaging", "conda", "test-dev.ps1")
 staging_path = File.join(root, "tools", "prepare-windows-conda-release.ps1")
@@ -468,8 +471,13 @@ else
   unless development_output.to_s.match?(/^\s+- script: test-dev\.ps1\s*$/)
     errors << "orocos-dev must run the clean generator package acceptance test"
   end
-  unless recipe.include?("        - packaging/conda/orocos-activate.bat")
-    errors << "Windows package recipe must include the Conda activation hook source"
+  {
+    "activation" => "packaging/conda/orocos-activate.bat",
+    "deactivation" => "packaging/conda/orocos-deactivate.bat"
+  }.each do |lifecycle, path|
+    unless recipe.scan(/^\s+- #{Regexp.escape(path)}\s*$/).size == 1
+      errors << "Windows package recipe must include the Conda #{lifecycle} hook source exactly once"
+    end
   end
   unless recipe.include?("        - packaging/conda/stage-runtime-hook.ps1")
     errors << "Windows package recipe must include the runtime hook staging script source"
@@ -481,7 +489,8 @@ else
   end
   {
     "Library/env.bat" => "generated batch runtime entrypoint",
-    "etc/conda/activate.d/orocos-activate.bat" => "Conda runtime activation hook"
+    "etc/conda/activate.d/orocos-activate.bat" => "Conda runtime activation hook",
+    "etc/conda/deactivate.d/orocos-deactivate.bat" => "Conda runtime deactivation hook"
   }.each do |path, contract|
     runtime_count = runtime_output.to_s.scan(/^\s+- #{Regexp.escape(path)}\s*$/).size
     unless runtime_count >= 2
@@ -516,8 +525,10 @@ else
     errors << "Windows package staging must use an absolute configured vcpkg root with a disposable fallback"
   end
   if build_script.include?("orocos-activate.bat") ||
-     build_script.include?('etc\conda\activate.d')
-    errors << "Windows shared staging cache must not install the runtime activation hook"
+     build_script.include?("orocos-deactivate.bat") ||
+     build_script.include?('etc\conda\activate.d') ||
+     build_script.include?('etc\conda\deactivate.d')
+    errors << "Windows shared staging cache must not install runtime lifecycle hooks"
   end
 end
 
@@ -560,22 +571,82 @@ else
       'Join-Path $env:SRC_DIR "packaging\conda\orocos-activate.bat"',
     "the Conda prefix activation directory" =>
       'Join-Path $env:PREFIX "etc\conda\activate.d"',
-    "the activation hook copy" => "Copy-Item"
+    "the repository-owned deactivation hook" =>
+      'Join-Path $env:SRC_DIR "packaging\conda\orocos-deactivate.bat"',
+    "the Conda prefix deactivation directory" =>
+      'Join-Path $env:PREFIX "etc\conda\deactivate.d"',
+    "the canonical activation hook destination" => "orocos-activate.bat",
+    "the canonical deactivation hook destination" => "orocos-deactivate.bat"
   }.each do |contract, token|
     unless runtime_stage.include?(token)
       errors << "Windows runtime output must stage #{contract}"
     end
   end
+  unless runtime_stage.scan(/^Copy-Item\b/).size == 2
+    errors << "Windows runtime output must copy exactly two lifecycle hooks"
+  end
 end
 
-expected_hook = <<~'BATCH'
-  @call "%~dp0..\..\..\Library\env.bat" --conda
-  @exit /b %ERRORLEVEL%
-BATCH
 if !File.file?(hook_path)
   errors << "missing packaging/conda/orocos-activate.bat"
-elsif File.read(hook_path).gsub("\r\n", "\n") != expected_hook
-  errors << "Windows package activation hook must only call Library\\env.bat and propagate failure"
+else
+  activation_hook = File.read(hook_path).gsub("\r\n", "\n")
+  activation_tokens = [
+    "@if defined __OROCOS_ROCK_CONDA_ACTIVE goto orocos_activate_runtime",
+    '@set "__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT=0"',
+    ":orocos_activate_next_path_value",
+    '@call "%~dp0..\..\..\Library\env.bat" --conda',
+    "@exit /b %ERRORLEVEL%"
+  ]
+  %w[
+    OROCOS_PREFIX
+    OROCOS_TARGET
+    RTT_COMPONENT_PATH
+    PKG_CONFIG_LIBDIR
+    PKG_CONFIG_PATH
+    TYPELIB_PLUGIN_PATH
+    CMAKE_PREFIX_PATH
+  ].each do |name|
+    activation_tokens << %(@set "__OROCOS_ROCK_#{name}_SET=0")
+    activation_tokens << %(@set "__OROCOS_ROCK_#{name}_VALUE=%#{name}%")
+  end
+  unless activation_tokens.all? { |token| activation_hook.include?(token) } &&
+         !activation_hook.match?(/powershell(?:\.exe)?/i)
+    errors << "Windows package activation hook must preserve lifecycle state, call Library\\env.bat in Conda mode, and propagate failure"
+  end
+end
+
+if !File.file?(deactivation_hook_path)
+  errors << "missing packaging/conda/orocos-deactivate.bat"
+else
+  deactivation_hook = File.read(deactivation_hook_path).gsub("\r\n", "\n")
+  deactivation_tokens = [
+    "@if not defined __OROCOS_ROCK_CONDA_ACTIVE exit /b 0",
+    ":orocos_deactivate_next_path_value",
+    '@set "PATH=%__OROCOS_ROCK_HOOK_PATH_NEW:~1%"',
+    '@set "__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT="',
+    '@set "__OROCOS_ROCK_CONDA_ACTIVE="',
+    "@exit /b 0"
+  ]
+  %w[
+    OROCOS_PREFIX
+    OROCOS_TARGET
+    RTT_COMPONENT_PATH
+    PKG_CONFIG_LIBDIR
+    PKG_CONFIG_PATH
+    TYPELIB_PLUGIN_PATH
+    CMAKE_PREFIX_PATH
+  ].each do |name|
+    deactivation_tokens << %(@set "#{name}=")
+    deactivation_tokens <<
+      %(@if "%__OROCOS_ROCK_#{name}_SET%"=="1" set "#{name}=%__OROCOS_ROCK_#{name}_VALUE%")
+    deactivation_tokens << %(@set "__OROCOS_ROCK_#{name}_SET=")
+    deactivation_tokens << %(@set "__OROCOS_ROCK_#{name}_VALUE=")
+  end
+  unless deactivation_tokens.all? { |token| deactivation_hook.include?(token) } &&
+         !deactivation_hook.match?(/powershell(?:\.exe)?/i)
+    errors << "Windows package deactivation hook must restore the pre-activation environment and clean lifecycle state"
+  end
 end
 
 unless File.file?(exporter_path)
@@ -661,6 +732,8 @@ else
     "the explicit batch runtime entrypoint" => 'Join-Path $libraryPrefix "env.bat"',
     "the package activation hook" =>
       'Join-Path $condaPrefix "etc\conda\activate.d\orocos-activate.bat"',
+    "the package deactivation hook" =>
+      'Join-Path $condaPrefix "etc\conda\deactivate.d\orocos-deactivate.bat"',
     "cmd.exe caller activation" => "Invoke-BatchEnvironment",
     "repeated activation" =>
       'Invoke-BatchEnvironment -BatchPath $runtimeBatch -Calls 2',
@@ -712,6 +785,25 @@ else
   ]
   unless conda_discovery_tokens.all? { |token| runtime_test.include?(token) }
     errors << "Windows runtime package test must cover Conda-mode discovery variables"
+  end
+
+  lifecycle_tokens = [
+    "function Assert-EnvironmentAbsent {",
+    "function Assert-NoOrocosHookState {",
+    '$FollowupBatchPath',
+    '$RemoveEnvironmentVariables',
+    '-FollowupBatchPath $deactivationHook',
+    '-FollowupCalls 2',
+    '-RemoveEnvironmentVariables $hookManagedVariables',
+    '$restoredHookEnvironment',
+    '$unsetHookEnvironment',
+    '$preexistingPluginPath = "$hookRuntimePlugins;$rattlerPath"',
+    '-Expected $preexistingPluginPath'
+  ]
+  unless lifecycle_tokens.all? { |token| runtime_test.include?(token) } &&
+         runtime_test.scan(/-BatchPath \$activationHook/).size >= 3 &&
+         runtime_test.scan(/-FollowupCalls 2/).size >= 2
+    errors << "Windows runtime package test must cover reversible and idempotent package hooks"
   end
 end
 

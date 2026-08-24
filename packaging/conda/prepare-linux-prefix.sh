@@ -13,6 +13,8 @@ repository_root="$(cd "$3" && pwd)"
 temporary_home="$(cd "$4" && pwd)"
 activation_hook_source="$repository_root/packaging/conda/orocos-activate.sh"
 activation_hook_directory="$prefix/etc/conda/activate.d"
+deactivation_hook_source="$repository_root/packaging/conda/orocos-deactivate.sh"
+deactivation_hook_directory="$prefix/etc/conda/deactivate.d"
 
 for required in \
     "$prefix/env.sh" \
@@ -33,10 +35,18 @@ done
         "$activation_hook_source" >&2
     exit 1
 }
+[ -f "$deactivation_hook_source" ] || {
+    printf 'Linux runtime deactivation hook is missing: %s\n' \
+        "$deactivation_hook_source" >&2
+    exit 1
+}
 
 install -d -m 0755 "$activation_hook_directory"
 install -m 0644 "$activation_hook_source" \
     "$activation_hook_directory/orocos-activate.sh"
+install -d -m 0755 "$deactivation_hook_directory"
+install -m 0644 "$deactivation_hook_source" \
+    "$deactivation_hook_directory/orocos-deactivate.sh"
 
 ruby "$repository_root/tools/stage-license-corpus.rb" \
     --inventory "$repository_root/packaging/license-corpus.json" \

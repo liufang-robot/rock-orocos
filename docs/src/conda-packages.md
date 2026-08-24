@@ -60,6 +60,16 @@ It delegates the remaining Orocos runtime environment to `Library\env.bat`.
 The complete environment is available before `pixi run` or `pixi shell`
 starts a process.
 
+The runtime packages also install paired deactivation hooks at
+`etc/conda/deactivate.d/orocos-deactivate.sh` on Linux and
+`etc\conda\deactivate.d\orocos-deactivate.bat` on Windows. Pixi and Conda run
+them when the environment deactivates. The hooks restore the exact prior
+set/unset state of Orocos discovery variables. They do not restore an old
+`PATH` snapshot because Pixi or Conda may already have changed `PATH`; instead,
+they remove only Orocos entries added by the matching package activation and
+retain entries that existed beforehand. Repeated activation does not replace
+the original backup, and repeated deactivation is harmless.
+
 The example keeps `[target.win.activation]` because it installs `orocos-dev`.
 Its project wrapper dot-sources `Library\dev-env.ps1` to add OroGen, Typegen,
 and build dependencies after package-owned runtime activation. The wrappers
@@ -124,6 +134,11 @@ From `cmd.exe`, the equivalent explicit runtime entrypoint is:
 ```bat
 call "%CONDA_PREFIX%\Library\env.bat"
 ```
+
+These direct entrypoints configure the current shell but do not create a
+package-hook lifecycle backup. Automatic restoration is provided only by the
+paired `activate.d` and `deactivate.d` hooks during Pixi or Conda environment
+activation.
 
 ## Local Package Testing
 

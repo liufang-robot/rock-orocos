@@ -171,13 +171,14 @@ the Windows contract.
 The packaged Windows runtime additionally provides `Library/env.bat` for
 explicit `cmd.exe` activation and
 `etc/conda/activate.d/orocos-activate.bat` for automatic Pixi/Conda package
-activation. Both runtime entrypoints derive `OROCOS_PREFIX` from the installed
-`Library` prefix, set `OROCOS_TARGET=win32`, and expose the same runtime and
-component discovery paths. The package hook calls `Library/env.bat --conda`;
-that mode preserves the standard Pixi/Conda `PATH` as a suffix, prepends the
-single Orocos plugin directory required for Windows DLL resolution, and
-applies the Orocos-specific discovery environment. Pixi/Conda already places
-`Library\bin` on `PATH`.
+activation, plus `etc/conda/deactivate.d/orocos-deactivate.bat` for automatic
+deactivation. Both runtime activation entrypoints derive `OROCOS_PREFIX` from
+the installed `Library` prefix, set `OROCOS_TARGET=win32`, and expose the same
+runtime and component discovery paths. The package hook calls
+`Library/env.bat --conda`; that mode preserves the standard Pixi/Conda `PATH`
+as a suffix, prepends the single Orocos plugin directory required for Windows
+DLL resolution, and applies the Orocos-specific discovery environment.
+Pixi/Conda already places `Library\bin` on `PATH`.
 Explicit `Library/env.bat` activation applies the standalone runtime paths with
 case-insensitive deduplication. The hook does not duplicate the environment
 model or invoke PowerShell.
@@ -186,7 +187,18 @@ The packaged Linux runtime similarly provides
 `etc/conda/activate.d/orocos-activate.sh`. Pixi and Conda source this package
 hook automatically, and the hook sources the relocatable
 `$CONDA_PREFIX/env.sh`. Runtime-only Linux consumers therefore do not need a
-project `[target.unix.activation]` wrapper.
+project `[target.unix.activation]` wrapper. Its paired
+`etc/conda/deactivate.d/orocos-deactivate.sh` hook reverses the package-owned
+runtime environment.
+
+Package activation preserves the exact prior set/unset state of Orocos
+discovery variables and does not overwrite that backup on repeated
+activation. Deactivation restores those variables, removes only Orocos
+`PATH` entries that the matching package hook introduced, retains
+pre-existing entries, and clears all internal lifecycle state. It is
+idempotent on both platforms. The explicit standalone `env.sh`, `env.bat`,
+and `env.ps1` entrypoints do not create this lifecycle state and retain their
+existing behavior.
 
 On both platforms, `orocos-dev` receives the runtime hook through its exact
 dependency on `orocos`. Development setup remains the responsibility of

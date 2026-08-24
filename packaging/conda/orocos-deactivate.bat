@@ -1,0 +1,69 @@
+@if not defined __OROCOS_ROCK_CONDA_ACTIVE exit /b 0
+
+@if "%__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT%"=="1" goto orocos_deactivate_restore_variables
+@for %%I in ("%~dp0..\..\..\Library\.") do set "__OROCOS_ROCK_HOOK_PATH_CANDIDATE=%%~fI\lib\orocos\win32\plugins"
+@set "__OROCOS_ROCK_HOOK_PATH_SCAN=%PATH%"
+@set "__OROCOS_ROCK_HOOK_PATH_NEW="
+@set "__OROCOS_ROCK_HOOK_PATH_REMOVED="
+
+:orocos_deactivate_next_path_value
+@if not defined __OROCOS_ROCK_HOOK_PATH_SCAN goto orocos_deactivate_path_done
+@if not "%__OROCOS_ROCK_HOOK_PATH_SCAN:~0,1%"==";" goto orocos_deactivate_split_path_value
+@set "__OROCOS_ROCK_HOOK_PATH_SCAN=%__OROCOS_ROCK_HOOK_PATH_SCAN:~1%"
+@goto orocos_deactivate_next_path_value
+
+:orocos_deactivate_split_path_value
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_HOOK_PATH_SCAN%") do set "__OROCOS_ROCK_HOOK_PATH_CURRENT=%%E"
+@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_HOOK_PATH_SCAN%") do set "__OROCOS_ROCK_HOOK_PATH_SCAN=%%F"
+@if defined __OROCOS_ROCK_HOOK_PATH_REMOVED goto orocos_deactivate_append_path_value
+@if /I "%__OROCOS_ROCK_HOOK_PATH_CURRENT%"=="%__OROCOS_ROCK_HOOK_PATH_CANDIDATE%" goto orocos_deactivate_remove_path_value
+
+:orocos_deactivate_append_path_value
+@set "__OROCOS_ROCK_HOOK_PATH_NEW=%__OROCOS_ROCK_HOOK_PATH_NEW%;%__OROCOS_ROCK_HOOK_PATH_CURRENT%"
+@goto orocos_deactivate_next_path_value
+
+:orocos_deactivate_remove_path_value
+@set "__OROCOS_ROCK_HOOK_PATH_REMOVED=1"
+@goto orocos_deactivate_next_path_value
+
+:orocos_deactivate_path_done
+@set "PATH=%__OROCOS_ROCK_HOOK_PATH_NEW:~1%"
+
+:orocos_deactivate_restore_variables
+@set "OROCOS_PREFIX="
+@if "%__OROCOS_ROCK_OROCOS_PREFIX_SET%"=="1" set "OROCOS_PREFIX=%__OROCOS_ROCK_OROCOS_PREFIX_VALUE%"
+@set "OROCOS_TARGET="
+@if "%__OROCOS_ROCK_OROCOS_TARGET_SET%"=="1" set "OROCOS_TARGET=%__OROCOS_ROCK_OROCOS_TARGET_VALUE%"
+@set "RTT_COMPONENT_PATH="
+@if "%__OROCOS_ROCK_RTT_COMPONENT_PATH_SET%"=="1" set "RTT_COMPONENT_PATH=%__OROCOS_ROCK_RTT_COMPONENT_PATH_VALUE%"
+@set "PKG_CONFIG_LIBDIR="
+@if "%__OROCOS_ROCK_PKG_CONFIG_LIBDIR_SET%"=="1" set "PKG_CONFIG_LIBDIR=%__OROCOS_ROCK_PKG_CONFIG_LIBDIR_VALUE%"
+@set "PKG_CONFIG_PATH="
+@if "%__OROCOS_ROCK_PKG_CONFIG_PATH_SET%"=="1" set "PKG_CONFIG_PATH=%__OROCOS_ROCK_PKG_CONFIG_PATH_VALUE%"
+@set "TYPELIB_PLUGIN_PATH="
+@if "%__OROCOS_ROCK_TYPELIB_PLUGIN_PATH_SET%"=="1" set "TYPELIB_PLUGIN_PATH=%__OROCOS_ROCK_TYPELIB_PLUGIN_PATH_VALUE%"
+@set "CMAKE_PREFIX_PATH="
+@if "%__OROCOS_ROCK_CMAKE_PREFIX_PATH_SET%"=="1" set "CMAKE_PREFIX_PATH=%__OROCOS_ROCK_CMAKE_PREFIX_PATH_VALUE%"
+
+@set "__OROCOS_ROCK_OROCOS_PREFIX_SET="
+@set "__OROCOS_ROCK_OROCOS_PREFIX_VALUE="
+@set "__OROCOS_ROCK_OROCOS_TARGET_SET="
+@set "__OROCOS_ROCK_OROCOS_TARGET_VALUE="
+@set "__OROCOS_ROCK_RTT_COMPONENT_PATH_SET="
+@set "__OROCOS_ROCK_RTT_COMPONENT_PATH_VALUE="
+@set "__OROCOS_ROCK_PKG_CONFIG_LIBDIR_SET="
+@set "__OROCOS_ROCK_PKG_CONFIG_LIBDIR_VALUE="
+@set "__OROCOS_ROCK_PKG_CONFIG_PATH_SET="
+@set "__OROCOS_ROCK_PKG_CONFIG_PATH_VALUE="
+@set "__OROCOS_ROCK_TYPELIB_PLUGIN_PATH_SET="
+@set "__OROCOS_ROCK_TYPELIB_PLUGIN_PATH_VALUE="
+@set "__OROCOS_ROCK_CMAKE_PREFIX_PATH_SET="
+@set "__OROCOS_ROCK_CMAKE_PREFIX_PATH_VALUE="
+@set "__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT="
+@set "__OROCOS_ROCK_HOOK_PATH_CANDIDATE="
+@set "__OROCOS_ROCK_HOOK_PATH_SCAN="
+@set "__OROCOS_ROCK_HOOK_PATH_NEW="
+@set "__OROCOS_ROCK_HOOK_PATH_REMOVED="
+@set "__OROCOS_ROCK_HOOK_PATH_CURRENT="
+@set "__OROCOS_ROCK_CONDA_ACTIVE="
+@exit /b 0
