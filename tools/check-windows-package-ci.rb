@@ -13,7 +13,7 @@ ACTION_PINS = {
 ACTION_COUNTS = {
   "actions/checkout" => 2,
   "prefix-dev/setup-pixi" => 2,
-  "actions/cache" => 1,
+  "actions/cache" => 2,
   "actions/upload-artifact" => 2,
   "actions/download-artifact" => 1
 }.freeze
@@ -170,6 +170,10 @@ else
   unless workflow.dig("env", "PUBLIC_CHANNEL_URL") == "https://prefix.dev/liufang-robot/orocos"
     errors << "Windows package CI must define the public consumer channel URL"
   end
+  unless workflow.dig("env", "OROCOS_VCPKG_ROOT") ==
+         "${{ github.workspace }}/.cache/vcpkg/root"
+    errors << "Windows package CI must place the reusable vcpkg root outside disposable package paths"
+  end
 
   unless build["runs-on"] == "windows-2022" && build["timeout-minutes"].to_i >= 180
     errors << "Windows package build must use windows-2022 with a release-sized timeout"
@@ -199,6 +203,54 @@ else
   errors << "Windows package build must retain the verified bundle" unless build_uses.include?(upload_artifact) && contents.include?("if-no-files-found: error")
   errors << "Windows package build must retain failure diagnostics" unless build_steps.any? { |step| step["if"] == "failure()" && step["uses"] == upload_artifact }
   errors << "Windows package build must not hide failures" if build["continue-on-error"] == true
+
+  compatibility_step = build_steps.find do |step|
+    step["name"] == "Identify vcpkg cache compatibility"
+  end
+  unless compatibility_step &&
+         compatibility_step["id"] == "vcpkg-cache-compatibility" &&
+         compatibility_step["shell"] == "pwsh" &&
+         compatibility_step["run"].to_s.include?("vswhere.exe") &&
+         compatibility_step["run"].to_s.include?("installationVersion") &&
+         compatibility_step["run"].to_s.include?('"msvc=$installationVersion" >> $env:GITHUB_OUTPUT')
+    errors << "Windows package CI must identify the exact MSVC compatibility boundary for vcpkg caches"
+  end
+
+  installed_cache = build_steps.find do |step|
+    step["name"] == "Restore installed vcpkg tree"
+  end
+  expected_installed_key =
+    "windows-vcpkg-installed-v1-windows-2022-msvc-" \
+    "${{ steps.vcpkg-cache-compatibility.outputs.msvc }}-x64-windows-" \
+    "${{ hashFiles('packaging/source-lock.json', 'tools/build-windows-msvc.ps1') }}"
+  unless installed_cache &&
+         installed_cache["id"] == "vcpkg-installed-cache" &&
+         installed_cache["uses"] == pinned_action("actions/cache") &&
+         installed_cache.dig("with", "path") == ".cache/vcpkg/root/installed" &&
+         installed_cache.dig("with", "key") == expected_installed_key
+    errors << "Windows package CI must cache only the exact compatible installed vcpkg tree"
+  end
+  if installed_cache&.fetch("with", {})&.key?("restore-keys")
+    errors << "The installed vcpkg tree must not use compatibility-weakening restore keys"
+  end
+
+  artifact_cache = build_steps.find do |step|
+    step["name"] == "Restore vcpkg downloads and binary packages"
+  end
+  expected_artifact_key =
+    "windows-vcpkg-artifacts-v2-windows-2022-msvc-" \
+    "${{ steps.vcpkg-cache-compatibility.outputs.msvc }}-x64-windows-" \
+    "${{ hashFiles('packaging/source-lock.json', 'tools/build-windows-msvc.ps1') }}"
+  expected_artifact_restore =
+    "windows-vcpkg-artifacts-v2-windows-2022-msvc-" \
+    "${{ steps.vcpkg-cache-compatibility.outputs.msvc }}-x64-windows-\n"
+  unless artifact_cache &&
+         artifact_cache["uses"] == pinned_action("actions/cache") &&
+         artifact_cache.dig("with", "path") == ".cache/vcpkg/archives\n.cache/vcpkg/downloads\n" &&
+         artifact_cache.dig("with", "key") == expected_artifact_key &&
+         artifact_cache.dig("with", "restore-keys") == expected_artifact_restore
+    errors << "Windows package CI must isolate vcpkg artifacts by runner, MSVC, triplet, lock, and builder"
+  end
 
   publish_condition = publish["if"].to_s
   errors << "Prefix publication must depend on the verified build" unless publish["needs"] == "build-packages"
@@ -396,6 +448,12 @@ else
   build_script = File.read(build_path)
   unless build_script.lines.count { |line| line.strip == "-SkipGeneratorSmokeTests" } == 1
     errors << "Windows package staging must skip duplicated generator smoke tests"
+  end
+  unless build_script.include?('"OROCOS_VCPKG_ROOT"') &&
+         build_script.include?("[IO.Path]::IsPathRooted($configuredVcpkgRoot)") &&
+         build_script.include?('$vcpkgRoot = Join-Path $temporaryRoot "v"') &&
+         build_script.include?("$vcpkgRoot = [IO.Path]::GetFullPath($configuredVcpkgRoot)")
+    errors << "Windows package staging must use an absolute configured vcpkg root with a disposable fallback"
   end
   if build_script.include?("orocos-activate.bat") ||
      build_script.include?('etc\conda\activate.d')
