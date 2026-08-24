@@ -348,11 +348,15 @@ else
   unless normalized_builder.include?('$CMakeGeneratorArguments = @("-G", $Generator)') &&
          normalized_builder.include?('if ($IsVisualStudioGenerator) {') &&
          normalized_builder.include?('$CMakeGeneratorArguments += @("-A", $Platform)') &&
-         normalized_builder.include?('-EnableExceptions:(-not $IsVisualStudioGenerator)') &&
-         normalized_builder.include?('$cxxOptions += "/EHsc"') &&
          normalized_builder.include?('--target $CMakeInstallTarget') &&
          normalized_builder.include?('Invoke-Native $RttTypelibTestExecutable')
     errors << "Windows builder must support both Visual Studio and Ninja generator layouts"
+  end
+  unless normalized_builder.include?('$cxxOptions += "/EHsc"') &&
+         normalized_builder.include?(
+           '-EnableExceptions:((-not $IsVisualStudioGenerator) -or $SuppressExternalWarnings)'
+         )
+    errors << "Windows builder must retain C++ exception semantics with custom compiler flags"
   end
   unless normalized_builder.include?('Join-Path $VcpkgInstalled "include"') &&
          normalized_builder.include?("Microsoft Visual Studio|Windows Kits") &&
@@ -526,6 +530,10 @@ else
          development_test.include?("/external:W0") &&
          development_test.scan("@externalWarningArguments").size == 2
     errors << "Windows development package test must suppress only dependency and SDK warnings"
+  end
+  unless development_test.include?('$cxxFlags = (@("/EHsc") + $externalOptions) -join " "') &&
+         development_test.include?('"-DCMAKE_CXX_FLAGS=$cxxFlags"')
+    errors << "Windows development package test must retain MSVC C++ exception semantics"
   end
   if development_test.include?("/external:anglebrackets") ||
      development_test.include?("/external:env:INCLUDE")

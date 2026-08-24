@@ -515,7 +515,7 @@ $VcpkgBin = Join-Path $VcpkgInstalled "bin"
 $CMakeCompilerFlagArguments = @(
     Get-MsvcCompilerFlagArguments `
         -DependencyInclude (Join-Path $VcpkgInstalled "include") `
-        -EnableExceptions:(-not $IsVisualStudioGenerator) `
+        -EnableExceptions:((-not $IsVisualStudioGenerator) -or $SuppressExternalWarnings) `
         -SuppressExternalWarnings:$SuppressExternalWarnings
 )
 

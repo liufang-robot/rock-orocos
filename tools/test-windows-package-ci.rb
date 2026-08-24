@@ -522,6 +522,10 @@ development_test_mutations = {
         '$externalOptions += "/external:anglebrackets /external:W0"'
       )
     end
+  ],
+  "development package omits C++ exception semantics" => [
+    "Windows development package test must retain MSVC C++ exception semantics",
+    ->(contents) { contents.sub('/EHsc', '/EHs-') }
   ]
 }
 
@@ -786,8 +790,17 @@ builder_mutations = {
     ->(contents) { contents.sub('$CMakeGeneratorArguments = @("-G", $Generator)', '$CMakeGeneratorArguments = @("-G", "Visual Studio 17 2022")') }
   ],
   "builder omits Ninja exception semantics" => [
-    "Windows builder must support both Visual Studio and Ninja generator layouts",
+    "Windows builder must retain C++ exception semantics with custom compiler flags",
     ->(contents) { contents.sub('$cxxOptions += "/EHsc"', '$cxxOptions += "/EHs-"') }
+  ],
+  "builder drops exceptions when suppressing Visual Studio warnings" => [
+    "Windows builder must retain C++ exception semantics with custom compiler flags",
+    lambda do |contents|
+      contents.sub(
+        '-EnableExceptions:((-not $IsVisualStudioGenerator) -or $SuppressExternalWarnings)',
+        '-EnableExceptions:(-not $IsVisualStudioGenerator)'
+      )
+    end
   ],
   "builder suppresses maintained angle headers" => [
     "Windows builder must keep maintained Orocos header warnings visible",

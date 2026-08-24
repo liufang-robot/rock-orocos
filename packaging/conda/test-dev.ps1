@@ -49,10 +49,11 @@ function Get-MsvcExternalWarningArguments {
     }
     $externalOptions += "/external:W0"
     $externalFlags = $externalOptions -join " "
+    $cxxFlags = (@("/EHsc") + $externalOptions) -join " "
 
     @(
         "-DCMAKE_C_FLAGS=$externalFlags",
-        "-DCMAKE_CXX_FLAGS=$externalFlags"
+        "-DCMAKE_CXX_FLAGS=$cxxFlags"
     )
 }
 
