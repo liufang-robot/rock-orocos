@@ -95,6 +95,8 @@ try {
         -SourceLockPath $sourceLockPath `
         -RubyGemCache (Join-Path $repositoryRoot ".ruby-gems") `
         -RelocatablePrefix `
+        -SuppressExternalWarnings `
+        -Generator Ninja `
         -SkipGeneratorSmokeTests
 
     & (Join-Path $repositoryRoot "packaging\conda\prepare-prefix.ps1") `

@@ -31,6 +31,32 @@ function Invoke-Native {
     }
 }
 
+function Get-MsvcExternalWarningArguments {
+    param([string]$DependencyInclude)
+
+    $externalIncludes = @($DependencyInclude)
+    foreach ($candidate in @($env:INCLUDE -split ";")) {
+        if ($candidate -match '(?i)\\(?:Microsoft Visual Studio|Windows Kits)\\') {
+            $externalIncludes += $candidate
+        }
+    }
+    $externalOptions = @()
+    foreach ($candidate in @($externalIncludes | Sort-Object -Unique)) {
+        if (-not [string]::IsNullOrWhiteSpace($candidate)) {
+            $fullPath = [IO.Path]::GetFullPath($candidate)
+            $externalOptions += "/external:I`"$fullPath`""
+        }
+    }
+    $externalOptions += "/external:W0"
+    $externalFlags = $externalOptions -join " "
+    $cxxFlags = (@("/EHsc") + $externalOptions) -join " "
+
+    @(
+        "-DCMAKE_C_FLAGS=$externalFlags",
+        "-DCMAKE_CXX_FLAGS=$cxxFlags"
+    )
+}
+
 if (-not [string]::IsNullOrWhiteSpace($env:VCPKG_ROOT)) {
     throw "The packaged development environment must not require VCPKG_ROOT."
 }
@@ -38,6 +64,10 @@ $bundledVcpkg = Join-Path $libraryPrefix "vcpkg"
 if (($env:CMAKE_PREFIX_PATH -split [IO.Path]::PathSeparator) -notcontains $bundledVcpkg) {
     throw "The packaged development environment did not expose its bundled SDK."
 }
+$externalWarningArguments = @(
+    Get-MsvcExternalWarningArguments `
+        -DependencyInclude (Join-Path $bundledVcpkg "include")
+)
 
 $orogen = (Get-Command "orogen" -ErrorAction Stop).Source
 $typegen = (Get-Command "typegen" -ErrorAction Stop).Source
@@ -76,6 +106,7 @@ try {
 
     Invoke-Native cmake -S $orogenSource -B $orogenBuild `
         -G $generator -A x64 `
+        @externalWarningArguments `
         "-DCMAKE_PREFIX_PATH=$libraryPrefix;$bundledVcpkg" `
         "-DCMAKE_INSTALL_PREFIX=$orogenInstall" `
         -DCMAKE_BUILD_TYPE=Release
@@ -101,6 +132,7 @@ try {
     }
     Invoke-Native cmake -S $typegenSource -B $typegenBuild `
         -G $generator -A x64 `
+        @externalWarningArguments `
         "-DCMAKE_PREFIX_PATH=$libraryPrefix;$bundledVcpkg" `
         "-DCMAKE_INSTALL_PREFIX=$typegenInstall" `
         -DCMAKE_BUILD_TYPE=Release

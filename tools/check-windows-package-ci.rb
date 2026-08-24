@@ -342,6 +342,32 @@ else
   unless normalized_builder.include?("    [switch]$SkipGeneratorSmokeTests,\n")
     errors << "Windows builder must define the package-only generator smoke skip switch"
   end
+  unless normalized_builder.include?("    [switch]$SuppressExternalWarnings,\n")
+    errors << "Windows builder must define package-only external warning suppression"
+  end
+  unless normalized_builder.include?('$CMakeGeneratorArguments = @("-G", $Generator)') &&
+         normalized_builder.include?('if ($IsVisualStudioGenerator) {') &&
+         normalized_builder.include?('$CMakeGeneratorArguments += @("-A", $Platform)') &&
+         normalized_builder.include?('--target $CMakeInstallTarget') &&
+         normalized_builder.include?('Invoke-Native $RttTypelibTestExecutable')
+    errors << "Windows builder must support both Visual Studio and Ninja generator layouts"
+  end
+  unless normalized_builder.include?('$cxxOptions += "/EHsc"') &&
+         normalized_builder.include?(
+           '-EnableExceptions:((-not $IsVisualStudioGenerator) -or $SuppressExternalWarnings)'
+         )
+    errors << "Windows builder must retain C++ exception semantics with custom compiler flags"
+  end
+  unless normalized_builder.include?('Join-Path $VcpkgInstalled "include"') &&
+         normalized_builder.include?("Microsoft Visual Studio|Windows Kits") &&
+         normalized_builder.include?('/external:W0') &&
+         normalized_builder.scan("@CMakeCompilerFlagArguments").size >= 12
+    errors << "Windows builder must suppress only vcpkg and MSVC system-header warnings"
+  end
+  if normalized_builder.include?("/external:anglebrackets") ||
+     normalized_builder.include?("/external:env:INCLUDE")
+    errors << "Windows builder must keep maintained Orocos header warnings visible"
+  end
   skip_guard = "if (-not $SkipGeneratorSmokeTests) {"
   unless normalized_builder.lines.count { |line| line.strip == skip_guard } == 3
     errors << "Windows builder must guard smoke builds, artifacts, and executions with the skip switch"
@@ -360,14 +386,26 @@ end
 
 if !File.file?(native_workflow_path)
   errors << "missing .github/workflows/windows-msvc.yml"
-elsif File.read(native_workflow_path).match?(/^\s*-SkipGeneratorSmokeTests(?:\s|$)/i)
-  errors << "Windows native CI must retain generator smoke tests"
+else
+  native_workflow = File.read(native_workflow_path)
+  if native_workflow.match?(/^\s*-SkipGeneratorSmokeTests(?:\s|$)/i)
+    errors << "Windows native CI must retain generator smoke tests"
+  end
+  if native_workflow.match?(/^\s*-(?:SuppressExternalWarnings|Generator\s+Ninja)(?:\s|$)/i)
+    errors << "Windows native CI must retain Visual Studio and maintained warning coverage"
+  end
 end
 
 if !File.file?(pixi_manifest_path)
   errors << "missing pixi.toml"
-elsif File.read(pixi_manifest_path).match?(/^\s*"-SkipGeneratorSmokeTests",?\s*$/i)
-  errors << "the default Windows build task must retain generator smoke tests"
+else
+  pixi_manifest = File.read(pixi_manifest_path)
+  if pixi_manifest.match?(/^\s*"-SkipGeneratorSmokeTests",?\s*$/i)
+    errors << "the default Windows build task must retain generator smoke tests"
+  end
+  if pixi_manifest.match?(/^\s*"-(?:SuppressExternalWarnings|Generator)",?\s*$/i)
+    errors << "the default Windows build task must retain Visual Studio and maintained warning coverage"
+  end
 end
 
 unless File.file?(recipe_path)
@@ -391,6 +429,9 @@ else
   end
   unless recipe.include?(%q{${{ compiler('cxx') }}})
     errors << "Windows package recipe must activate the MSVC x64 build environment"
+  end
+  unless recipe.match?(/^\s+- ninja >=1\.12,<2\s*$/)
+    errors << "Windows package recipe must provide the locked Ninja build tool"
   end
   [
     'OROCOS_VCPKG_ROOT: ${{ env.get("OROCOS_VCPKG_ROOT", default="") }}',
@@ -463,6 +504,10 @@ else
   unless build_script.lines.count { |line| line.strip == "-SkipGeneratorSmokeTests" } == 1
     errors << "Windows package staging must skip duplicated generator smoke tests"
   end
+  unless build_script.lines.count { |line| line.strip == "-SuppressExternalWarnings `" } == 1 &&
+         build_script.lines.count { |line| line.strip == "-Generator Ninja `" } == 1
+    errors << "Windows package staging must use Ninja with scoped external warning suppression"
+  end
   unless build_script.include?('"OROCOS_VCPKG_ROOT"') &&
          build_script.include?("[IO.Path]::IsPathRooted($configuredVcpkgRoot)") &&
          build_script.include?('$vcpkgRoot = Join-Path $temporaryRoot "v"') &&
@@ -480,6 +525,20 @@ if !File.file?(development_test_path)
   errors << "missing packaging/conda/test-dev.ps1"
 else
   development_test = File.read(development_test_path)
+  unless development_test.include?('Join-Path $bundledVcpkg "include"') &&
+         development_test.include?("Microsoft Visual Studio|Windows Kits") &&
+         development_test.include?("/external:W0") &&
+         development_test.scan("@externalWarningArguments").size == 2
+    errors << "Windows development package test must suppress only dependency and SDK warnings"
+  end
+  unless development_test.include?('$cxxFlags = (@("/EHsc") + $externalOptions) -join " "') &&
+         development_test.include?('"-DCMAKE_CXX_FLAGS=$cxxFlags"')
+    errors << "Windows development package test must retain MSVC C++ exception semantics"
+  end
+  if development_test.include?("/external:anglebrackets") ||
+     development_test.include?("/external:env:INCLUDE")
+    errors << "Windows development package test must keep Orocos header warnings visible"
+  end
   unless development_test.match?(
     /Invoke-Native \$orogen .*?cmake --build \$orogenBuild .*?--target INSTALL/m
   )
