@@ -8,13 +8,16 @@ require "tmpdir"
 ROOT = File.expand_path("..", __dir__)
 FIXTURE_PATHS = %w[
   .github/workflows/windows-packages.yml
+  .github/workflows/windows-msvc.yml
   examples/pixi-consumer/scripts/activate-orocos.ps1
   packaging/conda/build.ps1
   packaging/conda/orocos-activate.bat
   packaging/conda/recipe-linux.yaml
   packaging/conda/recipe.yaml
   packaging/conda/stage-runtime-hook.ps1
+  packaging/conda/test-dev.ps1
   packaging/conda/test-runtime.ps1
+  pixi.toml
   tools/check-windows-package-ci.rb
   tools/build-windows-msvc.ps1
   tools/export-windows-env.ps1
@@ -413,6 +416,10 @@ recipe_mutations = {
   "missing runtime output hook staging script" => [
     "orocos runtime output must stage its activation hook after build environment activation",
     ->(contents) { contents.sub("        file: stage-runtime-hook.ps1\n", "") }
+  ],
+  "missing clean development package acceptance" => [
+    "orocos-dev must run the clean generator package acceptance test",
+    ->(contents) { contents.sub(/^\s+- script: test-dev\.ps1\r?\n/, "") }
   ]
 }
 
@@ -423,6 +430,47 @@ build_mutations = {
       contents + "\n" +
         '$activationHookSource = Join-Path $repositoryRoot "packaging\conda\orocos-activate.bat"' +
         "\n"
+    end
+  ],
+  "package staging retains duplicate generator smoke tests" => [
+    "Windows package staging must skip duplicated generator smoke tests",
+    ->(contents) { contents.sub(/^\s*-SkipGeneratorSmokeTests\r?\n/, "") }
+  ]
+}
+
+development_test_mutations = {
+  "development package omits the OroGen install" => [
+    "Windows development package test must generate and install a clean OroGen project",
+    ->(contents) { contents.sub("cmake --build $orogenBuild", "cmake --build $wrongBuild") }
+  ],
+  "development package omits Typegen regeneration" => [
+    "Windows development package test must generate, regenerate, and install a clean Typegen project",
+    ->(contents) { contents.sub("--target regen", "--target wrong") }
+  ]
+}
+
+native_workflow_mutations = {
+  "native workflow skips generator smoke tests" => [
+    "Windows native CI must retain generator smoke tests",
+    lambda do |contents|
+      replace_normalized(
+        contents,
+        '-OrogenRef "$env:OROGEN_REF" 2>&1 |',
+        "-OrogenRef \"$env:OROGEN_REF\" `\n            -SkipGeneratorSmokeTests 2>&1 |"
+      )
+    end
+  ]
+}
+
+pixi_manifest_mutations = {
+  "default Windows task skips generator smoke tests" => [
+    "the default Windows build task must retain generator smoke tests",
+    lambda do |contents|
+      replace_normalized(
+        contents,
+        '    "tools/build-windows-msvc.ps1",',
+        "    \"tools/build-windows-msvc.ps1\",\n    \"-SkipGeneratorSmokeTests\","
+      )
     end
   ]
 }
@@ -628,6 +676,14 @@ builder_mutations = {
     lambda do |contents|
       contents.sub(/^\s*"boost-functional:\$\{VcpkgTriplet\}"\s*`?\r?\n/, "")
     end
+  ],
+  "missing package-only generator smoke switch" => [
+    "Windows builder must define the package-only generator smoke skip switch",
+    ->(contents) { contents.sub(/^\s*\[switch\]\$SkipGeneratorSmokeTests,\r?\n/, "") }
+  ],
+  "unguarded generator smoke work" => [
+    "Windows builder must guard smoke builds, artifacts, and executions with the skip switch",
+    ->(contents) { contents.gsub("if (-not $SkipGeneratorSmokeTests) {", "if ($true) {") }
   ]
 }
 
@@ -635,15 +691,18 @@ accepted_mutations = []
 wrong_rejections = []
 {
   ".github/workflows/windows-packages.yml" => mutations,
+  ".github/workflows/windows-msvc.yml" => native_workflow_mutations,
   "tools/test-windows-conda-consumer.ps1" => consumer_mutations,
   "examples/pixi-consumer/scripts/activate-orocos.ps1" => wrapper_mutations,
   "packaging/conda/recipe.yaml" => recipe_mutations,
   "packaging/conda/build.ps1" => build_mutations,
   "packaging/conda/orocos-activate.bat" => hook_mutations,
   "packaging/conda/stage-runtime-hook.ps1" => runtime_stage_mutations,
+  "packaging/conda/test-dev.ps1" => development_test_mutations,
   "packaging/conda/test-runtime.ps1" => runtime_test_mutations,
   "tools/build-windows-msvc.ps1" => builder_mutations,
-  "tools/export-windows-env.ps1" => exporter_mutations
+  "tools/export-windows-env.ps1" => exporter_mutations,
+  "pixi.toml" => pixi_manifest_mutations
 }.each do |relative_path, file_mutations|
   file_mutations.each do |name, (expected_error, mutation)|
     with_fixture do |root|

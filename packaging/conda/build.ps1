@@ -83,7 +83,8 @@ try {
         -VcpkgRoot $vcpkgRoot `
         -SourceLockPath $sourceLockPath `
         -RubyGemCache (Join-Path $repositoryRoot ".ruby-gems") `
-        -RelocatablePrefix
+        -RelocatablePrefix `
+        -SkipGeneratorSmokeTests
 
     & (Join-Path $repositoryRoot "packaging\conda\prepare-prefix.ps1") `
         -Prefix $env:LIBRARY_PREFIX `

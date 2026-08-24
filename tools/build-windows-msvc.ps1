@@ -6,6 +6,7 @@ param(
     [string]$SourceLockPath,
     [string]$RubyGemCache,
     [switch]$RelocatablePrefix,
+    [switch]$SkipGeneratorSmokeTests,
     [string]$FarbotRepository = "https://github.com/liufang-robot/farbot.git",
     [string]$RtlogRepository = "https://github.com/liufang-robot/rtlog-cpp.git",
     [string]$RttRepository = "https://github.com/liufang-robot/rtt.git",
@@ -671,82 +672,86 @@ Invoke-Step "Export Windows environments" {
         -Target win32
 }
 
-Invoke-Step "Generate Windows OroGen smoke project" {
-    New-Item -ItemType Directory -Force -Path $GeneratorSmokeSource | Out-Null
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "windows-generator-smoke\WindowsSmokeTypes.hpp") `
-        -Destination $GeneratorSmokeSource -Force
-    Copy-Item -LiteralPath (Join-Path $PSScriptRoot "windows-generator-smoke\windows_smoke.orogen") `
-        -Destination $GeneratorSmokeSource -Force
+if (-not $SkipGeneratorSmokeTests) {
+    Invoke-Step "Generate Windows OroGen smoke project" {
+        New-Item -ItemType Directory -Force -Path $GeneratorSmokeSource | Out-Null
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot "windows-generator-smoke\WindowsSmokeTypes.hpp") `
+            -Destination $GeneratorSmokeSource -Force
+        Copy-Item -LiteralPath (Join-Path $PSScriptRoot "windows-generator-smoke\windows_smoke.orogen") `
+            -Destination $GeneratorSmokeSource -Force
 
-    . (Join-Path $Prefix "dev-env.ps1")
-    Push-Location $GeneratorSmokeSource
-    try {
-        Invoke-Native $RubyExecutable `
-            (Join-Path $Prefix "toolchain\bin\orogen") `
-            --target=win32 --transports=typelib windows_smoke.orogen
-    } finally {
-        Pop-Location
+        . (Join-Path $Prefix "dev-env.ps1")
+        Push-Location $GeneratorSmokeSource
+        try {
+            Invoke-Native $RubyExecutable `
+                (Join-Path $Prefix "toolchain\bin\orogen") `
+                --target=win32 --transports=typelib windows_smoke.orogen
+        } finally {
+            Pop-Location
+        }
     }
-}
 
-Invoke-Step "Build Windows OroGen smoke project" {
-    Invoke-Native cmake -S $GeneratorSmokeSource -B $GeneratorSmokeBuild `
-        -G $Generator -A $Platform `
-        -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
-        -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
-        -DCMAKE_INSTALL_PREFIX="$Prefix" `
-        -DCMAKE_BUILD_TYPE=Release
-    Invoke-Native cmake --build $GeneratorSmokeBuild --config Release `
-        --target INSTALL --parallel 4
-}
-
-Invoke-Step "Generate Windows Typegen smoke project" {
-    New-Item -ItemType Directory -Force -Path $TypegenSmokeSource | Out-Null
-    $typegenSmokeHeader = Join-Path $TypegenSmokeSource `
-        "WindowsTypegenTypes.hpp"
-    Copy-Item -LiteralPath `
-        (Join-Path $PSScriptRoot "windows-generator-smoke\WindowsTypegenTypes.hpp") `
-        -Destination $typegenSmokeHeader -Force
-    . (Join-Path $Prefix "dev-env.ps1")
-    Push-Location $TypegenSmokeSource
-    try {
-        Invoke-Native $RubyExecutable `
-            (Join-Path $Prefix "toolchain\bin\typegen") `
-            --transports=typelib `
-            --output=$TypegenSmokeSource `
-            windows_typegen_smoke `
-            $typegenSmokeHeader
-    } finally {
-        Pop-Location
+    Invoke-Step "Build Windows OroGen smoke project" {
+        Invoke-Native cmake -S $GeneratorSmokeSource -B $GeneratorSmokeBuild `
+            -G $Generator -A $Platform `
+            -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
+            -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
+            -DCMAKE_INSTALL_PREFIX="$Prefix" `
+            -DCMAKE_BUILD_TYPE=Release
+        Invoke-Native cmake --build $GeneratorSmokeBuild --config Release `
+            --target INSTALL --parallel 4
     }
-}
 
-Invoke-Step "Build Windows Typegen smoke project" {
-    . (Join-Path $Prefix "dev-env.ps1")
-    Invoke-Native cmake -S $TypegenSmokeSource -B $TypegenSmokeBuild `
-        -G $Generator -A $Platform `
-        -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
-        -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
-        -DCMAKE_INSTALL_PREFIX="$Prefix" `
-        -DCMAKE_BUILD_TYPE=Release
-    $savedPath = $env:PATH
-    try {
-        $generatorCommandDirectories = @(
-            (Join-Path $Prefix "toolchain\bin"),
-            (Split-Path -Parent $RubyExecutable)
-        )
-        $env:PATH = @(
-            $env:PATH -split ";" | Where-Object {
-                $generatorCommandDirectories -notcontains $_
-            }
-        ) -join ";"
+    Invoke-Step "Generate Windows Typegen smoke project" {
+        New-Item -ItemType Directory -Force -Path $TypegenSmokeSource | Out-Null
+        $typegenSmokeHeader = Join-Path $TypegenSmokeSource `
+            "WindowsTypegenTypes.hpp"
+        Copy-Item -LiteralPath `
+            (Join-Path $PSScriptRoot "windows-generator-smoke\WindowsTypegenTypes.hpp") `
+            -Destination $typegenSmokeHeader -Force
+        . (Join-Path $Prefix "dev-env.ps1")
+        Push-Location $TypegenSmokeSource
+        try {
+            Invoke-Native $RubyExecutable `
+                (Join-Path $Prefix "toolchain\bin\typegen") `
+                --transports=typelib `
+                --output=$TypegenSmokeSource `
+                windows_typegen_smoke `
+                $typegenSmokeHeader
+        } finally {
+            Pop-Location
+        }
+    }
+
+    Invoke-Step "Build Windows Typegen smoke project" {
+        . (Join-Path $Prefix "dev-env.ps1")
+        Invoke-Native cmake -S $TypegenSmokeSource -B $TypegenSmokeBuild `
+            -G $Generator -A $Platform `
+            -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
+            -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
+            -DCMAKE_INSTALL_PREFIX="$Prefix" `
+            -DCMAKE_BUILD_TYPE=Release
+        $savedPath = $env:PATH
+        try {
+            $generatorCommandDirectories = @(
+                (Join-Path $Prefix "toolchain\bin"),
+                (Split-Path -Parent $RubyExecutable)
+            )
+            $env:PATH = @(
+                $env:PATH -split ";" | Where-Object {
+                    $generatorCommandDirectories -notcontains $_
+                }
+            ) -join ";"
+            Invoke-Native cmake --build $TypegenSmokeBuild --config Release `
+                --target regen
+        } finally {
+            $env:PATH = $savedPath
+        }
         Invoke-Native cmake --build $TypegenSmokeBuild --config Release `
-            --target regen
-    } finally {
-        $env:PATH = $savedPath
+            --target INSTALL --parallel 4
     }
-    Invoke-Native cmake --build $TypegenSmokeBuild --config Release `
-        --target INSTALL --parallel 4
+} else {
+    Write-Host "Skipping workspace generator smoke tests; package acceptance tests cover the packaged generators."
 }
 
 Invoke-Step "Validate Windows prefix" {
@@ -764,18 +769,12 @@ Invoke-Step "Validate Windows prefix" {
         "bin\utilmm.dll",
         "bin\typeLib.dll",
         "bin\rtt-typelib-win32.dll",
-        "bin\windows_smoke_deployer.exe",
         "lib\cmake\farbot\farbotConfig.cmake",
         "lib\cmake\rtlog\rtlogConfig.cmake",
         "lib\utilmm.lib",
         "lib\typeLib.lib",
         "lib\rtt-typelib-win32.lib",
         "lib\typelib\typeLang_cSupport.dll",
-        "lib\orocos\windows_smoke-tasks-win32.dll",
-        "lib\orocos\types\windows_smoke-typekit-win32.dll",
-        "lib\orocos\types\windows_smoke-transport-typelib-win32.dll",
-        "lib\orocos\types\windows_typegen_smoke-typekit-win32.dll",
-        "lib\orocos\types\windows_typegen_smoke-transport-typelib-win32.dll",
         "lib\orocos\win32\plugins\rtt-scripting-win32.dll",
         "lib\orocos\win32\types\rtt-typekit-win32.dll",
         "lib\orocos\win32\rtt_opcua\plugins\rtt-transport-opcua-win32.dll",
@@ -784,16 +783,26 @@ Invoke-Step "Validate Windows prefix" {
         "lib\pkgconfig\typelib.pc",
         "lib\pkgconfig\typelib_ruby.pc",
         "lib\pkgconfig\rtt_typelib-win32.pc",
-        "lib\pkgconfig\windows_typegen_smoke-typekit-win32.pc",
-        "lib\pkgconfig\windows_typegen_smoke-transport-typelib-win32.pc",
-        "share\orogen\windows_smoke.orogen",
-        "share\orogen\windows_typegen_smoke.tlb",
         "toolchain\bin\orogen.bat",
         "toolchain\bin\typegen.bat",
         "env.ps1",
         "env.bat",
         "dev-env.ps1"
     )
+    if (-not $SkipGeneratorSmokeTests) {
+        $requiredArtifacts += @(
+            "bin\windows_smoke_deployer.exe",
+            "lib\orocos\windows_smoke-tasks-win32.dll",
+            "lib\orocos\types\windows_smoke-typekit-win32.dll",
+            "lib\orocos\types\windows_smoke-transport-typelib-win32.dll",
+            "lib\orocos\types\windows_typegen_smoke-typekit-win32.dll",
+            "lib\orocos\types\windows_typegen_smoke-transport-typelib-win32.dll",
+            "lib\pkgconfig\windows_typegen_smoke-typekit-win32.pc",
+            "lib\pkgconfig\windows_typegen_smoke-transport-typelib-win32.pc",
+            "share\orogen\windows_smoke.orogen",
+            "share\orogen\windows_typegen_smoke.tlb"
+        )
+    }
 
     foreach ($artifact in $requiredArtifacts) {
         $path = Join-Path $Prefix $artifact
@@ -840,10 +849,6 @@ Invoke-Step "Validate Windows prefix" {
 
     Invoke-Native (Join-Path $RttTypelibBuild "Release\get_marshaller_for_test.exe")
 
-    Invoke-Native $RubyExecutable `
-        (Join-Path $PSScriptRoot "windows-generator-smoke\validate.rb") `
-        (Join-Path $GeneratorSmokeSource "WindowsSmokeTypes.hpp")
-
     $orogenVersionOutput = Get-NativeOutput `
         $RubyExecutable `
         (Join-Path $Prefix "toolchain\bin\orogen") --version
@@ -858,16 +863,22 @@ Invoke-Step "Validate Windows prefix" {
         throw "Installed typegen --help did not print the expected output"
     }
 
-    Invoke-Native (Join-Path $Prefix "bin\deployer-win32.exe") `
-        --check --no-consolelog `
-        (Join-Path $PSScriptRoot "windows-generator-smoke\typegen-import.ops")
+    if (-not $SkipGeneratorSmokeTests) {
+        Invoke-Native $RubyExecutable `
+            (Join-Path $PSScriptRoot "windows-generator-smoke\validate.rb") `
+            (Join-Path $GeneratorSmokeSource "WindowsSmokeTypes.hpp")
 
-    $smokeDeployerHelp = Get-NativeOutput `
-        (Join-Path $Prefix "bin\windows_smoke_deployer.exe") --help
-    if ($smokeDeployerHelp -notmatch "Options") {
-        throw "Generated Windows deployer --help did not print the expected output"
+        Invoke-Native (Join-Path $Prefix "bin\deployer-win32.exe") `
+            --check --no-consolelog `
+            (Join-Path $PSScriptRoot "windows-generator-smoke\typegen-import.ops")
+
+        $smokeDeployerHelp = Get-NativeOutput `
+            (Join-Path $Prefix "bin\windows_smoke_deployer.exe") --help
+        if ($smokeDeployerHelp -notmatch "Options") {
+            throw "Generated Windows deployer --help did not print the expected output"
+        }
+        Invoke-Native (Join-Path $Prefix "bin\windows_smoke_deployer.exe")
     }
-    Invoke-Native (Join-Path $Prefix "bin\windows_smoke_deployer.exe")
 
     $deployerVersionOutput = Get-NativeOutput (Join-Path $Prefix "bin\deployer-win32.exe") --version
     if ($deployerVersionOutput -notmatch "OROCOS Toolchain version") {

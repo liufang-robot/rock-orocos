@@ -79,6 +79,7 @@ end
 
 root = File.expand_path("..", __dir__)
 workflow_path = File.join(root, ".github", "workflows", "windows-packages.yml")
+native_workflow_path = File.join(root, ".github", "workflows", "windows-msvc.yml")
 recipe_path = File.join(root, "packaging", "conda", "recipe.yaml")
 linux_recipe_path = File.join(root, "packaging", "conda", "recipe-linux.yaml")
 build_path = File.join(root, "packaging", "conda", "build.ps1")
@@ -88,10 +89,12 @@ runtime_stage_path = File.join(
 builder_path = File.join(root, "tools", "build-windows-msvc.ps1")
 hook_path = File.join(root, "packaging", "conda", "orocos-activate.bat")
 runtime_test_path = File.join(root, "packaging", "conda", "test-runtime.ps1")
+development_test_path = File.join(root, "packaging", "conda", "test-dev.ps1")
 staging_path = File.join(root, "tools", "prepare-windows-conda-release.ps1")
 consumer_path = File.join(root, "tools", "test-windows-conda-consumer.ps1")
 activation_path = File.join(root, "examples", "pixi-consumer", "scripts", "activate-orocos.ps1")
 exporter_path = File.join(root, "tools", "export-windows-env.ps1")
+pixi_manifest_path = File.join(root, "pixi.toml")
 errors = []
 
 unless File.file?(workflow_path)
@@ -263,6 +266,7 @@ unless File.file?(builder_path)
   errors << "missing tools/build-windows-msvc.ps1"
 else
   builder = File.read(builder_path)
+  normalized_builder = builder.gsub("\r\n", "\n")
   install_step = builder.match(
     /^Invoke-Step "Install vcpkg dependencies" \{\r?\n(?<body>.*?)^\}\r?$/m
   )
@@ -277,6 +281,36 @@ else
       errors << "Windows builder must install boost-functional directly for RTT headers"
     end
   end
+
+  unless normalized_builder.include?("    [switch]$SkipGeneratorSmokeTests,\n")
+    errors << "Windows builder must define the package-only generator smoke skip switch"
+  end
+  skip_guard = "if (-not $SkipGeneratorSmokeTests) {"
+  unless normalized_builder.lines.count { |line| line.strip == skip_guard } == 3
+    errors << "Windows builder must guard smoke builds, artifacts, and executions with the skip switch"
+  end
+  [
+    "Generate Windows OroGen smoke project",
+    "Build Windows OroGen smoke project",
+    "Generate Windows Typegen smoke project",
+    "Build Windows Typegen smoke project"
+  ].each do |step|
+    unless normalized_builder.scan(%(Invoke-Step "#{step}")).size == 1
+      errors << "Windows builder must retain the standalone #{step}"
+    end
+  end
+end
+
+if !File.file?(native_workflow_path)
+  errors << "missing .github/workflows/windows-msvc.yml"
+elsif File.read(native_workflow_path).match?(/^\s*-SkipGeneratorSmokeTests(?:\s|$)/i)
+  errors << "Windows native CI must retain generator smoke tests"
+end
+
+if !File.file?(pixi_manifest_path)
+  errors << "missing pixi.toml"
+elsif File.read(pixi_manifest_path).match?(/^\s*"-SkipGeneratorSmokeTests",?\s*$/i)
+  errors << "the default Windows build task must retain generator smoke tests"
 end
 
 unless File.file?(recipe_path)
@@ -324,6 +358,9 @@ else
 
   runtime_output = recipe[/^  - package:\r?\n      name: orocos\r?\n(?<body>.*?)(?=^  - package:|\z)/m, :body]
   development_output = recipe[/^  - package:\r?\n      name: orocos-dev\r?\n(?<body>.*?)(?=^  - package:|\z)/m, :body]
+  unless development_output.to_s.match?(/^\s+- script: test-dev\.ps1\s*$/)
+    errors << "orocos-dev must run the clean generator package acceptance test"
+  end
   unless recipe.include?("        - packaging/conda/orocos-activate.bat")
     errors << "Windows package recipe must include the Conda activation hook source"
   end
@@ -357,9 +394,28 @@ unless File.file?(build_path)
   errors << "missing packaging/conda/build.ps1"
 else
   build_script = File.read(build_path)
+  unless build_script.lines.count { |line| line.strip == "-SkipGeneratorSmokeTests" } == 1
+    errors << "Windows package staging must skip duplicated generator smoke tests"
+  end
   if build_script.include?("orocos-activate.bat") ||
      build_script.include?('etc\conda\activate.d')
     errors << "Windows shared staging cache must not install the runtime activation hook"
+  end
+end
+
+if !File.file?(development_test_path)
+  errors << "missing packaging/conda/test-dev.ps1"
+else
+  development_test = File.read(development_test_path)
+  unless development_test.match?(
+    /Invoke-Native \$orogen .*?cmake --build \$orogenBuild .*?--target INSTALL/m
+  )
+    errors << "Windows development package test must generate and install a clean OroGen project"
+  end
+  unless development_test.match?(
+    /Invoke-Native \$typegen .*?cmake --build \$typegenBuild .*?--target regen.*?cmake --build \$typegenBuild .*?--target INSTALL/m
+  )
+    errors << "Windows development package test must generate, regenerate, and install a clean Typegen project"
   end
 end
 
