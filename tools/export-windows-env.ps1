@@ -343,22 +343,28 @@ $runtimeBatchTemplate = @'
 @if not errorlevel 1 @goto orocos_path_candidate_found_end
 @if errorlevel 2 @goto orocos_path_candidate_search_failed
 @if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=missing"
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT_%__OROCOS_ROCK_PATH_NAME%=missing"
 @exit /b 1
 
 :orocos_path_candidate_found_exact
 @if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=exact"
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT_%__OROCOS_ROCK_PATH_NAME%=exact"
 @exit /b 0
 :orocos_path_candidate_found_beginning
 @if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=beginning"
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT_%__OROCOS_ROCK_PATH_NAME%=beginning"
 @exit /b 0
 :orocos_path_candidate_found_middle
 @if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=middle"
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT_%__OROCOS_ROCK_PATH_NAME%=middle"
 @exit /b 0
 :orocos_path_candidate_found_end
 @if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=end"
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT_%__OROCOS_ROCK_PATH_NAME%=end"
 @exit /b 0
 :orocos_path_candidate_search_failed
 @if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=error"
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT_%__OROCOS_ROCK_PATH_NAME%=error"
 @exit /b 2
 
 :orocos_add_candidate_failed

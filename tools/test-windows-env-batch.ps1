@@ -218,6 +218,8 @@ try {
         '@set "__OROCOS_TEST_PIPELINE_BOUNDARY=%ERRORLEVEL%"',
         ('@echo PATH={0};fixture | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
         '@set "__OROCOS_TEST_SYNTHETIC_BOUNDARY=%ERRORLEVEL%"',
+        ('@set CMAKE_PREFIX_PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /X /C:"CMAKE_PREFIX_PATH={0}" >nul' -f $libraryPrefix),
+        '@set "__OROCOS_TEST_CMAKE_EXACT=%ERRORLEVEL%"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_SECOND=1"',
@@ -259,16 +261,22 @@ try {
         throw "Batch lifecycle wrote to stderr:`n$script:BatchStandardError"
     }
     Write-Host (
-        "Membership probe: name={0}, direct={1}, pipeline={2}, synthetic={3}" -f
+        "Membership probe: name={0}, direct={1}, pipeline={2}, synthetic={3}, cmake-exact={4}" -f
             $environment["__OROCOS_TEST_NAME_FILTER"],
             $environment["__OROCOS_TEST_DIRECT_BOUNDARY"],
             $environment["__OROCOS_TEST_PIPELINE_BOUNDARY"],
-            $environment["__OROCOS_TEST_SYNTHETIC_BOUNDARY"])
+            $environment["__OROCOS_TEST_SYNTHETIC_BOUNDARY"],
+            $environment["__OROCOS_TEST_CMAKE_EXACT"])
     Write-Host (
-        "Subroutine probe: name={0}, candidate={1}, result={2}" -f
+        "Subroutine probe: name={0}, candidate={1}, result={2}, PATH={3}, RTT={4}, PKG={5}, TYPELIB={6}, CMAKE={7}" -f
             $environment["OROCOS_TEST_CONTAINS_NAME"],
             $environment["OROCOS_TEST_CONTAINS_CANDIDATE"],
-            $environment["OROCOS_TEST_CONTAINS_RESULT"])
+            $environment["OROCOS_TEST_CONTAINS_RESULT"],
+            $environment["OROCOS_TEST_CONTAINS_RESULT_PATH"],
+            $environment["OROCOS_TEST_CONTAINS_RESULT_RTT_COMPONENT_PATH"],
+            $environment["OROCOS_TEST_CONTAINS_RESULT_PKG_CONFIG_PATH"],
+            $environment["OROCOS_TEST_CONTAINS_RESULT_TYPELIB_PLUGIN_PATH"],
+            $environment["OROCOS_TEST_CONTAINS_RESULT_CMAKE_PREFIX_PATH"])
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
