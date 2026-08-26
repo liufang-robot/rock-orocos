@@ -306,15 +306,15 @@ try {
         -Environment $environment -Name "__OROCOS_TEST_ACTIVE_PREFIX" -Expected $libraryPrefix
     Assert-EnvironmentValue `
         -Environment $environment -Name "__OROCOS_TEST_ACTIVE_TARGET" -Expected "win32"
-    $expectedPath = "$runtimePluginPath;$rattlerPath"
-    if ($environment["__OROCOS_TEST_ACTIVE_PATH"] -cne $expectedPath) {
-        throw "Package activation did not prepend only the runtime loader path."
-    }
     Assert-PathEntryCount `
         -Environment $environment `
         -Name "__OROCOS_TEST_ACTIVE_PATH" `
         -ExpectedPath $runtimePluginPath `
         -ExpectedCount 1
+    $expectedPath = "$runtimePluginPath;$rattlerPath"
+    if ($environment["__OROCOS_TEST_ACTIVE_PATH"] -cne $expectedPath) {
+        throw "Package activation did not prepend only the runtime loader path."
+    }
     foreach ($entry in @(
             [PSCustomObject]@{ Name = "__OROCOS_TEST_ACTIVE_COMPONENT_PATH"; Path = $componentPath },
             [PSCustomObject]@{ Name = "__OROCOS_TEST_ACTIVE_PKG_CONFIG_PATH"; Path = $pkgConfigPath },
