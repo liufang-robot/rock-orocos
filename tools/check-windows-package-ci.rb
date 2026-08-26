@@ -715,11 +715,12 @@ else
   boundary_membership_tokens = [
     ":orocos_add_candidate",
     '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
+    "@set \"__OROCOS_ROCK_PATH_PATTERN=%__OROCOS_ROCK_PATH_CANDIDATE:\\=\\\\%\"",
     '@if not defined %__OROCOS_ROCK_PATH_NAME% @goto orocos_add_candidate_missing',
-    '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"',
-    '/L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;"',
-    '/L /C:";%__OROCOS_ROCK_PATH_CANDIDATE%;"',
-    '/L /E /C:";%__OROCOS_ROCK_PATH_CANDIDATE%"'
+    '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_PATTERN%"',
+    '/L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_PATTERN%;"',
+    '/L /C:";%__OROCOS_ROCK_PATH_PATTERN%;"',
+    '/L /E /C:";%__OROCOS_ROCK_PATH_PATTERN%"'
   ]
   membership_source = '@set %__OROCOS_ROCK_PATH_NAME% |'
   unless boundary_membership_tokens.all? { |token| runtime_batch&.include?(token) } &&

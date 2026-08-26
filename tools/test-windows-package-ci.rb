@@ -751,6 +751,15 @@ exporter_mutations = {
       )
     end
   ],
+  "batch membership does not escape findstr literal separators" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
+    lambda do |contents|
+      contents.sub(
+        /@set "__OROCOS_ROCK_PATH_PATTERN=[^"]+"/,
+        '@set "__OROCOS_ROCK_PATH_PATTERN=%__OROCOS_ROCK_PATH_CANDIDATE%"'
+      )
+    end
+  ],
   "batch membership queries an undefined path-like variable" => [
     "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|
@@ -773,8 +782,8 @@ exporter_mutations = {
     "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|
       contents.sub(
-        '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"',
-        '/L /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"'
+        '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_PATTERN%"',
+        '/L /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_PATTERN%"'
       )
     end
   ],
@@ -782,8 +791,8 @@ exporter_mutations = {
     "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|
       contents.sub(
-        '/L /C:";%__OROCOS_ROCK_PATH_CANDIDATE%;"',
-        '/L /C:"%__OROCOS_ROCK_PATH_CANDIDATE%"'
+        '/L /C:";%__OROCOS_ROCK_PATH_PATTERN%;"',
+        '/L /C:"%__OROCOS_ROCK_PATH_PATTERN%"'
       )
     end
   ],

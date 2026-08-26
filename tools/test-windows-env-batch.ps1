@@ -158,7 +158,7 @@ function Assert-PathEntryCount {
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) `
     ("orocos-windows-env-batch-" + [guid]::NewGuid().ToString("N"))
-$condaPrefix = Join-Path $testRoot "conda"
+$condaPrefix = Join-Path $testRoot "_temp\conda"
 $libraryPrefix = Join-Path $condaPrefix "Library"
 $activationHookDirectory = Join-Path $condaPrefix "etc\conda\activate.d"
 $activationHookPath = Join-Path $activationHookDirectory "orocos-activate.bat"
