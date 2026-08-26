@@ -255,12 +255,6 @@ $runtimeBatchTemplate = @'
 
 @for %%I in ("%~dp0.") do @set "OROCOS_PREFIX=%%~fI"
 @set "OROCOS_TARGET=@TARGET@"
-@if /I not "%OROCOS_TEST_MEMBERSHIP_PHASE%"=="SECOND" @goto orocos_test_env_probe_done
-@set PATH > "%OROCOS_TEST_ENV_PATH_FILE%"
-@set "OROCOS_TEST_ENV_CANDIDATE=%OROCOS_PREFIX%\lib\orocos\@TARGET@\plugins"
-@set PATH 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=%OROCOS_PREFIX%\lib\orocos\@TARGET@\plugins;" >nul
-@set "OROCOS_TEST_ENV_MEMBERSHIP=%ERRORLEVEL%"
-:orocos_test_env_probe_done
 
 @if /I not "%~1"=="--conda" @goto orocos_full_runtime_path
 @call :orocos_begin_path PATH
@@ -339,24 +333,21 @@ $runtimeBatchTemplate = @'
 @if "%~1"=="" @exit /b 0
 @if not exist "%~1\" @exit /b 0
 @set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"
-@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_PRODUCTION_CANDIDATE_%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"
-@if /I not "%OROCOS_TEST_MEMBERSHIP_PHASE%"=="SECOND" @goto orocos_test_add_probe_done
-@if /I "%__OROCOS_ROCK_PATH_NAME%"=="PATH" @set PATH > "%OROCOS_TEST_ADD_PATH_FILE%"
-@set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul
-@set "OROCOS_TEST_ADD_MEMBERSHIP_%__OROCOS_ROCK_PATH_NAME%=%ERRORLEVEL%"
-:orocos_test_add_probe_done
-@set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%" >nul
+@if not defined %__OROCOS_ROCK_PATH_NAME% @goto orocos_add_candidate_missing
+@set %__OROCOS_ROCK_PATH_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%" >nul
 @if not errorlevel 1 @goto orocos_add_candidate_found
 @if errorlevel 2 @goto orocos_add_candidate_failed
-@set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul
+@set %__OROCOS_ROCK_PATH_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul
 @if not errorlevel 1 @goto orocos_add_candidate_found
 @if errorlevel 2 @goto orocos_add_candidate_failed
-@set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /C:";%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul
+@set %__OROCOS_ROCK_PATH_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /C:";%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul
 @if not errorlevel 1 @goto orocos_add_candidate_found
 @if errorlevel 2 @goto orocos_add_candidate_failed
-@set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /E /C:";%__OROCOS_ROCK_PATH_CANDIDATE%" >nul
+@set %__OROCOS_ROCK_PATH_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /E /C:";%__OROCOS_ROCK_PATH_CANDIDATE%" >nul
 @if not errorlevel 1 @goto orocos_add_candidate_found
 @if errorlevel 2 @goto orocos_add_candidate_failed
+
+:orocos_add_candidate_missing
 @set "__OROCOS_ROCK_PATH_PREFIX=%__OROCOS_ROCK_PATH_PREFIX%;%__OROCOS_ROCK_PATH_CANDIDATE%"
 @set "__OROCOS_ROCK_PATH_CANDIDATE="
 @set "__OROCOS_ROCK_PATH_CANDIDATE_ADDED=1"

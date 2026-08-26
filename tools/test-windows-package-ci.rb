@@ -751,6 +751,24 @@ exporter_mutations = {
       )
     end
   ],
+  "batch membership queries an undefined path-like variable" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
+    lambda do |contents|
+      contents.sub(
+        '@if not defined %__OROCOS_ROCK_PATH_NAME% @goto orocos_add_candidate_missing',
+        '@rem missing undefined-variable guard'
+      )
+    end
+  ],
+  "batch membership leaves whitespace before stderr redirection" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
+    lambda do |contents|
+      contents.gsub(
+        '@set %__OROCOS_ROCK_PATH_NAME% |',
+        '@set %__OROCOS_ROCK_PATH_NAME% 2>nul |'
+      )
+    end
+  ],
   "batch membership loses exact single-entry matching" => [
     "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|

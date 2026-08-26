@@ -155,25 +155,6 @@ function Assert-PathEntryCount {
     }
 }
 
-function Read-BatchVariableFile {
-    param(
-        [string]$Path,
-        [string]$Name
-    )
-
-    $prefix = "$Name="
-    $line = @(
-        [IO.File]::ReadAllLines($Path) |
-            Where-Object {
-                $_.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)
-            }
-    )
-    if ($line.Count -ne 1) {
-        throw "$Path contains $($line.Count) $Name entries; expected 1."
-    }
-    return $line[0].Substring($prefix.Length)
-}
-
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) `
     ("orocos-windows-env-batch-" + [guid]::NewGuid().ToString("N"))
@@ -186,14 +167,6 @@ $deactivationHookPath = Join-Path $deactivationHookDirectory "orocos-deactivate.
 $fakeBin = Join-Path $testRoot "fake-bin"
 $fakeRuby = Join-Path $fakeBin "ruby.cmd"
 $callerPath = Join-Path $testRoot "capture-environment.bat"
-$membershipProbePath = Join-Path $testRoot "membership-probe.bat"
-$membershipLabelProbePath = Join-Path $testRoot "membership-label-probe.bat"
-$membershipProxyPath = Join-Path $testRoot "membership-proxy.bat"
-$membershipGotoProbePath = Join-Path $testRoot "membership-goto-probe.bat"
-$callerPathFile = Join-Path $testRoot "caller-path.txt"
-$hookPathFile = Join-Path $testRoot "hook-path.txt"
-$envPathFile = Join-Path $testRoot "env-path.txt"
-$addPathFile = Join-Path $testRoot "add-path.txt"
 $preservedPath = Join-Path $testRoot "preserved"
 $runtimePluginPath = Join-Path $libraryPrefix "lib\orocos\win32\plugins"
 $componentPath = Join-Path $libraryPrefix "lib\orocos\win32\types"
@@ -230,76 +203,12 @@ try {
         -LiteralPath (Join-Path $repositoryRoot "packaging\conda\orocos-deactivate.bat") `
         -Destination $deactivationHookPath
 
-    $membershipCommand = '@set %__OROCOS_ROCK_PATH_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul'
-    [IO.File]::WriteAllText(
-        $membershipProbePath,
-        ((@(
-            '@set "__OROCOS_ROCK_PATH_NAME=PATH"',
-            '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
-            $membershipCommand,
-            '@exit /b %ERRORLEVEL%'
-        ) -join "`r`n") + "`r`n"),
-        [Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText(
-        $membershipLabelProbePath,
-        ((@(
-            '@call :orocos_test_membership "%~1"',
-            '@exit /b %ERRORLEVEL%',
-            ':orocos_test_membership',
-            '@set "__OROCOS_ROCK_PATH_NAME=PATH"',
-            '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
-            $membershipCommand,
-            '@exit /b %ERRORLEVEL%'
-        ) -join "`r`n") + "`r`n"),
-        [Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText(
-        $membershipProxyPath,
-        ((@(
-            ('@call "{0}" "%~1"' -f $membershipLabelProbePath),
-            '@exit /b %ERRORLEVEL%'
-        ) -join "`r`n") + "`r`n"),
-        [Text.UTF8Encoding]::new($false))
-    [IO.File]::WriteAllText(
-        $membershipGotoProbePath,
-        ((@(
-            '@if defined __OROCOS_ROCK_CONDA_ACTIVE @goto orocos_test_membership',
-            '@exit /b 99',
-            ':orocos_test_membership',
-            '@set "__OROCOS_ROCK_PATH_NAME=PATH"',
-            '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
-            $membershipCommand,
-            '@set "OROCOS_TEST_GOTO_INNER=%ERRORLEVEL%"',
-            '@exit /b %OROCOS_TEST_GOTO_INNER%'
-        ) -join "`r`n") + "`r`n"),
-        [Text.UTF8Encoding]::new($false))
-
     $callerLines = @(
         '@echo on',
-        '@set "OROCOS_TEST_MEMBERSHIP_PROBE=1"',
-        ('@set "OROCOS_TEST_CALLER_PATH_FILE={0}"' -f $callerPathFile),
-        ('@set "OROCOS_TEST_HOOK_PATH_FILE={0}"' -f $hookPathFile),
-        ('@set "OROCOS_TEST_ENV_PATH_FILE={0}"' -f $envPathFile),
-        ('@set "OROCOS_TEST_ADD_PATH_FILE={0}"' -f $addPathFile),
         '@set "__OROCOS_TEST_BEFORE_FIRST=1"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_FIRST=1"',
-        ('@call "{0}" "{1}"' -f $membershipProbePath, $runtimePluginPath),
-        '@set "OROCOS_TEST_EXTERNAL_BATCH=%ERRORLEVEL%"',
-        ('@call "{0}" "{1}"' -f $membershipLabelProbePath, $runtimePluginPath),
-        '@set "OROCOS_TEST_EXTERNAL_LABEL=%ERRORLEVEL%"',
-        ('@call "{0}" "{1}"' -f $membershipProxyPath, $runtimePluginPath),
-        '@set "OROCOS_TEST_PROXY_LABEL=%ERRORLEVEL%"',
-        ('@call "{0}" "{1}"' -f $membershipGotoProbePath, $runtimePluginPath),
-        '@set "OROCOS_TEST_GOTO_OUTER=%ERRORLEVEL%"',
-        '@set "OROCOS_TEST_MEMBERSHIP_PHASE=SECOND"',
-        ('@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
-        '@set "OROCOS_TEST_CALLER_SECOND=%ERRORLEVEL%"',
-        ('@set PATH2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
-        '@set "OROCOS_TEST_REDIRECT_ATTACHED=%ERRORLEVEL%"',
-        '@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /C:"OROCOS_TEST_DEFINITELY_MISSING" >nul',
-        '@set "OROCOS_TEST_CALLER_NEGATIVE=%ERRORLEVEL%"',
-        '@set PATH > "%OROCOS_TEST_CALLER_PATH_FILE%"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_SECOND=1"',
@@ -341,38 +250,6 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($script:BatchStandardError)) {
         throw "Batch lifecycle wrote to stderr:`n$script:BatchStandardError"
     }
-    Write-Host (
-        "Depth probe: external-batch={0}, external-label={1}, proxy-label={2}, goto-inner={3}, goto-outer={4}, production-candidate-match={5}" -f
-            $environment["OROCOS_TEST_EXTERNAL_BATCH"],
-            $environment["OROCOS_TEST_EXTERNAL_LABEL"],
-            $environment["OROCOS_TEST_PROXY_LABEL"],
-            $environment["OROCOS_TEST_GOTO_INNER"],
-            $environment["OROCOS_TEST_GOTO_OUTER"],
-            [string]::Equals(
-                $environment["OROCOS_TEST_PRODUCTION_CANDIDATE_PATH"],
-                $runtimePluginPath,
-                [StringComparison]::OrdinalIgnoreCase))
-    Write-Host (
-        "Production boundaries: hook={0}, env={1}, add={2}" -f
-            $environment["OROCOS_TEST_HOOK_MEMBERSHIP"],
-            $environment["OROCOS_TEST_ENV_MEMBERSHIP"],
-            $environment["OROCOS_TEST_ADD_MEMBERSHIP_PATH"])
-    $pathBeforeSecondActivation = "$runtimePluginPath;$rattlerPath"
-    $callerPathValue = Read-BatchVariableFile -Path $callerPathFile -Name "PATH"
-    $hookPathValue = Read-BatchVariableFile -Path $hookPathFile -Name "PATH"
-    $envPathValue = Read-BatchVariableFile -Path $envPathFile -Name "PATH"
-    $addPathValue = Read-BatchVariableFile -Path $addPathFile -Name "PATH"
-    Write-Host (
-        "Caller controls: positive={0}, redirect-attached={1}, negative={2}; data matches: caller={3}, hook={4}, env={5}, add={6}, hook-candidate={7}, env-candidate={8}" -f
-            $environment["OROCOS_TEST_CALLER_SECOND"],
-            $environment["OROCOS_TEST_REDIRECT_ATTACHED"],
-            $environment["OROCOS_TEST_CALLER_NEGATIVE"],
-            [string]::Equals($callerPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
-            [string]::Equals($hookPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
-            [string]::Equals($envPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
-            [string]::Equals($addPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
-            [string]::Equals($environment["OROCOS_TEST_HOOK_CANDIDATE"], $runtimePluginPath, [StringComparison]::OrdinalIgnoreCase),
-            [string]::Equals($environment["OROCOS_TEST_ENV_CANDIDATE"], $runtimePluginPath, [StringComparison]::OrdinalIgnoreCase))
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
