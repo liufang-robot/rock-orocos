@@ -222,6 +222,12 @@ try {
         '@set "OROCOS_TEST_SUBROUTINE_ENV=%ERRORLEVEL%"',
         ('@call :orocos_test_argument_subroutine "{0}"' -f $runtimePluginPath),
         '@set "OROCOS_TEST_SUBROUTINE_ARGUMENT=%ERRORLEVEL%"',
+        '@set "__OROCOS_ROCK_PATH_NAME=PATH"',
+        ('@set "__OROCOS_ROCK_PATH_CANDIDATE={0}"' -f $runtimePluginPath),
+        '@set %__OROCOS_ROCK_PATH_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul',
+        '@set "OROCOS_TEST_CALLER_ROCK_ENV=%ERRORLEVEL%"',
+        ('@call :orocos_test_rock_subroutine "{0}"' -f $runtimePluginPath),
+        '@set "OROCOS_TEST_SUBROUTINE_ROCK_ENV=%ERRORLEVEL%"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_SECOND=1"',
@@ -250,6 +256,11 @@ try {
         '@exit /b %ERRORLEVEL%',
         ':orocos_test_argument_subroutine',
         '@set %OROCOS_TEST_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%OROCOS_TEST_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%OROCOS_TEST_NAME%=%~1;" >nul',
+        '@exit /b %ERRORLEVEL%',
+        ':orocos_test_rock_subroutine',
+        '@set "__OROCOS_ROCK_PATH_NAME=PATH"',
+        '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
+        '@set %__OROCOS_ROCK_PATH_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul',
         '@exit /b %ERRORLEVEL%'
     )
     [IO.File]::WriteAllText(
@@ -273,12 +284,14 @@ try {
         throw "Batch lifecycle wrote to stderr:`n$script:BatchStandardError"
     }
     Write-Host (
-        "Expansion probe: caller-literal={0}, caller-env={1}, sub-literal={2}, sub-env={3}, sub-argument={4}, actual-PATH={5}" -f
+        "Expansion probe: caller-literal={0}, caller-env={1}, sub-literal={2}, sub-env={3}, sub-argument={4}, caller-rock={5}, sub-rock={6}, actual-PATH={7}" -f
             $environment["OROCOS_TEST_CALLER_LITERAL"],
             $environment["OROCOS_TEST_CALLER_ENV"],
             $environment["OROCOS_TEST_SUBROUTINE_LITERAL"],
             $environment["OROCOS_TEST_SUBROUTINE_ENV"],
             $environment["OROCOS_TEST_SUBROUTINE_ARGUMENT"],
+            $environment["OROCOS_TEST_CALLER_ROCK_ENV"],
+            $environment["OROCOS_TEST_SUBROUTINE_ROCK_ENV"],
             $environment["OROCOS_TEST_ACTUAL_RESULT_PATH"])
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
