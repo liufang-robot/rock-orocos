@@ -213,6 +213,7 @@ else
     tools/locked-ruby-gems.rb
     tools/stage-license-corpus.rb
     tools/prepare-windows-conda-release.ps1
+    tools/probe-windows-conda-activation.ps1
     tools/test-pixi-consumer-activation.rb
     tools/test-source-provenance.rb
     tools/test-windows-package-ci.rb

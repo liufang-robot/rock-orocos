@@ -180,8 +180,10 @@ as a suffix, prepends the single Orocos plugin directory required for Windows
 DLL resolution, and applies the Orocos-specific discovery environment.
 Pixi/Conda already places `Library\bin` on `PATH`.
 Explicit `Library/env.bat` activation applies the standalone runtime paths with
-case-insensitive deduplication. The hook does not duplicate the environment
-model or invoke PowerShell.
+case-insensitive complete-entry matching. It preserves inherited entries in
+their original order and spelling, including consumer-owned duplicates, while
+ensuring that activation does not add an Orocos candidate twice. The hook does
+not duplicate the environment model or invoke PowerShell.
 
 The packaged Linux runtime similarly provides
 `etc/conda/activate.d/orocos-activate.sh`. Pixi and Conda source this package
@@ -199,6 +201,12 @@ pre-existing entries, and clears all internal lifecycle state. It is
 idempotent on both platforms. The explicit standalone `env.sh`, `env.bat`,
 and `env.ps1` entrypoints do not create this lifecycle state and retain their
 existing behavior.
+
+The Windows batch implementation must not parse a complete inherited PATH-like
+value through nested `for`, `if`, or `call` expansion. Candidate membership may
+scan the inherited value, but the value itself is expanded only once when
+missing Orocos entries are finally prepended. Internal activation failures are
+nonzero and the package hook propagates the same status to its caller.
 
 On both platforms, `orocos-dev` receives the runtime hook through its exact
 dependency on `orocos`. Development setup remains the responsibility of

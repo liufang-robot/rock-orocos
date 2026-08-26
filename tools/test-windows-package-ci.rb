@@ -23,6 +23,7 @@ FIXTURE_PATHS = %w[
   tools/build-windows-msvc.ps1
   tools/export-windows-env.ps1
   tools/prepare-windows-conda-release.ps1
+  tools/probe-windows-conda-activation.ps1
   tools/test-windows-conda-consumer.ps1
 ].freeze
 
@@ -303,7 +304,30 @@ end
 
 shared_source = '    . $env:OROCOS_PIXI_ACTIVATION_SCRIPT'
 child_error_preference = '    $ErrorActionPreference = "Stop"'
+activation_probe_call =
+  '    & $env:OROCOS_CONDA_ACTIVATION_PROBE -CondaPrefix $env:CONDA_PREFIX'
 consumer_mutations = {
+  "missing long-PATH activation probe" => [
+    "consumer smoke test must check the long-PATH activation probe",
+    lambda do |contents|
+      contents.sub(
+        "probe-windows-conda-activation.ps1",
+        "missing-windows-conda-activation.ps1"
+      )
+    end
+  ],
+  "runtime consumer skips activation probe" => [
+    "consumer smoke test must probe package activation in runtime and development environments",
+    lambda do |contents|
+      replace_occurrence(contents, activation_probe_call, "", 0)
+    end
+  ],
+  "development consumer skips activation probe" => [
+    "consumer smoke test must probe package activation in runtime and development environments",
+    lambda do |contents|
+      replace_occurrence(contents, activation_probe_call, "", 1)
+    end
+  ],
   "runtime shared wrapper source" => [
     "runtime consumer must rely only on package-owned activation",
     lambda do |contents|
@@ -646,8 +670,17 @@ hook_mutations = {
     "Windows package activation hook must preserve lifecycle state, call Library\\env.bat in Conda mode, and propagate failure",
     lambda do |contents|
       contents.sub(
-        "@if defined __OROCOS_ROCK_CONDA_ACTIVE goto orocos_activate_runtime",
+        "@if defined __OROCOS_ROCK_CONDA_ACTIVE @goto orocos_activate_runtime",
         "@rem missing repeated-activation guard"
+      )
+    end
+  ],
+  "activation hook does not roll back internal failure" => [
+    "Windows package activation hook must preserve lifecycle state, call Library\\env.bat in Conda mode, and propagate failure",
+    lambda do |contents|
+      contents.sub(
+        '@call "%~dp0..\deactivate.d\orocos-deactivate.bat"',
+        '@rem missing activation failure rollback'
       )
     end
   ]
@@ -678,31 +711,6 @@ deactivation_hook_mutations = {
   ]
 }
 
-safe_batch_scan = <<~'BATCH'.chomp
-  @set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_INPUT:~1%"
-  :orocos_deduplicate_next_path_value
-  @if not defined __OROCOS_ROCK_PATH_SCAN goto orocos_deduplicate_path_done
-  @if not "%__OROCOS_ROCK_PATH_SCAN:~0,1%"==";" goto orocos_split_next_path_value
-  @set "__OROCOS_ROCK_PATH_SCAN=%__OROCOS_ROCK_PATH_SCAN:~1%"
-  @goto orocos_deduplicate_next_path_value
-
-  :orocos_split_next_path_value
-  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"
-  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_SCAN=%%F"
-  @set "__OROCOS_ROCK_PATH_COMPARE=%__OROCOS_ROCK_PATH_NEW:~1%"
-
-  :orocos_compare_next_path_value
-  @if not defined __OROCOS_ROCK_PATH_COMPARE goto orocos_append_unique_path_value
-  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_COMPARE%") do set "__OROCOS_ROCK_PATH_COMPARISON=%%E"
-  @for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_COMPARE%") do set "__OROCOS_ROCK_PATH_COMPARE=%%F"
-  @if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_COMPARISON%" goto orocos_deduplicate_next_path_value
-  @goto orocos_compare_next_path_value
-
-  :orocos_append_unique_path_value
-  @set "__OROCOS_ROCK_PATH_NEW=%__OROCOS_ROCK_PATH_NEW%;%__OROCOS_ROCK_PATH_CURRENT%"
-  @goto orocos_deduplicate_next_path_value
-BATCH
-
 exporter_mutations = {
   "PowerShell path model emits a trailing array comma" => [
     "Windows environment exporter must not emit a trailing comma after the final PowerShell path expression",
@@ -718,14 +726,14 @@ exporter_mutations = {
     ->(contents) { contents.sub('Join-Path $Prefix "env.bat"', 'Join-Path $Prefix "runtime.bat"') }
   ],
   "batch activation uses setlocal" => [
-    "generated env.bat must not use scoped activation or helper subprocesses",
+    "generated env.bat must not use scoped activation or non-system helper runtimes",
     ->(contents) { contents.sub("@rem Call this file", "@setlocal\n@rem Call this file") }
   ],
   "batch activation omits the Conda loader path branch" => [
     "generated env.bat must implement Conda-owned PATH preservation",
     lambda do |contents|
       contents.sub(
-        '@if /I not "%~1"=="--conda" goto orocos_full_runtime_path',
+        '@if /I not "%~1"=="--conda" @goto orocos_full_runtime_path',
         '@rem missing Conda PATH boundary'
       )
     end
@@ -739,70 +747,114 @@ exporter_mutations = {
       )
     end
   ],
-  "batch dedup combines FOR and batch parameter expansion" => [
-    "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity",
+  "batch membership loses case-insensitive matching" => [
+    "generated env.bat must implement case-insensitive full-entry membership",
     lambda do |contents|
-      replace_normalized(
-        contents,
-        safe_batch_scan,
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
+      contents.gsub(
+        'findstr.exe" /I /L',
+        'findstr.exe" /L'
       )
     end
   ],
-  "batch dedup combines string substitution and FOR path modifier" => [
-    "generated env.bat must avoid native cmd FOR/path-modifier parser ambiguity",
-    lambda do |contents|
-      replace_normalized(
-        contents,
-        safe_batch_scan,
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
-      )
-    end
-  ],
-  "batch dedup compares quoted candidates inside FOR" => [
-    "generated env.bat must not compare deduplication candidates inside FOR",
-    lambda do |contents|
-      replace_normalized(
-        contents,
-        safe_batch_scan,
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
-      )
-    end
-  ],
-  "batch dedup uses a nested comparison call" => [
-    "generated env.bat must compare deduplication candidates without nested batch calls",
-    lambda do |contents|
-      replace_normalized(
-        contents,
-        safe_batch_scan,
-        '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"'
-      )
-    end
-  ],
-  "batch dedup omits the separate comparison" => [
-    "generated env.bat must collect paths before a separate deduplication pass",
+  "batch membership expands a subroutine argument inside the pipeline" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|
       contents.sub(
-        '@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_COMPARISON%" goto orocos_deduplicate_next_path_value',
-        '@rem missing separate comparison'
+        '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
+        '@set "__OROCOS_ROCK_PATH_CANDIDATE="'
       )
     end
   ],
-  "batch inherited paths use inline substitution" => [
-    "generated env.bat must scan inherited paths without inline substitution",
+  "batch membership does not escape findstr literal separators" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|
       contents.sub(
-        '@set "__OROCOS_ROCK_PATH_INPUT=%__OROCOS_ROCK_PATH_INPUT%;%__OROCOS_ROCK_PATH_OLD%"',
-        '@for %%E in ("%__OROCOS_ROCK_PATH_OLD:;=" "%") do call :orocos_add_path_value "%%~E"'
+        /@set "__OROCOS_ROCK_PATH_PATTERN=[^"]+"/,
+        '@set "__OROCOS_ROCK_PATH_PATTERN=%__OROCOS_ROCK_PATH_CANDIDATE%"'
       )
     end
   ],
-  "batch collection and deduplication are not separated" => [
-    "generated env.bat must collect paths before a separate deduplication pass",
+  "batch membership queries an undefined path-like variable" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|
       contents.sub(
-        '@set "__OROCOS_ROCK_PATH_INPUT=%__OROCOS_ROCK_PATH_INPUT%;%~1"',
-        '@call :orocos_add_path_value "%~1"'
+        '@if not defined %__OROCOS_ROCK_PATH_NAME% @goto orocos_add_candidate_missing',
+        '@rem missing undefined-variable guard'
+      )
+    end
+  ],
+  "batch membership leaves whitespace before stderr redirection" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
+    lambda do |contents|
+      contents.gsub(
+        '@set %__OROCOS_ROCK_PATH_NAME% |',
+        '@set %__OROCOS_ROCK_PATH_NAME% 2>nul |'
+      )
+    end
+  ],
+  "batch membership loses exact single-entry matching" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
+    lambda do |contents|
+      contents.sub(
+        '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_PATTERN%"',
+        '/L /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_PATTERN%"'
+      )
+    end
+  ],
+  "batch membership loses middle-entry boundaries" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
+    lambda do |contents|
+      contents.sub(
+        '/L /C:";%__OROCOS_ROCK_PATH_PATTERN%;"',
+        '/L /C:"%__OROCOS_ROCK_PATH_PATTERN%"'
+      )
+    end
+  ],
+  "batch membership reintroduces inherited-value FOR scanning" => [
+    "generated env.bat must not expand inherited PATH-like values while scanning entries",
+    lambda do |contents|
+      replace_normalized(
+        contents,
+        ":orocos_add_candidate\n",
+        %q{:orocos_add_candidate
+@for /f "tokens=1,* delims=;" %%E in ("%PATH%") do @set "OROCOS_UNSAFE=%%E"
+}
+      )
+    end
+  ],
+  "batch membership expands inherited PATH before commit" => [
+    "generated env.bat must preserve inherited PATH and expand it only for the final prepend",
+    lambda do |contents|
+      contents.sub(
+        '@set "__OROCOS_ROCK_PATH_PREFIX="',
+        '@set "__OROCOS_ROCK_PATH_PREFIX=%PATH%"'
+      )
+    end
+  ],
+  "batch activation drops internal failure propagation" => [
+    "generated env.bat must implement internal failure propagation",
+    lambda do |contents|
+      contents.sub(
+        /(\r?\n):orocos_runtime_failed(\r?\n)/,
+        '\1:orocos_runtime_failure_ignored\2'
+      )
+    end
+  ],
+  "batch activation ignores final assignment failure" => [
+    "generated env.bat must implement final assignment failure detection",
+    lambda do |contents|
+      contents.gsub(
+        "__OROCOS_ROCK_PATH_COMMIT_OK",
+        "OROCOS_PATH_COMMIT_UNCHECKED"
+      )
+    end
+  ],
+  "batch activation changes caller echo mode" => [
+    "generated env.bat must not change the caller's echo mode",
+    lambda do |contents|
+      contents.sub(
+        "@rem Call this file",
+        "@echo off\n@rem Call this file"
       )
     end
   ]
@@ -835,6 +887,41 @@ runtime_test_mutations = {
     "Windows runtime package test must cover a Rattler-length inherited PATH",
     ->(contents) { contents.sub("$rattlerPathEntries = @(", "$shortPathEntries = @(") }
   ],
+  "runtime test omits Rattler command echo" => [
+    "Windows runtime package test must cover Rattler-style command echo",
+    ->(contents) { contents.gsub("-EchoCommands", "-NoEchoCommands") }
+  ],
+  "runtime test omits internal command-output rejection" => [
+    "Windows runtime package test must cover quiet internal PATH commands",
+    lambda do |contents|
+      contents.sub(
+        '$script:BatchActivationOutput -match "__OROCOS_ROCK_PATH_"',
+        '$script:BatchActivationOutput -match "OROCOS_TEST_UNUSED"'
+      )
+    end
+  ],
+  "runtime test weakens activation time gate" => [
+    "Windows runtime package test must cover a bounded activation time",
+    lambda do |contents|
+      contents.sub(
+        '$script:BatchActivationElapsed.TotalSeconds -gt 30',
+        '$script:BatchActivationElapsed.TotalSeconds -gt 300'
+      )
+    end
+  ],
+  "runtime test omits internal failure propagation" => [
+    "Windows runtime package test must cover internal failure propagation",
+    ->(contents) { contents.sub("-ExpectedExitCode 1", "-ExpectedExitCode 0") }
+  ],
+  "runtime test omits exact consumer path preservation" => [
+    "Windows runtime package test must cover exact consumer path preservation",
+    lambda do |contents|
+      contents.gsub(
+        "Assert-PathValuePreservedAsSuffix",
+        "Ignore-OriginalPathSuffix"
+      )
+    end
+  ],
   "runtime test omits the Conda loader path prefix" => [
     "Windows runtime package test must prepend the loader path while preserving Conda PATH",
     lambda do |contents|
@@ -852,6 +939,24 @@ runtime_test_mutations = {
         ""
       )
     end
+  ],
+  "runtime test synthesizes the development pkg-config directory" => [
+    "Windows runtime package test must use the actual split-package pkg-config layout",
+    lambda do |contents|
+      contents.sub(
+        '$hookPkgConfigExpectedCount = 0',
+        '$hookPkgConfigExpectedCount = 0' + "\n" +
+          'New-Item -ItemType Directory -Path $hookPkgConfig'
+      )
+    end
+  ],
+  "runtime test expects the development pkg-config directory" => [
+    "Windows runtime package test must cover Conda-mode discovery variables",
+    ->(contents) { contents.sub('$hookPkgConfigExpectedCount = 0', '$hookPkgConfigExpectedCount = 1') }
+  ],
+  "runtime test ignores discovery-path expected counts" => [
+    "Windows runtime package test must cover Conda-mode discovery variables",
+    ->(contents) { contents.sub('-ExpectedCount $entry.Count', '-ExpectedCount 1') }
   ],
   "runtime test does not repeat deactivation" => [
     "Windows runtime package test must cover reversible and idempotent package hooks",
@@ -872,6 +977,89 @@ runtime_test_mutations = {
       contents.sub(
         "function Assert-NoOrocosHookState {",
         "function Ignore-OrocosHookState {"
+      )
+    end
+  ]
+}
+
+activation_probe_mutations = {
+  "clean activation probe uses C-style quote escapes" => [
+    "clean consumer activation probe must use PowerShell-compatible batch command quoting",
+    lambda do |contents|
+      contents.sub(
+        %q{'@set "OROCOS_TEST_ACTIVE_PREFIX=%OROCOS_PREFIX%"'},
+        %q{"@set \"OROCOS_TEST_ACTIVE_PREFIX=%OROCOS_PREFIX%\""}
+      )
+    end
+  ],
+  "clean activation probe disables command echo" => [
+    "clean consumer activation probe must cover Rattler-style command echo",
+    ->(contents) { contents.sub('"@echo on"', '"@echo off"') }
+  ],
+  "clean activation probe uses a short PATH" => [
+    "clean consumer activation probe must cover a structured long PATH",
+    ->(contents) { contents.sub("1..96 | ForEach-Object", "1..2 | ForEach-Object") }
+  ],
+  "clean activation probe assumes pkg-config directory exists" => [
+    "clean consumer activation probe must cover split-package pkg-config directory semantics",
+    lambda do |contents|
+      contents.sub(
+        '$pkgConfigExpectedCount = if (Test-Path -LiteralPath $pkgConfig -PathType Container)',
+        '$pkgConfigExpectedCount = if ($true)'
+      )
+    end
+  ],
+  "clean activation probe hard-codes pkg-config expected count" => [
+    "clean consumer activation probe must cover split-package pkg-config expected count",
+    ->(contents) { contents.sub('Count = $pkgConfigExpectedCount', 'Count = 1') }
+  ],
+  "clean activation probe ignores structured expected counts" => [
+    "clean consumer activation probe must cover structured discovery-path expected counts",
+    ->(contents) { contents.sub('-ExpectedCount $entry.Count', '-ExpectedCount 1') }
+  ],
+  "clean activation probe skips repeated activation" => [
+    "clean consumer activation probe must repeat both lifecycle hooks",
+    lambda do |contents|
+      replace_occurrence(
+        contents,
+        '(\'call "{0}"\' -f $activationHook)',
+        '(\'call "{0}"\' -f $missingActivationHook)',
+        1
+      )
+    end
+  ],
+  "clean activation probe omits internal output rejection" => [
+    "clean consumer activation probe must cover internal command-output rejection",
+    lambda do |contents|
+      contents.sub(
+        '$activationOutput -match "__OROCOS_ROCK_PATH_"',
+        '$activationOutput -match "OROCOS_TEST_UNUSED"'
+      )
+    end
+  ],
+  "clean activation probe weakens its time gate" => [
+    "clean consumer activation probe must cover a 30-second default gate",
+    ->(contents) { contents.sub('[int]$MaximumSeconds = 30', '[int]$MaximumSeconds = 300') }
+  ],
+  "clean activation probe omits PKG_CONFIG_LIBDIR restoration" => [
+    "clean consumer activation probe must cover PKG_CONFIG_LIBDIR restoration",
+    ->(contents) { contents.sub('-Expected $preservedPkgConfigLibdir', '-Expected $preservedDiscoveryPath') }
+  ],
+  "clean activation probe leaves OROCOS_PREFIX set" => [
+    "clean consumer activation probe must cover unset OROCOS_PREFIX restoration",
+    lambda do |contents|
+      contents.sub(
+        'Assert-ValueAbsent -Environment $environment -Name "OROCOS_PREFIX"',
+        'Assert-ValueAbsent -Environment $environment -Name "OROCOS_PREFIX_UNUSED"'
+      )
+    end
+  ],
+  "clean activation probe leaves OROCOS_TARGET set" => [
+    "clean consumer activation probe must cover unset OROCOS_TARGET restoration",
+    lambda do |contents|
+      contents.sub(
+        'Assert-ValueAbsent -Environment $environment -Name "OROCOS_TARGET"',
+        'Assert-ValueAbsent -Environment $environment -Name "OROCOS_TARGET_UNUSED"'
       )
     end
   ]
@@ -926,6 +1114,7 @@ wrong_rejections = []
   ".github/workflows/windows-packages.yml" => mutations,
   ".github/workflows/windows-msvc.yml" => native_workflow_mutations,
   "tools/test-windows-conda-consumer.ps1" => consumer_mutations,
+  "tools/probe-windows-conda-activation.ps1" => activation_probe_mutations,
   "examples/pixi-consumer/scripts/activate-orocos.ps1" => wrapper_mutations,
   "packaging/conda/recipe.yaml" => recipe_mutations,
   "packaging/conda/build.ps1" => build_mutations,
