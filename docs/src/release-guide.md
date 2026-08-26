@@ -53,6 +53,12 @@ Pull requests, pushes to `main`, and manual runs:
 8. install and execute both exact Linux builds again on Ubuntu 22.04; and
 9. retain the verified bundle as a workflow artifact.
 
+The Windows runtime package and clean-consumer checks invoke the real batch
+hook with command echo enabled and a structured inherited `PATH` of roughly
+7 KB. They require repeated activation and deactivation to finish within 30
+seconds, preserve all inherited entries, avoid duplicate Orocos entries, and
+emit no `__OROCOS_ROCK_PATH_` implementation commands.
+
 These events never upload to Prefix.dev.
 
 ## Publication Gate

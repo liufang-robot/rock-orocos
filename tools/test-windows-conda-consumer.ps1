@@ -55,6 +55,11 @@ $activationScript = (
         Join-Path $PSScriptRoot "..\examples\pixi-consumer\scripts\activate-orocos.ps1"
     )
 ).Path
+$activationProbe = (
+    Resolve-Path -LiteralPath (
+        Join-Path $PSScriptRoot "probe-windows-conda-activation.ps1"
+    )
+).Path
 
 $runtimeCommand = @'
 & {
@@ -73,6 +78,10 @@ $runtimeCommand = @'
     if ($env:OROCOS_TARGET -ne "win32") {
         throw "The orocos package hook set OROCOS_TARGET to '$env:OROCOS_TARGET', expected 'win32'."
     }
+    if ([string]::IsNullOrWhiteSpace($env:OROCOS_CONDA_ACTIVATION_PROBE)) {
+        throw 'The clean consumer activation probe was not provided.'
+    }
+    & $env:OROCOS_CONDA_ACTIVATION_PROBE -CondaPrefix $env:CONDA_PREFIX
     $developmentHeader = Join-Path $env:CONDA_PREFIX 'Library\include\orocos\rtt\RTT.hpp'
     if (Test-Path -LiteralPath $developmentHeader) {
         throw 'The runtime-only environment unexpectedly contains development headers.'
@@ -141,6 +150,10 @@ $previousActivationScript = [Environment]::GetEnvironmentVariable(
     "OROCOS_PIXI_ACTIVATION_SCRIPT",
     "Process"
 )
+$previousActivationProbe = [Environment]::GetEnvironmentVariable(
+    "OROCOS_CONDA_ACTIVATION_PROBE",
+    "Process"
+)
 
 try {
     for ($attempt = 1; $attempt -le $Attempts; $attempt += 1) {
@@ -149,6 +162,7 @@ try {
             New-Item -ItemType Directory -Path $env:PIXI_CACHE_DIR | Out-Null
             Write-Host "Testing package consumers from $channel (attempt $attempt of $Attempts)."
             Remove-Item Env:OROCOS_PIXI_ACTIVATION_SCRIPT -ErrorAction SilentlyContinue
+            $env:OROCOS_CONDA_ACTIVATION_PROBE = $activationProbe
             Invoke-PixiConsumer -Spec $runtimeSpec -Command $runtimeCommand
             $env:OROCOS_PIXI_ACTIVATION_SCRIPT = $activationScript
             try {
@@ -183,5 +197,11 @@ finally {
     }
     else {
         $env:OROCOS_PIXI_ACTIVATION_SCRIPT = $previousActivationScript
+    }
+    if ($null -eq $previousActivationProbe) {
+        Remove-Item Env:OROCOS_CONDA_ACTIVATION_PROBE -ErrorAction SilentlyContinue
+    }
+    else {
+        $env:OROCOS_CONDA_ACTIVATION_PROBE = $previousActivationProbe
     }
 }

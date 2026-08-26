@@ -17,8 +17,8 @@ Maintainer building blocks:
 - `bootstrap.sh`
 - `install.sh`
 - `export-env.sh`
-- `export-windows-env.ps1` writes the installed Windows `env.ps1` and
-  `dev-env.ps1` activation scripts
+- `export-windows-env.ps1` writes the installed Windows `env.ps1`, `env.bat`,
+  and `dev-env.ps1` activation scripts
 - `install-ruby-tools.ps1` installs the Windows Ruby generator gems into the
   public toolchain prefix
 - `install-autoproj.sh`
@@ -39,6 +39,8 @@ Focused regression tests:
   source contract and its rejection behavior
 - `test-windows-conda-consumer.ps1` installs the exact runtime and development
   package builds through clean Pixi caches from a local or public channel
+- `probe-windows-conda-activation.ps1` exercises the relocated package hooks
+  under `cmd.exe` command echo with a structured long `PATH`
 - `check-windows-package-ci.rb` enforces the GitHub release, OIDC, immutable
   publication, and post-publication test boundaries
 - `test-windows-package-ci.rb` mutation-tests the release guard, protected-main

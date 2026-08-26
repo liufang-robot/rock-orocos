@@ -27,7 +27,7 @@ channels = ["https://prefix.dev/liufang-robot/orocos", "conda-forge"]
 platforms = ["linux-64", "win-64"]
 
 [dependencies]
-orocos-dev = "==0.1.2"
+orocos-dev = "==0.1.3"
 
 [target.unix.activation]
 scripts = ["scripts/activate-orocos.sh"]
@@ -36,8 +36,8 @@ scripts = ["scripts/activate-orocos.sh"]
 scripts = ["scripts/activate-orocos.ps1"]
 ```
 
-Runtime-only users replace `orocos-dev = "==0.1.2"` with
-`orocos = "==0.1.2"` under `[dependencies]`.
+Runtime-only users replace `orocos-dev = "==0.1.3"` with
+`orocos = "==0.1.3"` under `[dependencies]`.
 
 Runtime-only Linux consumers remove `[target.unix.activation]`. The `orocos`
 package installs `etc/conda/activate.d/orocos-activate.sh`, which Pixi and
@@ -59,6 +59,12 @@ directory needed by linked DLLs; Pixi/Conda already supplies `Library\bin`.
 It delegates the remaining Orocos runtime environment to `Library\env.bat`.
 The complete environment is available before `pixi run` or `pixi shell`
 starts a process.
+
+The batch entrypoint preserves inherited PATH-like values exactly. It checks
+only the existing Orocos candidate directories, using case-insensitive complete
+entry matching, and prepends candidates that are both present on disk and not
+already active. It does not rebuild or globally deduplicate a consumer's
+existing `PATH`.
 
 The runtime packages also install paired deactivation hooks at
 `etc/conda/deactivate.d/orocos-deactivate.sh` on Linux and

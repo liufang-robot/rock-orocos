@@ -4,6 +4,8 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $script:BatchStandardOutput = ""
+$script:BatchActivationOutput = ""
+$script:BatchActivationElapsed = [TimeSpan]::Zero
 $script:ManagedHookVariables = @(
     "OROCOS_PREFIX",
     "OROCOS_TARGET",
@@ -41,11 +43,13 @@ function Get-BatchEnvironment {
 
     $process = [Diagnostics.Process]::new()
     $process.StartInfo = $startInfo
+    $stopwatch = [Diagnostics.Stopwatch]::StartNew()
     try {
         [void]$process.Start()
         $standardOutput = $process.StandardOutput.ReadToEnd()
         $standardError = $process.StandardError.ReadToEnd()
         $process.WaitForExit()
+        $stopwatch.Stop()
         $script:BatchStandardOutput = $standardOutput
         if ($process.ExitCode -ne 0) {
             throw @"
@@ -57,12 +61,34 @@ $standardError
 "@
         }
     } finally {
+        if ($stopwatch.IsRunning) {
+            $stopwatch.Stop()
+        }
         $process.Dispose()
     }
 
+    $captureMarker = "OROCOS_TEST_ENVIRONMENT_CAPTURE_BEGIN"
+    $outputLines = @($standardOutput -split "`r?`n")
+    $captureIndex = [Array]::IndexOf($outputLines, $captureMarker)
+    if ($captureIndex -lt 0) {
+        throw "Batch activation did not emit the environment capture marker."
+    }
+    $activationLines = if ($captureIndex -eq 0) {
+        @()
+    } else {
+        @($outputLines[0..($captureIndex - 1)])
+    }
+    $environmentLines = if ($captureIndex -ge ($outputLines.Count - 1)) {
+        @()
+    } else {
+        @($outputLines[($captureIndex + 1)..($outputLines.Count - 1)])
+    }
+    $script:BatchActivationOutput = $activationLines -join "`n"
+    $script:BatchActivationElapsed = $stopwatch.Elapsed
+
     $environment = [Collections.Generic.Dictionary[string, string]]::new(
         [StringComparer]::OrdinalIgnoreCase)
-    foreach ($line in $standardOutput -split "`r?`n") {
+    foreach ($line in $environmentLines) {
         $separator = $line.IndexOf("=")
         if ($separator -gt 0) {
             $environment[$line.Substring(0, $separator)] =
@@ -176,11 +202,12 @@ try {
         -Destination $deactivationHookPath
 
     $callerLines = @(
+        '@echo on',
         '@echo __OROCOS_TEST_BEFORE_FIRST=1',
-        ('@call "{0}"' -f $activationHookPath),
+        ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@echo __OROCOS_TEST_AFTER_FIRST=1',
-        ('@call "{0}"' -f $activationHookPath),
+        ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@echo __OROCOS_TEST_AFTER_SECOND=1',
         '@set "__OROCOS_TEST_ACTIVE_PREFIX=%OROCOS_PREFIX%"',
@@ -190,12 +217,14 @@ try {
         '@set "__OROCOS_TEST_ACTIVE_PKG_CONFIG_PATH=%PKG_CONFIG_PATH%"',
         '@set "__OROCOS_TEST_ACTIVE_TYPELIB_PATH=%TYPELIB_PLUGIN_PATH%"',
         '@set "__OROCOS_TEST_ACTIVE_CMAKE_PATH=%CMAKE_PREFIX_PATH%"',
-        ('@call "{0}"' -f $deactivationHookPath),
+        ('call "{0}"' -f $deactivationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@echo __OROCOS_TEST_AFTER_DEACTIVATION=1',
-        ('@call "{0}"' -f $deactivationHookPath),
+        ('call "{0}"' -f $deactivationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@echo __OROCOS_TEST_AFTER_SECOND_DEACTIVATION=1',
+        '@echo off',
+        '@echo OROCOS_TEST_ENVIRONMENT_CAPTURE_BEGIN',
         '@set'
     )
     [IO.File]::WriteAllText(
@@ -208,9 +237,26 @@ try {
             "C:\rattler-build\host_env_placehold_placehold_placehold\Library\bin\$_"
         }
     ) -join ";"
+    if ($rattlerPath.Length -lt 6500 -or $rattlerPath.Length -gt 7600) {
+        throw "Rattler-length PATH fixture has unexpected length $($rattlerPath.Length)."
+    }
     $environment = Get-BatchEnvironment `
         -CallerPath $callerPath `
         -InitialPath $rattlerPath
+
+    $activationConsoleLines = @(
+        $script:BatchActivationOutput -split "`r?`n" |
+            Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+    )
+    if ($script:BatchActivationOutput -match "__OROCOS_ROCK_PATH_") {
+        throw "Batch activation echoed internal PATH implementation commands."
+    }
+    if ($activationConsoleLines.Count -gt 16) {
+        throw "Batch lifecycle emitted $($activationConsoleLines.Count) console lines; expected at most 16."
+    }
+    if ($script:BatchActivationElapsed.TotalSeconds -gt 30) {
+        throw "Batch lifecycle took $($script:BatchActivationElapsed.TotalSeconds) seconds; expected at most 30."
+    }
 
     Assert-EnvironmentValue `
         -Environment $environment -Name "__OROCOS_TEST_BEFORE_FIRST" -Expected "1"

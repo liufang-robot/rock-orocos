@@ -95,6 +95,9 @@ runtime_test_path = File.join(root, "packaging", "conda", "test-runtime.ps1")
 development_test_path = File.join(root, "packaging", "conda", "test-dev.ps1")
 staging_path = File.join(root, "tools", "prepare-windows-conda-release.ps1")
 consumer_path = File.join(root, "tools", "test-windows-conda-consumer.ps1")
+activation_probe_path = File.join(
+  root, "tools", "probe-windows-conda-activation.ps1"
+)
 activation_path = File.join(root, "examples", "pixi-consumer", "scripts", "activate-orocos.ps1")
 exporter_path = File.join(root, "tools", "export-windows-env.ps1")
 pixi_manifest_path = File.join(root, "pixi.toml")
@@ -148,6 +151,7 @@ else
     tools/test-windows-package-ci.rb
     tools/stage-license-corpus.rb
     tools/prepare-windows-conda-release.ps1
+    tools/probe-windows-conda-activation.ps1
     tools/test-windows-conda-consumer.ps1
     tools/test-windows-source-lock.ps1
     tools/windows-source-lock.ps1
@@ -592,10 +596,14 @@ if !File.file?(hook_path)
 else
   activation_hook = File.read(hook_path).gsub("\r\n", "\n")
   activation_tokens = [
-    "@if defined __OROCOS_ROCK_CONDA_ACTIVE goto orocos_activate_runtime",
-    '@set "__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT=0"',
-    ":orocos_activate_next_path_value",
+    "@if defined __OROCOS_ROCK_CONDA_ACTIVE @goto orocos_activate_runtime",
+    '@set "__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT=1"',
+    '@set "__OROCOS_ROCK_RECORD_RUNTIME_PLUGIN=1"',
     '@call "%~dp0..\..\..\Library\env.bat" --conda',
+    "@call :orocos_activate_return %ERRORLEVEL%",
+    ":orocos_activate_return",
+    '@set "__OROCOS_ROCK_RECORD_RUNTIME_PLUGIN="',
+    '@call "%~dp0..\deactivate.d\orocos-deactivate.bat"',
     "@exit /b %ERRORLEVEL%"
   ]
   %w[
@@ -621,10 +629,11 @@ if !File.file?(deactivation_hook_path)
 else
   deactivation_hook = File.read(deactivation_hook_path).gsub("\r\n", "\n")
   deactivation_tokens = [
-    "@if not defined __OROCOS_ROCK_CONDA_ACTIVE exit /b 0",
+    "@if not defined __OROCOS_ROCK_CONDA_ACTIVE @exit /b 0",
     ":orocos_deactivate_next_path_value",
     '@set "PATH=%__OROCOS_ROCK_HOOK_PATH_NEW:~1%"',
     '@set "__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT="',
+    '@set "__OROCOS_ROCK_RECORD_RUNTIME_PLUGIN="',
     '@set "__OROCOS_ROCK_CONDA_ACTIVE="',
     "@exit /b 0"
   ]
@@ -639,7 +648,7 @@ else
   ].each do |name|
     deactivation_tokens << %(@set "#{name}=")
     deactivation_tokens <<
-      %(@if "%__OROCOS_ROCK_#{name}_SET%"=="1" set "#{name}=%__OROCOS_ROCK_#{name}_VALUE%")
+      %(@if "%__OROCOS_ROCK_#{name}_SET%"=="1" @set "#{name}=%__OROCOS_ROCK_#{name}_VALUE%")
     deactivation_tokens << %(@set "__OROCOS_ROCK_#{name}_SET=")
     deactivation_tokens << %(@set "__OROCOS_ROCK_#{name}_VALUE=")
   end
@@ -669,13 +678,19 @@ else
     "self-relative prefix discovery" => '%~dp0.',
     "recursive Orocos directory discovery" => "for /d /r",
     "directory existence filtering" => "if not exist",
-    "case-insensitive path deduplication" => "if /I",
+    "case-insensitive full-entry membership" =>
+      'findstr.exe" /I /L',
     "Conda-owned PATH preservation" =>
-      '@if /I not "%~1"=="--conda" goto orocos_full_runtime_path',
+      '@if /I not "%~1"=="--conda" @goto orocos_full_runtime_path',
     "the Conda runtime loader directory" =>
       '@call :orocos_add_candidate "%OROCOS_PREFIX%\lib\orocos\@TARGET@\plugins"',
+    "activation-owned loader path tracking" =>
+      '__OROCOS_ROCK_PATH_RUNTIME_PLUGIN_PRESENT',
     "the full standalone runtime path branch" => ":orocos_full_runtime_path",
     "the package-mode runtime path boundary" => ":orocos_runtime_path_ready",
+    "internal failure propagation" => ":orocos_runtime_failed",
+    "final assignment failure detection" =>
+      '__OROCOS_ROCK_PATH_COMMIT_OK',
     "caller-preserving success" => "exit /b 0"
   }.each do |contract, token|
     unless runtime_batch&.include?(token)
@@ -683,40 +698,42 @@ else
     end
   end
   if runtime_batch&.match?(/\b(?:setlocal|powershell(?:\.exe)?|python(?:\.exe)?)\b/i)
-    errors << "generated env.bat must not use scoped activation or helper subprocesses"
+    errors << "generated env.bat must not use scoped activation or non-system helper runtimes"
   end
-  unsafe_batch_dedup =
-    '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%~1" exit /b 0'
-  native_path_modifier_dedup =
-    '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I "%%~E"=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
-  native_quoted_for_dedup =
-    '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do if /I %%E=="%__OROCOS_ROCK_PATH_CANDIDATE%" set "__OROCOS_ROCK_PATH_DUPLICATE=1"'
-  nested_batch_dedup =
-    '@for %%E in ("%__OROCOS_ROCK_PATH_NEW:;=" "%") do call :orocos_compare_path_value "%%~E"'
-  unsafe_existing_path_scan =
-    '@for %%E in ("%__OROCOS_ROCK_PATH_OLD:;=" "%") do call :orocos_add_path_value "%%~E"'
-  safe_batch_scan = [
-    '@set "__OROCOS_ROCK_PATH_INPUT=%__OROCOS_ROCK_PATH_INPUT%;%~1"',
-    ':orocos_deduplicate_next_path_value',
-    '@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_CURRENT=%%E"',
-    '@for /f "tokens=1,* delims=;" %%E in ("%__OROCOS_ROCK_PATH_SCAN%") do set "__OROCOS_ROCK_PATH_SCAN=%%F"',
-    ':orocos_compare_next_path_value',
-    '@if /I "%__OROCOS_ROCK_PATH_CURRENT%"=="%__OROCOS_ROCK_PATH_COMPARISON%" goto orocos_deduplicate_next_path_value',
-    '@set "__OROCOS_ROCK_PATH_NEW=%__OROCOS_ROCK_PATH_NEW%;%__OROCOS_ROCK_PATH_CURRENT%"',
-    ':orocos_deduplicate_path_done'
+  unsafe_long_path_tokens = [
+    "__OROCOS_ROCK_PATH_OLD",
+    "__OROCOS_ROCK_PATH_INPUT",
+    "__OROCOS_ROCK_PATH_SCAN",
+    "__OROCOS_ROCK_PATH_COMPARE",
+    "__OROCOS_ROCK_PATH_COMPARISON",
+    '@for /f "tokens=1,* delims=;"',
+    "call set"
   ]
-  if runtime_batch&.include?(unsafe_batch_dedup)
-    errors << "generated env.bat must avoid native cmd FOR/batch-parameter parser ambiguity"
-  elsif runtime_batch&.include?(native_path_modifier_dedup)
-    errors << "generated env.bat must avoid native cmd FOR/path-modifier parser ambiguity"
-  elsif runtime_batch&.include?(native_quoted_for_dedup)
-    errors << "generated env.bat must not compare deduplication candidates inside FOR"
-  elsif runtime_batch&.include?(nested_batch_dedup)
-    errors << "generated env.bat must compare deduplication candidates without nested batch calls"
-  elsif runtime_batch&.include?(unsafe_existing_path_scan)
-    errors << "generated env.bat must scan inherited paths without inline substitution"
-  elsif safe_batch_scan.any? { |line| !runtime_batch&.include?(line) }
-    errors << "generated env.bat must collect paths before a separate deduplication pass"
+  if unsafe_long_path_tokens.any? { |token| runtime_batch&.include?(token) }
+    errors << "generated env.bat must not expand inherited PATH-like values while scanning entries"
+  end
+  boundary_membership_tokens = [
+    ":orocos_path_contains_candidate",
+    '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%~1"',
+    '/L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%~1;"',
+    '/L /C:";%~1;"',
+    '/L /E /C:";%~1"'
+  ]
+  unless boundary_membership_tokens.all? { |token| runtime_batch&.include?(token) }
+    errors << "generated env.bat must match existing candidates as complete case-insensitive entries"
+  end
+  %w[
+    PATH
+    RTT_COMPONENT_PATH
+    PKG_CONFIG_PATH
+    TYPELIB_PLUGIN_PATH
+    CMAKE_PREFIX_PATH
+  ].each do |name|
+    prepend = %(@set "#{name}=%__OROCOS_ROCK_PATH_PREFIX:~1%;%#{name}%" && @set "__OROCOS_ROCK_PATH_COMMIT_OK=1")
+    unless runtime_batch&.include?(prepend) &&
+           runtime_batch.scan(/%#{Regexp.escape(name)}%/i).size == 1
+      errors << "generated env.bat must preserve inherited #{name} and expand it only for the final prepend"
+    end
   end
   if runtime_batch&.match?(/^\s*@?echo\s+off\s*$/i)
     errors << "generated env.bat must not change the caller's echo mode"
@@ -737,14 +754,23 @@ else
     "cmd.exe caller activation" => "Invoke-BatchEnvironment",
     "repeated activation" =>
       'Invoke-BatchEnvironment -BatchPath $runtimeBatch -Calls 2',
-    "global path deduplication" => "Assert-PathEntriesUnique",
+    "exact consumer path preservation" => "Assert-PathValuePreservedAsSuffix",
     "structured expected path records" => "$expectedPathEntries = @(",
     "a Rattler-length inherited PATH" => "$rattlerPathEntries = @(",
+    "Rattler-style command echo" => "-EchoCommands",
+    "quiet internal PATH commands" =>
+      '$script:BatchActivationOutput -match "__OROCOS_ROCK_PATH_"',
+    "internal failure propagation" => "-ExpectedExitCode 1",
     "a relocated prefix containing spaces" => '"orocos activation "',
     "case-insensitive comparisons" => "OrdinalIgnoreCase",
     "recursive runtime discovery" => '"lib\orocos\win32\custom\plugins"'
   }.each do |contract, token|
     errors << "Windows runtime package test must cover #{contract}" unless runtime_test.include?(token)
+  end
+  unless runtime_test.match?(
+    /\$script:BatchActivationElapsed\.TotalSeconds -gt 30(?:\D|$)/
+  )
+    errors << "Windows runtime package test must cover a bounded activation time"
   end
 
   exact_path_tokens = [
@@ -802,8 +828,44 @@ else
   ]
   unless lifecycle_tokens.all? { |token| runtime_test.include?(token) } &&
          runtime_test.scan(/-BatchPath \$activationHook/).size >= 3 &&
-         runtime_test.scan(/-FollowupCalls 2/).size >= 2
+         runtime_test.scan(/-FollowupCalls 2/).size >= 2 &&
+         runtime_test.scan(/-RemoveEnvironmentVariables \$hookManagedVariables/).size >= 2
     errors << "Windows runtime package test must cover reversible and idempotent package hooks"
+  end
+end
+
+unless File.file?(activation_probe_path)
+  errors << "missing tools/probe-windows-conda-activation.ps1"
+else
+  activation_probe = File.read(activation_probe_path)
+  {
+    "Rattler-style command echo" => '"@echo on"',
+    "a structured long PATH" => "1..96 | ForEach-Object",
+    "repeated activation" => "('call \"{0}\"' -f $activationHook)",
+    "paired deactivation" => "('call \"{0}\"' -f $deactivationHook)",
+    "internal command-output rejection" =>
+      '$activationOutput -match "__OROCOS_ROCK_PATH_"',
+    "relocated prefix validation" =>
+      '-Name "OROCOS_TEST_ACTIVE_PREFIX"',
+    "runtime discovery" =>
+      '"@deployer-opcua-win32.exe --check --no-consolelog"',
+    "PKG_CONFIG_LIBDIR restoration" =>
+      '-Expected $preservedPkgConfigLibdir',
+    "unset OROCOS_PREFIX restoration" =>
+      'Assert-ValueAbsent -Environment $environment -Name "OROCOS_PREFIX"',
+    "unset OROCOS_TARGET restoration" =>
+      'Assert-ValueAbsent -Environment $environment -Name "OROCOS_TARGET"'
+  }.each do |contract, token|
+    unless activation_probe.include?(token)
+      errors << "clean consumer activation probe must cover #{contract}"
+    end
+  end
+  unless activation_probe.match?(/^\s*\[int\]\$MaximumSeconds = 30\s*$/)
+    errors << "clean consumer activation probe must cover a 30-second default gate"
+  end
+  unless activation_probe.scan(/\$activationHook\)/).size >= 2 &&
+         activation_probe.scan(/\$deactivationHook\)/).size >= 2
+    errors << "clean consumer activation probe must repeat both lifecycle hooks"
   end
 end
 
@@ -843,6 +905,8 @@ else
     "an exact runtime build" => '"orocos==$($runtime.version)=$($runtime.build)"',
     "an exact development build" => '"orocos-dev==$($development.version)=$($development.build)"',
     "a clean Pixi package cache" => "PIXI_CACHE_DIR",
+    "the long-PATH activation probe" =>
+      "probe-windows-conda-activation.ps1",
     "OroGen" => "orogen --version",
     "Typegen" => "typegen --help",
     "the OPC UA deployer" => "deployer-opcua-win32.exe --check --no-consolelog"
