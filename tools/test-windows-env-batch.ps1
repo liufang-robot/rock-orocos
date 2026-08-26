@@ -209,6 +209,14 @@ try {
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_FIRST=1"',
+        '@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" >nul',
+        '@set "__OROCOS_TEST_NAME_FILTER=%ERRORLEVEL%"',
+        ('@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
+        '@set "__OROCOS_TEST_DIRECT_BOUNDARY=%ERRORLEVEL%"',
+        ('@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
+        '@set "__OROCOS_TEST_PIPELINE_BOUNDARY=%ERRORLEVEL%"',
+        ('@echo PATH={0};fixture | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
+        '@set "__OROCOS_TEST_SYNTHETIC_BOUNDARY=%ERRORLEVEL%"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_SECOND=1"',
@@ -249,6 +257,12 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($script:BatchStandardError)) {
         throw "Batch lifecycle wrote to stderr:`n$script:BatchStandardError"
     }
+    Write-Host (
+        "Membership probe: name={0}, direct={1}, pipeline={2}, synthetic={3}" -f
+            $environment["__OROCOS_TEST_NAME_FILTER"],
+            $environment["__OROCOS_TEST_DIRECT_BOUNDARY"],
+            $environment["__OROCOS_TEST_PIPELINE_BOUNDARY"],
+            $environment["__OROCOS_TEST_SYNTHETIC_BOUNDARY"])
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
