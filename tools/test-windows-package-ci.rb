@@ -942,6 +942,15 @@ runtime_test_mutations = {
 }
 
 activation_probe_mutations = {
+  "clean activation probe uses C-style quote escapes" => [
+    "clean consumer activation probe must use PowerShell-compatible batch command quoting",
+    lambda do |contents|
+      contents.sub(
+        %q{'@set "OROCOS_TEST_ACTIVE_PREFIX=%OROCOS_PREFIX%"'},
+        %q{"@set \"OROCOS_TEST_ACTIVE_PREFIX=%OROCOS_PREFIX%\""}
+      )
+    end
+  ],
   "clean activation probe disables command echo" => [
     "clean consumer activation probe must cover Rattler-style command echo",
     ->(contents) { contents.sub('"@echo on"', '"@echo off"') }

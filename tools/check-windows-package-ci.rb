@@ -842,6 +842,9 @@ unless File.file?(activation_probe_path)
   errors << "missing tools/probe-windows-conda-activation.ps1"
 else
   activation_probe = File.read(activation_probe_path)
+  if activation_probe.include?("\\\"")
+    errors << "clean consumer activation probe must use PowerShell-compatible batch command quoting"
+  end
   {
     "Rattler-style command echo" => '"@echo on"',
     "a structured long PATH" => "1..96 | ForEach-Object",
