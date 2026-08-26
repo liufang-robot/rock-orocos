@@ -742,12 +742,21 @@ exporter_mutations = {
       )
     end
   ],
+  "batch membership expands a subroutine argument inside the pipeline" => [
+    "generated env.bat must match existing candidates as complete case-insensitive entries",
+    lambda do |contents|
+      contents.sub(
+        '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
+        '@set "__OROCOS_ROCK_PATH_CANDIDATE="'
+      )
+    end
+  ],
   "batch membership loses exact single-entry matching" => [
     "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|
       contents.sub(
-        '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%~1"',
-        '/L /C:"%__OROCOS_ROCK_PATH_NAME%=%~1"'
+        '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"',
+        '/L /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"'
       )
     end
   ],
@@ -755,8 +764,8 @@ exporter_mutations = {
     "generated env.bat must match existing candidates as complete case-insensitive entries",
     lambda do |contents|
       contents.sub(
-        '/L /C:";%~1;"',
-        '/L /C:"%~1"'
+        '/L /C:";%__OROCOS_ROCK_PATH_CANDIDATE%;"',
+        '/L /C:"%__OROCOS_ROCK_PATH_CANDIDATE%"'
       )
     end
   ],

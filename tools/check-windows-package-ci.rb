@@ -714,10 +714,11 @@ else
   end
   boundary_membership_tokens = [
     ":orocos_path_contains_candidate",
-    '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%~1"',
-    '/L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%~1;"',
-    '/L /C:";%~1;"',
-    '/L /E /C:";%~1"'
+    '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
+    '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"',
+    '/L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;"',
+    '/L /C:";%__OROCOS_ROCK_PATH_CANDIDATE%;"',
+    '/L /E /C:";%__OROCOS_ROCK_PATH_CANDIDATE%"'
   ]
   unless boundary_membership_tokens.all? { |token| runtime_batch&.include?(token) }
     errors << "generated env.bat must match existing candidates as complete case-insensitive entries"
