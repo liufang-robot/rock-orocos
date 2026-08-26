@@ -27,6 +27,8 @@
 
 :orocos_activate_runtime
 @if /I not "%OROCOS_TEST_MEMBERSHIP_PHASE%"=="SECOND" @goto orocos_activate_test_probe_done
+@set PATH > "%OROCOS_TEST_HOOK_PATH_FILE%"
+@set "OROCOS_TEST_HOOK_CANDIDATE=%OROCOS_PREFIX%\lib\orocos\win32\plugins"
 @set PATH 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=%OROCOS_PREFIX%\lib\orocos\win32\plugins;" >nul
 @set "OROCOS_TEST_HOOK_MEMBERSHIP=%ERRORLEVEL%"
 :orocos_activate_test_probe_done

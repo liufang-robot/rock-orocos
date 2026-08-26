@@ -256,6 +256,8 @@ $runtimeBatchTemplate = @'
 @for %%I in ("%~dp0.") do @set "OROCOS_PREFIX=%%~fI"
 @set "OROCOS_TARGET=@TARGET@"
 @if /I not "%OROCOS_TEST_MEMBERSHIP_PHASE%"=="SECOND" @goto orocos_test_env_probe_done
+@set PATH > "%OROCOS_TEST_ENV_PATH_FILE%"
+@set "OROCOS_TEST_ENV_CANDIDATE=%OROCOS_PREFIX%\lib\orocos\@TARGET@\plugins"
 @set PATH 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=%OROCOS_PREFIX%\lib\orocos\@TARGET@\plugins;" >nul
 @set "OROCOS_TEST_ENV_MEMBERSHIP=%ERRORLEVEL%"
 :orocos_test_env_probe_done
@@ -339,6 +341,7 @@ $runtimeBatchTemplate = @'
 @set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"
 @if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_PRODUCTION_CANDIDATE_%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"
 @if /I not "%OROCOS_TEST_MEMBERSHIP_PHASE%"=="SECOND" @goto orocos_test_add_probe_done
+@if /I "%__OROCOS_ROCK_PATH_NAME%"=="PATH" @set PATH > "%OROCOS_TEST_ADD_PATH_FILE%"
 @set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul
 @set "OROCOS_TEST_ADD_MEMBERSHIP_%__OROCOS_ROCK_PATH_NAME%=%ERRORLEVEL%"
 :orocos_test_add_probe_done

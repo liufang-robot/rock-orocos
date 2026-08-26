@@ -155,6 +155,25 @@ function Assert-PathEntryCount {
     }
 }
 
+function Read-BatchVariableFile {
+    param(
+        [string]$Path,
+        [string]$Name
+    )
+
+    $prefix = "$Name="
+    $line = @(
+        [IO.File]::ReadAllLines($Path) |
+            Where-Object {
+                $_.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)
+            }
+    )
+    if ($line.Count -ne 1) {
+        throw "$Path contains $($line.Count) $Name entries; expected 1."
+    }
+    return $line[0].Substring($prefix.Length)
+}
+
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) `
     ("orocos-windows-env-batch-" + [guid]::NewGuid().ToString("N"))
@@ -170,6 +189,10 @@ $callerPath = Join-Path $testRoot "capture-environment.bat"
 $membershipProbePath = Join-Path $testRoot "membership-probe.bat"
 $membershipLabelProbePath = Join-Path $testRoot "membership-label-probe.bat"
 $membershipProxyPath = Join-Path $testRoot "membership-proxy.bat"
+$callerPathFile = Join-Path $testRoot "caller-path.txt"
+$hookPathFile = Join-Path $testRoot "hook-path.txt"
+$envPathFile = Join-Path $testRoot "env-path.txt"
+$addPathFile = Join-Path $testRoot "add-path.txt"
 $preservedPath = Join-Path $testRoot "preserved"
 $runtimePluginPath = Join-Path $libraryPrefix "lib\orocos\win32\plugins"
 $componentPath = Join-Path $libraryPrefix "lib\orocos\win32\types"
@@ -239,6 +262,10 @@ try {
     $callerLines = @(
         '@echo on',
         '@set "OROCOS_TEST_MEMBERSHIP_PROBE=1"',
+        ('@set "OROCOS_TEST_CALLER_PATH_FILE={0}"' -f $callerPathFile),
+        ('@set "OROCOS_TEST_HOOK_PATH_FILE={0}"' -f $hookPathFile),
+        ('@set "OROCOS_TEST_ENV_PATH_FILE={0}"' -f $envPathFile),
+        ('@set "OROCOS_TEST_ADD_PATH_FILE={0}"' -f $addPathFile),
         '@set "__OROCOS_TEST_BEFORE_FIRST=1"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
@@ -250,6 +277,11 @@ try {
         ('@call "{0}" "{1}"' -f $membershipProxyPath, $runtimePluginPath),
         '@set "OROCOS_TEST_PROXY_LABEL=%ERRORLEVEL%"',
         '@set "OROCOS_TEST_MEMBERSHIP_PHASE=SECOND"',
+        ('@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
+        '@set "OROCOS_TEST_CALLER_SECOND=%ERRORLEVEL%"',
+        '@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /C:"OROCOS_TEST_DEFINITELY_MISSING" >nul',
+        '@set "OROCOS_TEST_CALLER_NEGATIVE=%ERRORLEVEL%"',
+        '@set PATH > "%OROCOS_TEST_CALLER_PATH_FILE%"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_SECOND=1"',
@@ -305,6 +337,21 @@ try {
             $environment["OROCOS_TEST_HOOK_MEMBERSHIP"],
             $environment["OROCOS_TEST_ENV_MEMBERSHIP"],
             $environment["OROCOS_TEST_ADD_MEMBERSHIP_PATH"])
+    $pathBeforeSecondActivation = "$runtimePluginPath;$rattlerPath"
+    $callerPathValue = Read-BatchVariableFile -Path $callerPathFile -Name "PATH"
+    $hookPathValue = Read-BatchVariableFile -Path $hookPathFile -Name "PATH"
+    $envPathValue = Read-BatchVariableFile -Path $envPathFile -Name "PATH"
+    $addPathValue = Read-BatchVariableFile -Path $addPathFile -Name "PATH"
+    Write-Host (
+        "Caller controls: positive={0}, negative={1}; data matches: caller={2}, hook={3}, env={4}, add={5}, hook-candidate={6}, env-candidate={7}" -f
+            $environment["OROCOS_TEST_CALLER_SECOND"],
+            $environment["OROCOS_TEST_CALLER_NEGATIVE"],
+            [string]::Equals($callerPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
+            [string]::Equals($hookPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
+            [string]::Equals($envPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
+            [string]::Equals($addPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
+            [string]::Equals($environment["OROCOS_TEST_HOOK_CANDIDATE"], $runtimePluginPath, [StringComparison]::OrdinalIgnoreCase),
+            [string]::Equals($environment["OROCOS_TEST_ENV_CANDIDATE"], $runtimePluginPath, [StringComparison]::OrdinalIgnoreCase))
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
