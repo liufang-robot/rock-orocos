@@ -4,6 +4,7 @@ param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 $script:BatchStandardOutput = ""
+$script:BatchStandardError = ""
 $script:BatchActivationOutput = ""
 $script:BatchActivationElapsed = [TimeSpan]::Zero
 $script:ManagedHookVariables = @(
@@ -51,6 +52,7 @@ function Get-BatchEnvironment {
         $process.WaitForExit()
         $stopwatch.Stop()
         $script:BatchStandardOutput = $standardOutput
+        $script:BatchStandardError = $standardError
         if ($process.ExitCode -ne 0) {
             throw @"
 Batch activation failed with code $($process.ExitCode).
@@ -203,13 +205,13 @@ try {
 
     $callerLines = @(
         '@echo on',
-        '@echo __OROCOS_TEST_BEFORE_FIRST=1',
+        '@set "__OROCOS_TEST_BEFORE_FIRST=1"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
-        '@echo __OROCOS_TEST_AFTER_FIRST=1',
+        '@set "__OROCOS_TEST_AFTER_FIRST=1"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
-        '@echo __OROCOS_TEST_AFTER_SECOND=1',
+        '@set "__OROCOS_TEST_AFTER_SECOND=1"',
         '@set "__OROCOS_TEST_ACTIVE_PREFIX=%OROCOS_PREFIX%"',
         '@set "__OROCOS_TEST_ACTIVE_TARGET=%OROCOS_TARGET%"',
         '@set "__OROCOS_TEST_ACTIVE_PATH=%PATH%"',
@@ -219,10 +221,10 @@ try {
         '@set "__OROCOS_TEST_ACTIVE_CMAKE_PATH=%CMAKE_PREFIX_PATH%"',
         ('call "{0}"' -f $deactivationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
-        '@echo __OROCOS_TEST_AFTER_DEACTIVATION=1',
+        '@set "__OROCOS_TEST_AFTER_DEACTIVATION=1"',
         ('call "{0}"' -f $deactivationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
-        '@echo __OROCOS_TEST_AFTER_SECOND_DEACTIVATION=1',
+        '@set "__OROCOS_TEST_AFTER_SECOND_DEACTIVATION=1"',
         '@echo off',
         '@echo OROCOS_TEST_ENVIRONMENT_CAPTURE_BEGIN',
         '@set'
@@ -244,6 +246,9 @@ try {
         -CallerPath $callerPath `
         -InitialPath $rattlerPath
 
+    if (-not [string]::IsNullOrWhiteSpace($script:BatchStandardError)) {
+        throw "Batch lifecycle wrote to stderr:`n$script:BatchStandardError"
+    }
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
