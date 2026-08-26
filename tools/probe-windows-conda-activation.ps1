@@ -82,6 +82,11 @@ $libraryBin = Join-Path $libraryPrefix "bin"
 $runtimePlugins = Join-Path $libraryPrefix "lib\orocos\win32\plugins"
 $runtimeTypes = Join-Path $libraryPrefix "lib\orocos\win32\types"
 $pkgConfig = Join-Path $libraryPrefix "lib\pkgconfig"
+$pkgConfigExpectedCount = if (Test-Path -LiteralPath $pkgConfig -PathType Container) {
+    1
+} else {
+    0
+}
 $typelib = Join-Path $libraryPrefix "lib\typelib"
 $rattlerPathEntries = @($libraryBin) + @(
     1..96 | ForEach-Object {
@@ -240,29 +245,34 @@ $standardError
             [PSCustomObject]@{
                 Name = "OROCOS_TEST_ACTIVE_PATH"
                 Path = $runtimePlugins
+                Count = 1
             },
             [PSCustomObject]@{
                 Name = "OROCOS_TEST_ACTIVE_RTT_COMPONENT_PATH"
                 Path = $runtimeTypes
+                Count = 1
             },
             [PSCustomObject]@{
                 Name = "OROCOS_TEST_ACTIVE_PKG_CONFIG_PATH"
                 Path = $pkgConfig
+                Count = $pkgConfigExpectedCount
             },
             [PSCustomObject]@{
                 Name = "OROCOS_TEST_ACTIVE_TYPELIB_PLUGIN_PATH"
                 Path = $typelib
+                Count = 1
             },
             [PSCustomObject]@{
                 Name = "OROCOS_TEST_ACTIVE_CMAKE_PREFIX_PATH"
                 Path = $libraryPrefix
+                Count = 1
             }
         )) {
         Assert-PathEntryCount `
             -Environment $environment `
             -Name $entry.Name `
             -ExpectedPath $entry.Path `
-            -ExpectedCount 1
+            -ExpectedCount $entry.Count
     }
     foreach ($name in @(
             "OROCOS_TEST_ACTIVE_RTT_COMPONENT_PATH",

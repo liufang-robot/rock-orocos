@@ -306,10 +306,9 @@ $hookInitialEnvironment = @{
     TYPELIB_PLUGIN_PATH = $staleHookDiscoveryPath
     CMAKE_PREFIX_PATH = $staleHookDiscoveryPath
 }
-$createdHookPkgConfig = -not (Test-Path -LiteralPath $hookPkgConfig `
-    -PathType Container)
-if ($createdHookPkgConfig) {
-    New-Item -ItemType Directory -Path $hookPkgConfig | Out-Null
+$hookPkgConfigExpectedCount = 0
+if (Test-Path -LiteralPath $hookPkgConfig -PathType Container) {
+    throw "The runtime package unexpectedly contains the development pkg-config directory: $hookPkgConfig"
 }
 try {
     $hookEnvironment = Invoke-BatchEnvironment `
@@ -345,21 +344,38 @@ try {
         -Name "PKG_CONFIG_LIBDIR" -Expected $hookPkgConfig
 
     $hookExpectedPathEntries = @(
-        [PSCustomObject]@{ Name = "PATH"; Path = $hookRuntimePlugins },
+        [PSCustomObject]@{
+            Name = "PATH"
+            Path = $hookRuntimePlugins
+            Count = 1
+        },
         [PSCustomObject]@{
             Name = "RTT_COMPONENT_PATH"
             Path = $hookRttTypes
+            Count = 1
         },
-        [PSCustomObject]@{ Name = "PKG_CONFIG_PATH"; Path = $hookPkgConfig },
-        [PSCustomObject]@{ Name = "TYPELIB_PLUGIN_PATH"; Path = $hookTypelib },
-        [PSCustomObject]@{ Name = "CMAKE_PREFIX_PATH"; Path = $libraryPrefix }
+        [PSCustomObject]@{
+            Name = "PKG_CONFIG_PATH"
+            Path = $hookPkgConfig
+            Count = $hookPkgConfigExpectedCount
+        },
+        [PSCustomObject]@{
+            Name = "TYPELIB_PLUGIN_PATH"
+            Path = $hookTypelib
+            Count = 1
+        },
+        [PSCustomObject]@{
+            Name = "CMAKE_PREFIX_PATH"
+            Path = $libraryPrefix
+            Count = 1
+        }
     )
     foreach ($entry in $hookExpectedPathEntries) {
         Assert-PathEntryCount `
             -Environment $hookEnvironment `
             -Name $entry.Name `
             -ExpectedPath $entry.Path `
-            -ExpectedCount 1
+            -ExpectedCount $entry.Count
     }
 
     $hookPreservedPathNames = @(
@@ -421,8 +437,8 @@ try {
         throw "The activation hook did not propagate env.bat's internal failure."
     }
 } finally {
-    if ($createdHookPkgConfig) {
-        Remove-Item -LiteralPath $hookPkgConfig -Force
+    if (Test-Path -LiteralPath $hookPkgConfig -PathType Container) {
+        throw "Runtime activation created the development pkg-config directory: $hookPkgConfig"
     }
 }
 

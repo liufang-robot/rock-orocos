@@ -784,7 +784,7 @@ else
     '$hookRuntimePlugins = Join-Path $libraryPrefix "lib\orocos\win32\plugins"',
     '$hookExpectedPath = "$hookRuntimePlugins;$rattlerPath"',
     '-Environment $hookEnvironment -Name "PATH" -Expected $hookExpectedPath',
-    '[PSCustomObject]@{ Name = "PATH"; Path = $hookRuntimePlugins }'
+    'Path = $hookRuntimePlugins'
   ]
   unless exact_path_tokens.all? { |token| runtime_test.include?(token) } &&
          runtime_test.scan(/\bAssert-EnvironmentValueExact\b/).size >= 2
@@ -805,17 +805,20 @@ else
     '$hookPkgConfig = Join-Path $libraryPrefix "lib\pkgconfig"',
     '$hookTypelib = Join-Path $libraryPrefix "lib\typelib"',
     '$hookRttTypes = Join-Path $libraryPrefix "lib\orocos\win32\types"',
-    '$createdHookPkgConfig = -not (Test-Path -LiteralPath $hookPkgConfig',
-    'New-Item -ItemType Directory -Path $hookPkgConfig',
-    'if ($createdHookPkgConfig) {',
-    'Remove-Item -LiteralPath $hookPkgConfig -Force',
+    '$hookPkgConfigExpectedCount = 0',
+    'runtime package unexpectedly contains the development pkg-config directory',
     '-Name "PKG_CONFIG_LIBDIR" -Expected $hookPkgConfig',
     '$hookExpectedPathEntries = @(',
+    'Count = $hookPkgConfigExpectedCount',
+    '-ExpectedCount $entry.Count',
     '$hookPreservedPathNames = @(',
     '-ExpectedPath $staleHookDiscoveryPath'
   ]
   unless conda_discovery_tokens.all? { |token| runtime_test.include?(token) }
     errors << "Windows runtime package test must cover Conda-mode discovery variables"
+  end
+  if runtime_test.include?('New-Item -ItemType Directory -Path $hookPkgConfig')
+    errors << "Windows runtime package test must use the actual split-package pkg-config layout"
   end
 
   lifecycle_tokens = [
@@ -857,6 +860,12 @@ else
       '-Name "OROCOS_TEST_ACTIVE_PREFIX"',
     "runtime discovery" =>
       '"@deployer-opcua-win32.exe --check --no-consolelog"',
+    "split-package pkg-config directory semantics" =>
+      '$pkgConfigExpectedCount = if (Test-Path -LiteralPath $pkgConfig -PathType Container)',
+    "split-package pkg-config expected count" =>
+      'Count = $pkgConfigExpectedCount',
+    "structured discovery-path expected counts" =>
+      '-ExpectedCount $entry.Count',
     "PKG_CONFIG_LIBDIR restoration" =>
       '-Expected $preservedPkgConfigLibdir',
     "unset OROCOS_PREFIX restoration" =>
@@ -960,6 +969,13 @@ else
 
   runtime_body = powershell_here_string(consumer, "runtimeCommand")
   development_body = powershell_here_string(consumer, "developmentCommand")
+  activation_probe_invocation =
+    '& $env:OROCOS_CONDA_ACTIVATION_PROBE -CondaPrefix $env:CONDA_PREFIX'
+  unless [runtime_body, development_body].all? do |body|
+           body&.scan(activation_probe_invocation)&.size == 1
+         end
+    errors << "consumer smoke test must probe package activation in runtime and development environments"
+  end
   if runtime_body&.include?("OROCOS_PIXI_ACTIVATION_SCRIPT") ||
      runtime_body&.match?(/(?:dev-)?env\.ps1/i)
     errors << "runtime consumer must rely only on package-owned activation"

@@ -98,6 +98,7 @@ $developmentCommand = @'
 & {
     $ErrorActionPreference = "Stop"
     . $env:OROCOS_PIXI_ACTIVATION_SCRIPT
+    & $env:OROCOS_CONDA_ACTIVATION_PROBE -CondaPrefix $env:CONDA_PREFIX
     $developmentHeader = Join-Path $env:CONDA_PREFIX 'Library\include\orocos\rtt\RTT.hpp'
     if (-not (Test-Path -LiteralPath $developmentHeader -PathType Leaf)) {
         throw 'The development environment is missing the RTT headers.'

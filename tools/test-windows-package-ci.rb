@@ -304,6 +304,8 @@ end
 
 shared_source = '    . $env:OROCOS_PIXI_ACTIVATION_SCRIPT'
 child_error_preference = '    $ErrorActionPreference = "Stop"'
+activation_probe_call =
+  '    & $env:OROCOS_CONDA_ACTIVATION_PROBE -CondaPrefix $env:CONDA_PREFIX'
 consumer_mutations = {
   "missing long-PATH activation probe" => [
     "consumer smoke test must check the long-PATH activation probe",
@@ -312,6 +314,18 @@ consumer_mutations = {
         "probe-windows-conda-activation.ps1",
         "missing-windows-conda-activation.ps1"
       )
+    end
+  ],
+  "runtime consumer skips activation probe" => [
+    "consumer smoke test must probe package activation in runtime and development environments",
+    lambda do |contents|
+      replace_occurrence(contents, activation_probe_call, "", 0)
+    end
+  ],
+  "development consumer skips activation probe" => [
+    "consumer smoke test must probe package activation in runtime and development environments",
+    lambda do |contents|
+      replace_occurrence(contents, activation_probe_call, "", 1)
     end
   ],
   "runtime shared wrapper source" => [
@@ -926,6 +940,24 @@ runtime_test_mutations = {
       )
     end
   ],
+  "runtime test synthesizes the development pkg-config directory" => [
+    "Windows runtime package test must use the actual split-package pkg-config layout",
+    lambda do |contents|
+      contents.sub(
+        '$hookPkgConfigExpectedCount = 0',
+        '$hookPkgConfigExpectedCount = 0' + "\n" +
+          'New-Item -ItemType Directory -Path $hookPkgConfig'
+      )
+    end
+  ],
+  "runtime test expects the development pkg-config directory" => [
+    "Windows runtime package test must cover Conda-mode discovery variables",
+    ->(contents) { contents.sub('$hookPkgConfigExpectedCount = 0', '$hookPkgConfigExpectedCount = 1') }
+  ],
+  "runtime test ignores discovery-path expected counts" => [
+    "Windows runtime package test must cover Conda-mode discovery variables",
+    ->(contents) { contents.sub('-ExpectedCount $entry.Count', '-ExpectedCount 1') }
+  ],
   "runtime test does not repeat deactivation" => [
     "Windows runtime package test must cover reversible and idempotent package hooks",
     ->(contents) { contents.sub("-FollowupCalls 2", "-FollowupCalls 1") }
@@ -967,6 +999,23 @@ activation_probe_mutations = {
   "clean activation probe uses a short PATH" => [
     "clean consumer activation probe must cover a structured long PATH",
     ->(contents) { contents.sub("1..96 | ForEach-Object", "1..2 | ForEach-Object") }
+  ],
+  "clean activation probe assumes pkg-config directory exists" => [
+    "clean consumer activation probe must cover split-package pkg-config directory semantics",
+    lambda do |contents|
+      contents.sub(
+        '$pkgConfigExpectedCount = if (Test-Path -LiteralPath $pkgConfig -PathType Container)',
+        '$pkgConfigExpectedCount = if ($true)'
+      )
+    end
+  ],
+  "clean activation probe hard-codes pkg-config expected count" => [
+    "clean consumer activation probe must cover split-package pkg-config expected count",
+    ->(contents) { contents.sub('Count = $pkgConfigExpectedCount', 'Count = 1') }
+  ],
+  "clean activation probe ignores structured expected counts" => [
+    "clean consumer activation probe must cover structured discovery-path expected counts",
+    ->(contents) { contents.sub('-ExpectedCount $entry.Count', '-ExpectedCount 1') }
   ],
   "clean activation probe skips repeated activation" => [
     "clean consumer activation probe must repeat both lifecycle hooks",
