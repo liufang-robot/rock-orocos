@@ -249,6 +249,7 @@ try {
         '@set "OROCOS_TEST_EXTERNAL_LABEL=%ERRORLEVEL%"',
         ('@call "{0}" "{1}"' -f $membershipProxyPath, $runtimePluginPath),
         '@set "OROCOS_TEST_PROXY_LABEL=%ERRORLEVEL%"',
+        '@set "OROCOS_TEST_MEMBERSHIP_PHASE=SECOND"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_SECOND=1"',
@@ -299,6 +300,11 @@ try {
                 $environment["OROCOS_TEST_PRODUCTION_CANDIDATE_PATH"],
                 $runtimePluginPath,
                 [StringComparison]::OrdinalIgnoreCase))
+    Write-Host (
+        "Production boundaries: hook={0}, env={1}, add={2}" -f
+            $environment["OROCOS_TEST_HOOK_MEMBERSHIP"],
+            $environment["OROCOS_TEST_ENV_MEMBERSHIP"],
+            $environment["OROCOS_TEST_ADD_MEMBERSHIP_PATH"])
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }

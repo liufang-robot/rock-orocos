@@ -26,6 +26,10 @@
 @set "__OROCOS_ROCK_CONDA_ACTIVE=1"
 
 :orocos_activate_runtime
+@if /I not "%OROCOS_TEST_MEMBERSHIP_PHASE%"=="SECOND" @goto orocos_activate_test_probe_done
+@set PATH 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=%OROCOS_PREFIX%\lib\orocos\win32\plugins;" >nul
+@set "OROCOS_TEST_HOOK_MEMBERSHIP=%ERRORLEVEL%"
+:orocos_activate_test_probe_done
 @call "%~dp0..\..\..\Library\env.bat" --conda
 @call :orocos_activate_return %ERRORLEVEL%
 @exit /b %ERRORLEVEL%
