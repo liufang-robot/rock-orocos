@@ -772,10 +772,12 @@ exporter_mutations = {
   "batch membership reintroduces inherited-value FOR scanning" => [
     "generated env.bat must not expand inherited PATH-like values while scanning entries",
     lambda do |contents|
-      contents.sub(
-        ":orocos_path_contains_candidate",
-        %q{:orocos_path_contains_candidate
-@for /f "tokens=1,* delims=;" %%E in ("%PATH%") do @set "OROCOS_UNSAFE=%%E"}
+      replace_normalized(
+        contents,
+        ":orocos_add_candidate\n",
+        %q{:orocos_add_candidate
+@for /f "tokens=1,* delims=;" %%E in ("%PATH%") do @set "OROCOS_UNSAFE=%%E"
+}
       )
     end
   ],

@@ -713,7 +713,7 @@ else
     errors << "generated env.bat must not expand inherited PATH-like values while scanning entries"
   end
   boundary_membership_tokens = [
-    ":orocos_path_contains_candidate",
+    ":orocos_add_candidate",
     '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
     '/L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"',
     '/L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;"',
