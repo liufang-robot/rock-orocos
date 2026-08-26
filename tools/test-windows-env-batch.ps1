@@ -189,6 +189,7 @@ $callerPath = Join-Path $testRoot "capture-environment.bat"
 $membershipProbePath = Join-Path $testRoot "membership-probe.bat"
 $membershipLabelProbePath = Join-Path $testRoot "membership-label-probe.bat"
 $membershipProxyPath = Join-Path $testRoot "membership-proxy.bat"
+$membershipGotoProbePath = Join-Path $testRoot "membership-goto-probe.bat"
 $callerPathFile = Join-Path $testRoot "caller-path.txt"
 $hookPathFile = Join-Path $testRoot "hook-path.txt"
 $envPathFile = Join-Path $testRoot "env-path.txt"
@@ -258,6 +259,19 @@ try {
             '@exit /b %ERRORLEVEL%'
         ) -join "`r`n") + "`r`n"),
         [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText(
+        $membershipGotoProbePath,
+        ((@(
+            '@if defined __OROCOS_ROCK_CONDA_ACTIVE @goto orocos_test_membership',
+            '@exit /b 99',
+            ':orocos_test_membership',
+            '@set "__OROCOS_ROCK_PATH_NAME=PATH"',
+            '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
+            $membershipCommand,
+            '@set "OROCOS_TEST_GOTO_INNER=%ERRORLEVEL%"',
+            '@exit /b %OROCOS_TEST_GOTO_INNER%'
+        ) -join "`r`n") + "`r`n"),
+        [Text.UTF8Encoding]::new($false))
 
     $callerLines = @(
         '@echo on',
@@ -276,6 +290,8 @@ try {
         '@set "OROCOS_TEST_EXTERNAL_LABEL=%ERRORLEVEL%"',
         ('@call "{0}" "{1}"' -f $membershipProxyPath, $runtimePluginPath),
         '@set "OROCOS_TEST_PROXY_LABEL=%ERRORLEVEL%"',
+        ('@call "{0}" "{1}"' -f $membershipGotoProbePath, $runtimePluginPath),
+        '@set "OROCOS_TEST_GOTO_OUTER=%ERRORLEVEL%"',
         '@set "OROCOS_TEST_MEMBERSHIP_PHASE=SECOND"',
         ('@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
         '@set "OROCOS_TEST_CALLER_SECOND=%ERRORLEVEL%"',
@@ -324,10 +340,12 @@ try {
         throw "Batch lifecycle wrote to stderr:`n$script:BatchStandardError"
     }
     Write-Host (
-        "Depth probe: external-batch={0}, external-label={1}, proxy-label={2}, production-candidate-match={3}" -f
+        "Depth probe: external-batch={0}, external-label={1}, proxy-label={2}, goto-inner={3}, goto-outer={4}, production-candidate-match={5}" -f
             $environment["OROCOS_TEST_EXTERNAL_BATCH"],
             $environment["OROCOS_TEST_EXTERNAL_LABEL"],
             $environment["OROCOS_TEST_PROXY_LABEL"],
+            $environment["OROCOS_TEST_GOTO_INNER"],
+            $environment["OROCOS_TEST_GOTO_OUTER"],
             [string]::Equals(
                 $environment["OROCOS_TEST_PRODUCTION_CANDIDATE_PATH"],
                 $runtimePluginPath,
