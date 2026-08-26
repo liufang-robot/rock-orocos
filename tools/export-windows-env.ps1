@@ -333,6 +333,7 @@ $runtimeBatchTemplate = @'
 @if "%~1"=="" @exit /b 0
 @if not exist "%~1\" @exit /b 0
 @set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_PRODUCTION_CANDIDATE_%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%"
 @set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%" >nul
 @if not errorlevel 1 @goto orocos_add_candidate_found
 @if errorlevel 2 @goto orocos_add_candidate_failed

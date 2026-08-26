@@ -167,6 +167,9 @@ $deactivationHookPath = Join-Path $deactivationHookDirectory "orocos-deactivate.
 $fakeBin = Join-Path $testRoot "fake-bin"
 $fakeRuby = Join-Path $fakeBin "ruby.cmd"
 $callerPath = Join-Path $testRoot "capture-environment.bat"
+$membershipProbePath = Join-Path $testRoot "membership-probe.bat"
+$membershipLabelProbePath = Join-Path $testRoot "membership-label-probe.bat"
+$membershipProxyPath = Join-Path $testRoot "membership-proxy.bat"
 $preservedPath = Join-Path $testRoot "preserved"
 $runtimePluginPath = Join-Path $libraryPrefix "lib\orocos\win32\plugins"
 $componentPath = Join-Path $libraryPrefix "lib\orocos\win32\types"
@@ -203,12 +206,49 @@ try {
         -LiteralPath (Join-Path $repositoryRoot "packaging\conda\orocos-deactivate.bat") `
         -Destination $deactivationHookPath
 
+    $membershipCommand = '@set %__OROCOS_ROCK_PATH_NAME% | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%__OROCOS_ROCK_PATH_CANDIDATE%;" >nul'
+    [IO.File]::WriteAllText(
+        $membershipProbePath,
+        ((@(
+            '@set "__OROCOS_ROCK_PATH_NAME=PATH"',
+            '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
+            $membershipCommand,
+            '@exit /b %ERRORLEVEL%'
+        ) -join "`r`n") + "`r`n"),
+        [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText(
+        $membershipLabelProbePath,
+        ((@(
+            '@call :orocos_test_membership "%~1"',
+            '@exit /b %ERRORLEVEL%',
+            ':orocos_test_membership',
+            '@set "__OROCOS_ROCK_PATH_NAME=PATH"',
+            '@set "__OROCOS_ROCK_PATH_CANDIDATE=%~1"',
+            $membershipCommand,
+            '@exit /b %ERRORLEVEL%'
+        ) -join "`r`n") + "`r`n"),
+        [Text.UTF8Encoding]::new($false))
+    [IO.File]::WriteAllText(
+        $membershipProxyPath,
+        ((@(
+            ('@call "{0}" "%~1"' -f $membershipLabelProbePath),
+            '@exit /b %ERRORLEVEL%'
+        ) -join "`r`n") + "`r`n"),
+        [Text.UTF8Encoding]::new($false))
+
     $callerLines = @(
         '@echo on',
+        '@set "OROCOS_TEST_MEMBERSHIP_PROBE=1"',
         '@set "__OROCOS_TEST_BEFORE_FIRST=1"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_FIRST=1"',
+        ('@call "{0}" "{1}"' -f $membershipProbePath, $runtimePluginPath),
+        '@set "OROCOS_TEST_EXTERNAL_BATCH=%ERRORLEVEL%"',
+        ('@call "{0}" "{1}"' -f $membershipLabelProbePath, $runtimePluginPath),
+        '@set "OROCOS_TEST_EXTERNAL_LABEL=%ERRORLEVEL%"',
+        ('@call "{0}" "{1}"' -f $membershipProxyPath, $runtimePluginPath),
+        '@set "OROCOS_TEST_PROXY_LABEL=%ERRORLEVEL%"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
         '@set "__OROCOS_TEST_AFTER_SECOND=1"',
@@ -250,6 +290,15 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($script:BatchStandardError)) {
         throw "Batch lifecycle wrote to stderr:`n$script:BatchStandardError"
     }
+    Write-Host (
+        "Depth probe: external-batch={0}, external-label={1}, proxy-label={2}, production-candidate-match={3}" -f
+            $environment["OROCOS_TEST_EXTERNAL_BATCH"],
+            $environment["OROCOS_TEST_EXTERNAL_LABEL"],
+            $environment["OROCOS_TEST_PROXY_LABEL"],
+            [string]::Equals(
+                $environment["OROCOS_TEST_PRODUCTION_CANDIDATE_PATH"],
+                $runtimePluginPath,
+                [StringComparison]::OrdinalIgnoreCase))
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
