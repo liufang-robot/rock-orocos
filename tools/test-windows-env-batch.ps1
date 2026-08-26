@@ -295,6 +295,10 @@ try {
         '@set "OROCOS_TEST_MEMBERSHIP_PHASE=SECOND"',
         ('@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
         '@set "OROCOS_TEST_CALLER_SECOND=%ERRORLEVEL%"',
+        ('@2>nul set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
+        '@set "OROCOS_TEST_REDIRECT_PREFIX=%ERRORLEVEL%"',
+        ('@set PATH2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"PATH={0};" >nul' -f $runtimePluginPath),
+        '@set "OROCOS_TEST_REDIRECT_ATTACHED=%ERRORLEVEL%"',
         '@set PATH | @"%SystemRoot%\System32\findstr.exe" /I /L /C:"OROCOS_TEST_DEFINITELY_MISSING" >nul',
         '@set "OROCOS_TEST_CALLER_NEGATIVE=%ERRORLEVEL%"',
         '@set PATH > "%OROCOS_TEST_CALLER_PATH_FILE%"',
@@ -361,8 +365,10 @@ try {
     $envPathValue = Read-BatchVariableFile -Path $envPathFile -Name "PATH"
     $addPathValue = Read-BatchVariableFile -Path $addPathFile -Name "PATH"
     Write-Host (
-        "Caller controls: positive={0}, negative={1}; data matches: caller={2}, hook={3}, env={4}, add={5}, hook-candidate={6}, env-candidate={7}" -f
+        "Caller controls: positive={0}, redirect-prefix={1}, redirect-attached={2}, negative={3}; data matches: caller={4}, hook={5}, env={6}, add={7}, hook-candidate={8}, env-candidate={9}" -f
             $environment["OROCOS_TEST_CALLER_SECOND"],
+            $environment["OROCOS_TEST_REDIRECT_PREFIX"],
+            $environment["OROCOS_TEST_REDIRECT_ATTACHED"],
             $environment["OROCOS_TEST_CALLER_NEGATIVE"],
             [string]::Equals($callerPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
             [string]::Equals($hookPathValue, $pathBeforeSecondActivation, [StringComparison]::Ordinal),
