@@ -328,19 +328,38 @@ $runtimeBatchTemplate = @'
 @exit /b 1
 
 :orocos_path_contains_candidate
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_NAME=%__OROCOS_ROCK_PATH_NAME%"
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_CANDIDATE=%~1"
 @set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /X /C:"%__OROCOS_ROCK_PATH_NAME%=%~1" >nul
-@if not errorlevel 1 @exit /b 0
-@if errorlevel 2 @exit /b 2
+@if not errorlevel 1 @goto orocos_path_candidate_found_exact
+@if errorlevel 2 @goto orocos_path_candidate_search_failed
 @set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=%~1;" >nul
-@if not errorlevel 1 @exit /b 0
-@if errorlevel 2 @exit /b 2
+@if not errorlevel 1 @goto orocos_path_candidate_found_beginning
+@if errorlevel 2 @goto orocos_path_candidate_search_failed
 @set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /C:";%~1;" >nul
-@if not errorlevel 1 @exit /b 0
-@if errorlevel 2 @exit /b 2
+@if not errorlevel 1 @goto orocos_path_candidate_found_middle
+@if errorlevel 2 @goto orocos_path_candidate_search_failed
 @set %__OROCOS_ROCK_PATH_NAME% 2>nul | @"%SystemRoot%\System32\findstr.exe" /I /L /B /C:"%__OROCOS_ROCK_PATH_NAME%=" | @"%SystemRoot%\System32\findstr.exe" /I /L /E /C:";%~1" >nul
-@if not errorlevel 1 @exit /b 0
-@if errorlevel 2 @exit /b 2
+@if not errorlevel 1 @goto orocos_path_candidate_found_end
+@if errorlevel 2 @goto orocos_path_candidate_search_failed
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=missing"
 @exit /b 1
+
+:orocos_path_candidate_found_exact
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=exact"
+@exit /b 0
+:orocos_path_candidate_found_beginning
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=beginning"
+@exit /b 0
+:orocos_path_candidate_found_middle
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=middle"
+@exit /b 0
+:orocos_path_candidate_found_end
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=end"
+@exit /b 0
+:orocos_path_candidate_search_failed
+@if defined OROCOS_TEST_MEMBERSHIP_PROBE @set "OROCOS_TEST_CONTAINS_RESULT=error"
+@exit /b 2
 
 :orocos_add_candidate_failed
 @set "__OROCOS_ROCK_PATH_ERROR=1"

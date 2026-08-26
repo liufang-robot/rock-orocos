@@ -205,6 +205,7 @@ try {
 
     $callerLines = @(
         '@echo on',
+        '@set "OROCOS_TEST_MEMBERSHIP_PROBE=1"',
         '@set "__OROCOS_TEST_BEFORE_FIRST=1"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
@@ -263,6 +264,11 @@ try {
             $environment["__OROCOS_TEST_DIRECT_BOUNDARY"],
             $environment["__OROCOS_TEST_PIPELINE_BOUNDARY"],
             $environment["__OROCOS_TEST_SYNTHETIC_BOUNDARY"])
+    Write-Host (
+        "Subroutine probe: name={0}, candidate={1}, result={2}" -f
+            $environment["OROCOS_TEST_CONTAINS_NAME"],
+            $environment["OROCOS_TEST_CONTAINS_CANDIDATE"],
+            $environment["OROCOS_TEST_CONTAINS_RESULT"])
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
