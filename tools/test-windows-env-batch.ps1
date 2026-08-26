@@ -205,6 +205,7 @@ try {
 
     $callerLines = @(
         '@echo on',
+        '@set "OROCOS_TEST_MEMBERSHIP_PROBE=1"',
         '@set "__OROCOS_TEST_BEFORE_FIRST=1"',
         ('call "{0}"' -f $activationHookPath),
         '@if errorlevel 1 exit /b %ERRORLEVEL%',
@@ -272,12 +273,13 @@ try {
         throw "Batch lifecycle wrote to stderr:`n$script:BatchStandardError"
     }
     Write-Host (
-        "Expansion probe: caller-literal={0}, caller-env={1}, sub-literal={2}, sub-env={3}, sub-argument={4}" -f
+        "Expansion probe: caller-literal={0}, caller-env={1}, sub-literal={2}, sub-env={3}, sub-argument={4}, actual-PATH={5}" -f
             $environment["OROCOS_TEST_CALLER_LITERAL"],
             $environment["OROCOS_TEST_CALLER_ENV"],
             $environment["OROCOS_TEST_SUBROUTINE_LITERAL"],
             $environment["OROCOS_TEST_SUBROUTINE_ENV"],
-            $environment["OROCOS_TEST_SUBROUTINE_ARGUMENT"])
+            $environment["OROCOS_TEST_SUBROUTINE_ARGUMENT"],
+            $environment["OROCOS_TEST_ACTUAL_RESULT_PATH"])
     $activationConsoleLines = @(
         $script:BatchActivationOutput -split "`r?`n" |
             Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
