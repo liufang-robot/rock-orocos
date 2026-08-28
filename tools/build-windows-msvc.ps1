@@ -970,6 +970,21 @@ Invoke-Step "Validate Windows prefix" {
         Invoke-Native (Join-Path $Prefix "bin\windows_smoke_deployer.exe")
     }
 
+    $savedOroLogLevel = $env:ORO_LOGLEVEL
+    try {
+        $env:ORO_LOGLEVEL = "6"
+        $oclComponentImportOutput = Get-NativeOutput `
+            (Join-Path $Prefix "bin\deployer-win32.exe") --check `
+            (Join-Path $PSScriptRoot "windows-ocl-component-import-smoke.ops")
+    } finally {
+        $env:ORO_LOGLEVEL = $savedOroLogLevel
+    }
+    if ($oclComponentImportOutput -notmatch `
+            "Found factory for Component type OCL::HMIConsoleOutput" -or
+        $oclComponentImportOutput -match "unknown component type") {
+        throw "OCL component import smoke check failed:`n$oclComponentImportOutput"
+    }
+
     $deployerVersionOutput = Get-NativeOutput (Join-Path $Prefix "bin\deployer-win32.exe") --version
     if ($deployerVersionOutput -notmatch "OROCOS Toolchain version") {
         throw "deployer-win32.exe --version did not print the expected version output"
