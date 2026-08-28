@@ -14,7 +14,7 @@
     {
       "name": "rtt",
       "repository": "https://github.com/liufang-robot/rtt.git",
-      "revision": "e65fd389b75f17ee0dc65fb0b40208a3d09b1cf5"
+      "revision": "08f600861af0d59163806b3caece8180883a0789"
     },
     {
       "name": "open62541",
