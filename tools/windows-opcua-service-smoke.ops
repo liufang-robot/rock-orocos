@@ -1,0 +1,3 @@
+do import("ocl")
+do loadService("Deployer", "opcua")
+do opcua.start()

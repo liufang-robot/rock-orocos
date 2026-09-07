@@ -6,6 +6,7 @@ on:
       - ".github/workflows/package-tests.yml"
       - "autoproj/**"
       - "tools/**"
+      - "tests/opcua-custom-datatypes/**"
   workflow_dispatch:
 
 jobs:
@@ -14,7 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     container:
       image: ${{ matrix.os.image }}
-    continue-on-error: true
+    continue-on-error: ${{ matrix.package-test != 'rtt-opcua' }}
 
     strategy:
       fail-fast: false
@@ -68,6 +69,7 @@ jobs:
             cmake \
             curl \
             git \
+            iproute2 \
             libboost-dev \
             libboost-filesystem-dev \
             libboost-graph-dev \
@@ -114,6 +116,14 @@ jobs:
       - name: Run package test subset
         run: ./tools/test-package.sh --prefix "$OROCOS_PREFIX" --target gnulinux "${{ matrix.package-test }}" 2>&1 | tee "package-test-${{ matrix.package-test }}.log"
 
+      - name: Verify installed OPC UA deployment paths
+        if: matrix.package-test == 'rtt-opcua'
+        run: |
+          ./tools/test-opcua-custom-datatypes.sh \
+            --prefix /tmp/orocos-opcua-acceptance \
+            --dependency-prefix "$OROCOS_PREFIX/toolchain" \
+            --target gnulinux 2>&1 | tee opcua-installed-acceptance.log
+
       - name: Upload package test logs
         if: failure()
         uses: actions/upload-artifact@v6
@@ -122,6 +132,7 @@ jobs:
           if-no-files-found: ignore
           path: |
             package-test-${{ matrix.package-test }}.log
+            opcua-installed-acceptance.log
             .autoproj/config.yml
             .autoproj/env.yml
             .autoproj/installation-manifest

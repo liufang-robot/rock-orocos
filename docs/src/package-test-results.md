@@ -5,7 +5,9 @@ surface. It is a repeatable contract, not a record of one local run.
 
 The package-test workflow covers Ubuntu 22.04, Ubuntu 24.04, and Debian
 13/Trixie. Package steps return their real exit status even while a workflow is
-configured as non-required.
+configured as non-required. OPC UA jobs do not allow failures and additionally
+run installed-prefix acceptance for both deployment entry paths; the other
+package jobs remain experimental.
 
 ## Package Gates
 
@@ -31,6 +33,8 @@ An installed-prefix acceptance run must:
 
 - source `env.sh` and `dev-env.sh` from an isolated prefix;
 - run the deployer and native OPC UA commands for the selected target;
+- use both `deployer-opcua` and ordinary `deployer` with the component-owned
+  `opcua` service, including the same client and TaskBrowser acceptance;
 - verify target-specific mqueue and OPC UA transport discovery;
 - prove endpoint-only `opcua.start()` and an initially absent Deployer;
 - explicitly publish selected Deployer and component surfaces, then separately

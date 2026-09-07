@@ -124,6 +124,7 @@ install(
   FILES
     deployer-endpoint-only.ops
     deployer-no-start.ops
+    deployer-service-load.ops
     deployer-start.ops
   DESTINATION share/orocos-opcua-fixture
 )

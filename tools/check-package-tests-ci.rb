@@ -132,6 +132,14 @@ else
   begin
     workflow = YAML.safe_load(contents, aliases: true)
     package_test_job = workflow.fetch("jobs").fetch("package-test")
+    unless package_test_job["continue-on-error"] == "${{ matrix.package-test != 'rtt-opcua' }}"
+      errors << "OPC UA tests must return failures while other package suites remain experimental"
+    end
+    acceptance_step = package_test_job.fetch("steps").find do |step|
+      step["if"] == "matrix.package-test == 'rtt-opcua'" &&
+        step.fetch("run", "").include?("./tools/test-opcua-custom-datatypes.sh")
+    end
+    errors << "OPC UA CI must verify the installed deployment paths" unless acceptance_step
     os_matrix = package_test_job.fetch("strategy").fetch("matrix").fetch("os")
     compiler_policy = {
       "ubuntu-22.04" => ["gcc-12", "g++-12"],
@@ -193,7 +201,6 @@ else
   end
   errors << "package tests must not use the clean-room Docker /opt/orocos install prefix" if contents.include?("OROCOS_PREFIX: /opt/orocos")
   errors << "package tests must not install omniORB for no-CORBA builds" if contents.include?("libomniorb4-dev") || contents.include?("omniidl")
-  errors << "package tests must be non-required while experimental" unless contents.include?("continue-on-error: true")
   errors << "package tests must define a package-test matrix" unless contents.include?("package-test:")
   package_test_contracts.each_key do |package_test|
     errors << "package tests must include #{package_test}" unless contents.include?("- #{package_test}")

@@ -16,6 +16,40 @@ installed Orocos/Rock toolchain.
   server IPv4 address.
 - `--opcua-port` and `--opcua-endpoint-path` select a different local endpoint.
 
+## Component Service
+
+`deployer-opcua` remains supported. The ordinary `deployer` can instead attach
+the same implementation as a component-owned service:
+
+```text
+import("required_typekits")
+import("ocl")
+loadService("Deployer", "opcua")
+opcua.start()
+```
+
+The plugin supports `OCL::DeploymentComponent` and its subclasses only.
+Global `require("opcua")`, other component owners, and duplicate loads fail.
+Loading the plugin neither starts the listener nor publishes components.
+Its default endpoint is `opc.tcp://0.0.0.0:4840/rtt`, with an application name
+derived from the owner. Use `deployer-opcua` and its existing CLI options when
+a non-default port or endpoint path is required.
+
+Both paths preserve the same publication API, datatype registry, and wire
+model. `ctaskbrowser-opcua` works with either path. There is no service unload,
+public `opcua.stop()`, or unpublish API. Published components cannot be unloaded
+until final deployment teardown.
+
+On exit, the deployer first closes admission for every deployment service,
+then joins their servers and drains pending operations before tearing down
+components. The existing optional `Application.shutdownDeployment` callback
+keeps its earlier position. Cleanup also runs when `AutoUnload=false`.
+An operation that never returns can delay final shutdown; it is not forcibly
+terminated. Embedded C++ deployers may call `prepareDeploymentShutdown()`
+explicitly while their owner and components are intact; destructors provide
+an idempotent fallback. Subclasses must call it before destroying any of their
+own resources that have been published.
+
 ## Startup And Datatype Registry
 
 Import every required typekit and OPC UA transport plugin before the first

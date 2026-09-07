@@ -140,7 +140,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "b80710cd9ba3c1172e355c351d79e6dab016e214",
+      "revision": "c3289cb2aa01a76be2863898a811790671b7e0f2",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
@@ -149,7 +149,7 @@
       "notices": [
         {
           "path": "deployment/DeploymentComponent.cpp",
-          "sha256": "a66b2bac4150b8e7a0513af616d2fd074a16792a1c18abaf486e0b7d8444d9b3"
+          "sha256": "fd19bba59b0cb54b6d43dd7d6068123991d247a362d52ef74521b5801eccb604"
         },
         {
           "path": "manifest.xml",
@@ -340,7 +340,7 @@
     {
       "name": "rtt_opcua",
       "source_lock_name": "rtt_opcua",
-      "revision": "4b2609564defb185887ca22ce8ae8db2503e7da0",
+      "revision": "2989c4f41b98035c7aa3165f3724d64481467d9a",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_opcua",

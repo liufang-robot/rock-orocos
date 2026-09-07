@@ -33,6 +33,7 @@ The installed prefix must provide:
 - Orocos runtime tools
 - OCL deployer support
 - native RTT OPC UA libraries, type transport, deployer, and TaskBrowser client
+- the OCL component-owned `opcua` service plugin for the ordinary deployer
 - the target-specific RTT mqueue transport for Linux targets
 - RTT scripting support
 - generator tools needed for typekit and component development

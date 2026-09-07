@@ -233,14 +233,14 @@ configure_build_install \
     -DBUILD_OPCUA=ON
 if [ "$TARGET" = xenomai ]; then
     cmake --build "$TEST_ROOT/ocl-build" --parallel "$BUILD_PARALLEL" \
-        --target ocl_opcua_deployment_test deployer-opcua ctaskbrowser-opcua
+        --target ocl_opcua_deployment_test deployer deployer-opcua ctaskbrowser-opcua
     ctest --test-dir "$TEST_ROOT/ocl-build" --output-on-failure \
         --timeout "$TEST_TIMEOUT" \
         -R '^(deployer_opcua_cli_address_rejected|ocl_opcua_deployment_.*|ctaskbrowser_opcua_.*)$'
 else
     cmake --build "$TEST_ROOT/ocl-build" --parallel "$BUILD_PARALLEL" \
         --target taskbrowser_value_renderer_test \
-        ocl_opcua_deployment_test deployer-opcua ctaskbrowser-opcua
+        ocl_opcua_deployment_test deployer deployer-opcua ctaskbrowser-opcua
     ctest --test-dir "$TEST_ROOT/ocl-build" --output-on-failure \
         --timeout "$TEST_TIMEOUT" \
         -R '^(taskbrowser_value_renderer_test|ocl_opcua_deployment_.*|ctaskbrowser_opcua_.*)$'
@@ -272,15 +272,19 @@ SERVER="$PREFIX/bin/fixture-server"
 CLIENT="$PREFIX/bin/fixture-client"
 DEPLOYER="$PREFIX/bin/deployer-opcua"
 DEPLOYER_BINARY="$PREFIX/bin/deployer-opcua-$TARGET"
+SERVICE_DEPLOYER="$PREFIX/bin/deployer-$TARGET"
+SERVICE_PLUGIN="$PREFIX/lib/orocos/$TARGET/ocl/plugins/libopcua-$TARGET.so"
 TASKBROWSER="$PREFIX/bin/ctaskbrowser-opcua"
 TASKBROWSER_BINARY="$PREFIX/bin/ctaskbrowser-opcua-$TARGET"
 TASKBROWSER_ACCEPTANCE="$OROCOS_ROCK_ROOT/tests/opcua-custom-datatypes/ctaskbrowser_acceptance.rb"
 NO_START_SCRIPT="$PREFIX/share/orocos-opcua-fixture/deployer-no-start.ops"
 ENDPOINT_ONLY_SCRIPT="$PREFIX/share/orocos-opcua-fixture/deployer-endpoint-only.ops"
 START_SCRIPT="$PREFIX/share/orocos-opcua-fixture/deployer-start.ops"
+SERVICE_LOAD_SCRIPT="$PREFIX/share/orocos-opcua-fixture/deployer-service-load.ops"
 for artifact in \
     "$TYPEKIT" "$TRANSPORT" "$COMPONENT" "$SERVER" "$CLIENT" \
     "$DEPLOYER" "$DEPLOYER_BINARY" "$TASKBROWSER" \
+    "$SERVICE_DEPLOYER" "$SERVICE_PLUGIN" "$SERVICE_LOAD_SCRIPT" \
     "$TASKBROWSER_BINARY" "$TASKBROWSER_ACCEPTANCE" \
     "$NO_START_SCRIPT" "$ENDPOINT_ONLY_SCRIPT" "$START_SCRIPT"
 do
@@ -494,79 +498,88 @@ if listening_socket "$ENDPOINT_ONLY_PORT" | grep -q .; then
         "endpoint-only OPC UA port remained open after deployer shutdown"
 fi
 
-START_PORT="$(unused_port)"
-while [ "$START_PORT" = "$NO_START_PORT" ] || \
-    [ "$START_PORT" = "$ENDPOINT_ONLY_PORT" ]
-do
+for deployment_style in service executable; do
     START_PORT="$(unused_port)"
-done
-START_ENDPOINT="opc.tcp://$LAN_IPV4:$START_PORT/rtt"
-START_LOG="$TEST_ROOT/deployer-start.log"
-PROBE_LOG="$TEST_ROOT/deployer-probe.log"
-orocos_rock_info "Starting explicit OPC UA deployer on port $START_PORT"
-"$DEPLOYER" \
-    --opcua-port "$START_PORT" \
-    --opcua-endpoint-path /rtt \
-    "$START_SCRIPT" </dev/null >"$START_LOG" 2>&1 &
-DEPLOYER_PID="$!"
+    while [ "$START_PORT" = "$NO_START_PORT" ] || \
+        [ "$START_PORT" = "$ENDPOINT_ONLY_PORT" ]
+    do
+        START_PORT="$(unused_port)"
+    done
+    if [ "$deployment_style" = service ]; then
+        START_PORT=4840
+        if listening_socket "$START_PORT" | grep -q .; then
+            orocos_rock_die "service plugin acceptance requires unused default port 4840"
+        fi
+        deployment_command=("$SERVICE_DEPLOYER" "$SERVICE_LOAD_SCRIPT")
+    else
+        deployment_command=("$DEPLOYER" --opcua-port "$START_PORT" --opcua-endpoint-path /rtt)
+    fi
+    START_ENDPOINT="opc.tcp://$LAN_IPV4:$START_PORT/rtt"
+    START_LOG="$TEST_ROOT/deployer-$deployment_style-start.log"
+    PROBE_LOG="$TEST_ROOT/deployer-probe.log"
+    orocos_rock_info "Starting OPC UA deployment ($deployment_style) on port $START_PORT"
+    "${deployment_command[@]}" \
+        "$START_SCRIPT" </dev/null >"$START_LOG" 2>&1 &
+    DEPLOYER_PID="$!"
 
-deployer_ready=0
-for _ in $(seq 1 60); do
-    if "$CLIENT" \
+    deployer_ready=0
+    for _ in $(seq 1 60); do
+        if "$CLIENT" \
+            --deployer \
+            --probe-only \
+            --component Deployer \
+            --typekit "$TYPEKIT" \
+            --transport "$TRANSPORT" \
+            --endpoint "$START_ENDPOINT" \
+            >"$PROBE_LOG" 2>&1
+        then
+            deployer_ready=1
+            break
+        fi
+        if ! kill -0 "$DEPLOYER_PID" 2>/dev/null; then
+            break
+        fi
+        sleep 0.05
+    done
+    if [ "$deployer_ready" -ne 1 ]; then
+        sed -n '1,240p' "$START_LOG" >&2
+        sed -n '1,240p' "$PROBE_LOG" >&2
+        orocos_rock_die "explicit OPC UA deployer did not become ready"
+    fi
+
+    if ! ipv4_wildcard_listener "$START_PORT"; then
+        ss -H -ltn "sport = :$START_PORT" >&2 || true
+        orocos_rock_die \
+            "OPC UA listener is not wildcard IPv4 on 0.0.0.0:$START_PORT"
+    fi
+    ss -H -4 -ltn "sport = :$START_PORT" >"$TEST_ROOT/deployer-listener.ss"
+
+    orocos_rock_info "Running installed deployer OPC UA acceptance client"
+    "$CLIENT" \
         --deployer \
-        --probe-only \
-        --component Deployer \
+        --component sample \
         --typekit "$TYPEKIT" \
         --transport "$TRANSPORT" \
+        --endpoint "$START_ENDPOINT"
+
+    orocos_rock_info "Running installed ctaskbrowser-opcua custom datatype acceptance"
+    ruby "$TASKBROWSER_ACCEPTANCE" \
+        --client "$TASKBROWSER" \
         --endpoint "$START_ENDPOINT" \
-        >"$PROBE_LOG" 2>&1
-    then
-        deployer_ready=1
-        break
+        --component sample
+
+    kill -TERM "$DEPLOYER_PID"
+    if ! wait "$DEPLOYER_PID"; then
+        sed -n '1,240p' "$START_LOG" >&2
+        orocos_rock_die "explicit OPC UA deployer failed during shutdown"
     fi
-    if ! kill -0 "$DEPLOYER_PID" 2>/dev/null; then
-        break
+    DEPLOYER_PID=""
+
+    if listening_socket "$START_PORT" | grep -q .; then
+        listening_socket "$START_PORT" >&2
+        orocos_rock_die "OPC UA port remained open after deployer shutdown"
     fi
-    sleep 0.05
 done
-if [ "$deployer_ready" -ne 1 ]; then
-    sed -n '1,240p' "$START_LOG" >&2
-    sed -n '1,240p' "$PROBE_LOG" >&2
-    orocos_rock_die "explicit OPC UA deployer did not become ready"
-fi
-
-if ! ipv4_wildcard_listener "$START_PORT"; then
-    ss -H -ltn "sport = :$START_PORT" >&2 || true
-    orocos_rock_die \
-        "OPC UA listener is not wildcard IPv4 on 0.0.0.0:$START_PORT"
-fi
-ss -H -4 -ltn "sport = :$START_PORT" >"$TEST_ROOT/deployer-listener.ss"
-
-orocos_rock_info "Running installed deployer OPC UA acceptance client"
-"$CLIENT" \
-    --deployer \
-    --component sample \
-    --typekit "$TYPEKIT" \
-    --transport "$TRANSPORT" \
-    --endpoint "$START_ENDPOINT"
-
-orocos_rock_info "Running installed ctaskbrowser-opcua custom datatype acceptance"
-ruby "$TASKBROWSER_ACCEPTANCE" \
-    --client "$TASKBROWSER" \
-    --endpoint "$START_ENDPOINT" \
-    --component sample
-
-kill -TERM "$DEPLOYER_PID"
-if ! wait "$DEPLOYER_PID"; then
-    sed -n '1,240p' "$START_LOG" >&2
-    orocos_rock_die "explicit OPC UA deployer failed during shutdown"
-fi
-DEPLOYER_PID=""
-
-if listening_socket "$START_PORT" | grep -q .; then
-    listening_socket "$START_PORT" >&2
-    orocos_rock_die "OPC UA port remained open after deployer shutdown"
-fi
 
 RUNTIME_ENV="$TEST_ROOT/runtime-env.sh"
 {

@@ -855,6 +855,7 @@ Invoke-Step "Validate Windows prefix" {
         "bin\deployer-opcua-win32.exe",
         "bin\ctaskbrowser-opcua-win32.exe",
         "bin\orocos-ocl-deployment-opcua-win32.dll",
+        "lib\orocos\win32\ocl\plugins\opcua-win32.dll",
         "bin\orocos-ocl-taskbrowser-win32.dll",
         "bin\utilmm.dll",
         "bin\typeLib.dll",
@@ -1016,5 +1017,12 @@ Invoke-Step "Validate Windows prefix" {
     if ($opcuaStartOutput -notmatch "Starting the EventLoop" -or
         $opcuaStartOutput -match "\[\s*ERROR\s*\]") {
         throw "OPC UA startup smoke check failed:`n$opcuaStartOutput"
+    }
+    $opcuaServiceOutput = Get-NativeOutput `
+        (Join-Path $Prefix "bin\deployer-win32.exe") --check `
+        (Join-Path $PSScriptRoot "windows-opcua-service-smoke.ops")
+    if ($opcuaServiceOutput -notmatch "Starting the EventLoop" -or
+        $opcuaServiceOutput -match "\[\s*ERROR\s*\]") {
+        throw "OPC UA service plugin smoke check failed:`n$opcuaServiceOutput"
     }
 }
