@@ -146,7 +146,8 @@ outputs:
         - libffi >=3.4,<4
         - libxml2-devel >=2.12,<3
         - ncurses >=6.5,<7
-        - perl >=5.32,<6
+        # Build 8 cannot locate core modules when xpath invokes Perl via PATH.
+        - perl ==5.32.1 7_hd590300_perl5
         - perl-xml-xpath >=1.48,<2
         - python >=3.11,<3.15
         - readline >=8.2,<9
