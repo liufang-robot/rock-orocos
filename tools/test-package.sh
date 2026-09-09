@@ -22,7 +22,7 @@ Package tests:
   rtt-http    Build and run HTTP SDK, OCL coexistence, and installed codec checks
   opcua-custom-datatypes
               Rebuild the OPC UA stack and run the installed external fixture
-  ocl-basic   Build and run OCL timer/taskbrowser CTest cases
+  ocl-basic   Build and run OCL timer/taskbrowser/value-renderer CTest cases
   ocl-integration
                Build and run stable OCL deployment/logging/reporting CTest cases
 
@@ -237,7 +237,8 @@ case "$PACKAGE_TEST" in
             -DBUILD_TASKBROWSER_TEST=ON \
             -DBUILD_DEPLOYMENT_TEST=OFF \
             -DBUILD_LOGGING_TEST=OFF \
-            -DBUILD_REPORTING_TEST=OFF
+            -DBUILD_REPORTING_TEST=OFF \
+            -DOCL_HTTP_TEST_HTTPLIB_INCLUDE_DIR="$OROCOS_ROCK_ROOT/toolchain/cpp-httplib"
         orocos_rock_info "Building OCL basic tests"
         build_targets toolchain/tools/ocl/build timer taskb taskbrowser_value_renderer_test
         orocos_rock_info "Running OCL basic CTest subset"
