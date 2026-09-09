@@ -231,6 +231,7 @@ case "$PACKAGE_TEST" in
     ocl-basic)
         orocos_rock_info "Configuring OCL basic tests"
         reconfigure toolchain/tools/ocl toolchain/tools/ocl/build \
+            -DBUILD_TESTING=ON \
             -DBUILD_TESTS=ON \
             -DBUILD_TIMER_TEST=ON \
             -DBUILD_TASKBROWSER_TEST=ON \
@@ -238,9 +239,9 @@ case "$PACKAGE_TEST" in
             -DBUILD_LOGGING_TEST=OFF \
             -DBUILD_REPORTING_TEST=OFF
         orocos_rock_info "Building OCL basic tests"
-        build_targets toolchain/tools/ocl/build timer taskb
+        build_targets toolchain/tools/ocl/build timer taskb taskbrowser_value_renderer_test
         orocos_rock_info "Running OCL basic CTest subset"
-        run_ctest toolchain/tools/ocl/build '^(timer|taskb)$'
+        run_ctest toolchain/tools/ocl/build '^(timer|taskb|taskbrowser_value_renderer_test)$'
         ;;
     ocl-integration)
         orocos_rock_info "Configuring OCL integration tests"
