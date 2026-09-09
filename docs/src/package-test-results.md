@@ -21,7 +21,7 @@ The package entries use the public maintenance branches selected in
 | `rtt-typelib` | `rtt-typelib`, `get_marshaller_for_test`, and `rtt_typelib-gnulinux` metadata | Cross-distribution package workflow |
 | `rtt-core` | `main-test`, `list-test`, `core-test`, `task-test`, `mqueue-test`, and `mqueue_archive_test` | Maintained selected subset |
 | `rtt-opcua` | Target-correct maintained Xenomai subsets of `rtt_opcua_*_test`, split `ocl_opcua_deployment_*`, and TaskBrowser argument cases; OPC UA deployer/browser targets; `rtt_opcua-xenomai` plus installed OCL pkg-config metadata; and installed-prefix selective-publication acceptance | Xenomai maintained gate; GNU/Linux `rtt_opcua_*_test`, `rtt_opcua-gnulinux` metadata, and installed-prefix LAN verification pending |
-| `ocl-basic` | `timer` and `taskb` | Cross-distribution package workflow |
+| `ocl-basic` | `timer`, `taskb`, and `taskbrowser_value_renderer_test` (primitive, custom, nested, indexed, and bounded array output) | Cross-distribution package workflow; renderer also runs in Linux and Windows OCL CI |
 | `rtt-http` | JSON/REST and HTTP/TLS SDK contracts; combined OCL HTTP/OPC UA deployment; installed service stop/restart; separately built custom JSON codec | Required cross-distribution package workflow; native Windows SDK and service CI |
 | `ocl-integration` | `deploy`, `testlogging`, `report`, `tcpreport`, and optional `ncreport` | Cross-distribution package workflow |
 

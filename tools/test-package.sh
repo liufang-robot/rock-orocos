@@ -22,7 +22,7 @@ Package tests:
   rtt-http    Build and run HTTP SDK, OCL coexistence, and installed codec checks
   opcua-custom-datatypes
               Rebuild the OPC UA stack and run the installed external fixture
-  ocl-basic   Build and run OCL timer/taskbrowser CTest cases
+  ocl-basic   Build and run OCL timer/taskbrowser/value-renderer CTest cases
   ocl-integration
                Build and run stable OCL deployment/logging/reporting CTest cases
 
@@ -231,16 +231,18 @@ case "$PACKAGE_TEST" in
     ocl-basic)
         orocos_rock_info "Configuring OCL basic tests"
         reconfigure toolchain/tools/ocl toolchain/tools/ocl/build \
+            -DBUILD_TESTING=ON \
             -DBUILD_TESTS=ON \
             -DBUILD_TIMER_TEST=ON \
             -DBUILD_TASKBROWSER_TEST=ON \
             -DBUILD_DEPLOYMENT_TEST=OFF \
             -DBUILD_LOGGING_TEST=OFF \
-            -DBUILD_REPORTING_TEST=OFF
+            -DBUILD_REPORTING_TEST=OFF \
+            -DOCL_HTTP_TEST_HTTPLIB_INCLUDE_DIR="$OROCOS_ROCK_ROOT/toolchain/cpp-httplib"
         orocos_rock_info "Building OCL basic tests"
-        build_targets toolchain/tools/ocl/build timer taskb
+        build_targets toolchain/tools/ocl/build timer taskb taskbrowser_value_renderer_test
         orocos_rock_info "Running OCL basic CTest subset"
-        run_ctest toolchain/tools/ocl/build '^(timer|taskb)$'
+        run_ctest toolchain/tools/ocl/build '^(timer|taskb|taskbrowser_value_renderer_test)$'
         ;;
     ocl-integration)
         orocos_rock_info "Configuring OCL integration tests"

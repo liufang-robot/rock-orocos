@@ -100,12 +100,13 @@ package_test_contracts = {
   },
   "ocl-basic" => {
     script_tokens: [
+      "-DBUILD_TESTING=ON",
       "-DBUILD_TIMER_TEST=ON",
       "-DBUILD_TASKBROWSER_TEST=ON",
-      "build_targets toolchain/tools/ocl/build timer taskb",
-      "run_ctest toolchain/tools/ocl/build '^(timer|taskb)$'"
+      "build_targets toolchain/tools/ocl/build timer taskb taskbrowser_value_renderer_test",
+      "run_ctest toolchain/tools/ocl/build '^(timer|taskb|taskbrowser_value_renderer_test)$'"
     ],
-    result_tokens: ["`timer`", "`taskb`"]
+    result_tokens: ["`timer`", "`taskb`", "`taskbrowser_value_renderer_test`"]
   },
   "ocl-integration" => {
     script_tokens: [
