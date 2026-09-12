@@ -14,7 +14,7 @@
     {
       "name": "rtt",
       "repository": "https://github.com/liufang-robot/rtt.git",
-      "revision": "693481de31ac81a9287fdf5ac4b054980fcd82c8"
+      "revision": "57a1c535887c8bd84aae355e988705e648643916"
     },
     {
       "name": "open62541",
@@ -34,7 +34,7 @@
     {
       "name": "ocl",
       "repository": "https://github.com/liufang-robot/ocl.git",
-      "revision": "e5e118bbd6fcf35712e8e0edc641c32ebd76434a"
+      "revision": "7f9942588f031f4087360ad06142e5d4454baded"
     },
     {
       "name": "cpp-httplib",

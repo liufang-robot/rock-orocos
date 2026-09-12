@@ -176,7 +176,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "e5e118bbd6fcf35712e8e0edc641c32ebd76434a",
+      "revision": "7f9942588f031f4087360ad06142e5d4454baded",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
@@ -205,7 +205,7 @@
         },
         {
           "path": "taskbrowser/TaskBrowser.cpp",
-          "sha256": "1192f1b4d844b790e3a7625151057641ed6124819525679d5c6c596940d0ccc0"
+          "sha256": "0636a50f88e17ed3fc873fcc573dc9095d0c5d25584e084288738b5fbd57d641"
         }
       ]
     },
@@ -356,7 +356,7 @@
     {
       "name": "rtt",
       "source_lock_name": "rtt",
-      "revision": "693481de31ac81a9287fdf5ac4b054980fcd82c8",
+      "revision": "57a1c535887c8bd84aae355e988705e648643916",
       "license": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/rtt",

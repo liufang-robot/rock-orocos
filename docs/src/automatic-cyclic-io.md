@@ -125,6 +125,28 @@ Stop all affected components before changing the graph or storage shape.
 requires a prepared valid graph. Operation-only service changes do not change the
 port graph. Detaching a port-containing service removes its affected connections.
 
+## Inspect input connections
+
+In the deployer's TaskBrowser, `ls B` lists the component's root ports and
+`ls B.motion.feedback` lists ports in that service. Each connected input has
+source rows underneath its value. For the wiring fragment above, `ls B` includes:
+
+```text
+       input.x <- C.output.z
+       input.y <- A.output.y
+```
+
+Each row names the destination port or member on the left and the fully
+qualified source port or member on the right. A whole-port connection has no
+member suffix. Nested structures and array indices retain their selectors,
+such as `input.axes[2].position`. Rows are ordered by destination selector,
+then source endpoint. `help` for a service shows the same source rows.
+
+These rows describe the current runtime graph, including disconnects and
+replacement connections. Inspection does not consume samples or refresh input
+images. It runs in the browser, outside the component update cycle. A connected
+transport that cannot expose its source identity displays `<source unavailable>`.
+
 ## Realtime behavior and observation
 
 The added cyclic work consists of prepared transfers and typed assignments.

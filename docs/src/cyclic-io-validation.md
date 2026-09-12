@@ -24,9 +24,10 @@ lifecycle state observation, failure suppression, and deployment shutdown.
 |---|---|
 | Preserved RTT 2 baseline | 43/43 CTest suites passed |
 | RTT 3 complete core build | 45/45 CTest suites passed |
-| New port image and mapping cases | 8 image cases and 17 runtime cases passed |
+| New port image and mapping cases | 8 image cases and 20 runtime cases passed |
 | AddressSanitizer + UndefinedBehaviorSanitizer | Image, mapping, and channel suites passed, leak checks enabled |
 | OCL | 39/39 CTest suites passed |
+| TaskBrowser values and input-source listings | 35 cases passed, including nested services, reconnects, and nonconsuming inspection |
 | OPC UA | 11/11 CTest suites passed |
 | HTTP | 6/6 CTest suites passed |
 | Typelib bridge | 1/1 CTest suite passed |
@@ -41,6 +42,14 @@ then wait indefinitely on the overwritten flag. The feature branch includes a
 separate fix and deterministic regression for this race. The complete scripting
 suite passes 22 cases, and the real yielding case passed 64 consecutive repeats.
 The final full RTT run passes without retries.
+
+Input-source inspection checks cover whole and selected endpoints, canonical
+array selectors, multiple field producers, all local writers of a shared
+channel, opaque transport identities, and metadata cleanup after disconnect,
+source destruction, and service removal. The native three-component deployment
+also displays the four expected source rows in `ls sink.io` while running;
+changing producer values updates the sink's computed sum without changing those
+rows. Stopping a producer retains its connection row and last input value.
 
 ## Platform CI
 
