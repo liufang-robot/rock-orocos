@@ -253,7 +253,8 @@ case "$PACKAGE_TEST" in
             -DBUILD_TASKBROWSER_TEST=OFF \
             -DBUILD_DEPLOYMENT_TEST=ON \
             -DBUILD_LOGGING_TEST=ON \
-            -DBUILD_REPORTING_TEST=ON
+            -DBUILD_REPORTING_TEST=ON \
+            -DOCL_HTTP_TEST_HTTPLIB_INCLUDE_DIR="$OROCOS_ROCK_ROOT/toolchain/cpp-httplib"
         OCL_INTEGRATION_TARGETS=(deploy testlogging report tcpreport ocl_cyclic_deployment_test ocl_cyclic_reporting_test)
         OCL_INTEGRATION_TEST_REGEX='^(deploy|testlogging|report|tcpreport|ocl_cyclic_deployment|ocl_cyclic_reporting)$'
         if cmake_target_exists toolchain/tools/ocl/build ncreport; then

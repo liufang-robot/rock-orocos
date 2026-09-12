@@ -176,7 +176,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "fd89d8aa75c0f117fb66c91414843caf002b1a22",
+      "revision": "e5e118bbd6fcf35712e8e0edc641c32ebd76434a",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
@@ -185,7 +185,7 @@
       "notices": [
         {
           "path": "deployment/DeploymentComponent.cpp",
-          "sha256": "37562d85716f56991d1311e78821f97443487633cfd8bad5171ac20c285e3c55"
+          "sha256": "6f5a2be58002e44e6835fa0ddf9ca72a178f9be92a938547bc87e08f38d211aa"
         },
         {
           "path": "manifest.xml",
@@ -193,7 +193,7 @@
         },
         {
           "path": "package.xml",
-          "sha256": "6779f94c72388cf76552d9d847205b4ac2dd5d1b922e0f9c389f83ff02a230a9"
+          "sha256": "9ec8ebbaca364d8ac9be8d3ff6182a860d16f3d0a40bd54f7097ab31f04ef901"
         },
         {
           "path": "reporting/TableMarshaller.hpp",
@@ -205,7 +205,7 @@
         },
         {
           "path": "taskbrowser/TaskBrowser.cpp",
-          "sha256": "d4754264a4d1676e5194d536df03e8d210f5022044e8da4000a439e20464ea4e"
+          "sha256": "1192f1b4d844b790e3a7625151057641ed6124819525679d5c6c596940d0ccc0"
         }
       ]
     },

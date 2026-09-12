@@ -33,6 +33,7 @@ lifecycle state observation, failure suppression, and deployment shutdown.
 | Native OroGen component/typekit cases | 3 tests, 11 assertions passed |
 | Native generated deployment and shutdown | 1 test, 27 assertions passed |
 | Separate installed SDK consumers | HTTP and OPC UA custom datatype tests passed |
+| CTaskBrowser with the installed OPC UA fixture | Scalar and nested writes, compact arrays, persistence, constant rejection, truncation, and clean shutdown passed |
 
 A pre-existing yielding-function hang also reproduced against the RTT 2 baseline.
 The executor could finish its callback before the caller recorded queue acceptance,
@@ -40,6 +41,14 @@ then wait indefinitely on the overwritten flag. The feature branch includes a
 separate fix and deterministic regression for this race. The complete scripting
 suite passes 22 cases, and the real yielding case passed 64 consecutive repeats.
 The final full RTT run passes without retries.
+
+## Platform CI
+
+The draft RTT pull request passes its Windows core and scripting test workflow.
+The HTTP pull request passes all seven Linux and six Windows CTest suites.
+The integrated feature branch builds and installs successfully on Ubuntu 22.04,
+Ubuntu 24.04, and Debian 13. The full integration matrix and packaged-consumer
+checks must also pass before this feature is considered ready for review.
 
 ## Realtime evidence
 
@@ -83,8 +92,9 @@ allocate; target-specific realtime validation remains necessary.
 ## Validation limits
 
 Local runtime and sanitizer validation is on Linux/WSL2 with CORBA disabled,
-matching this distribution's supported configuration. It does not certify
-Windows, Xenomai, a realtime kernel, or remote transport latency.
+matching this distribution's supported configuration. Platform CI establishes
+build and functional results; it does not certify realtime timing on Windows,
+Xenomai, a realtime kernel, or remote transports.
 
 The existing OroGen Ruby loader suite also has failures with the host's Ruby 3
 and FlexMock combination on the unchanged baseline. Compiled native generator
