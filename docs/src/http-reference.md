@@ -62,13 +62,20 @@ services, properties, attributes, operations, ports, and canonical type schemas.
 | Property or attribute | GET its `href` | `200 {"value":V}` |
 | Writable value | PUT `{"value":V}` to its `href` | `204`, no body |
 | Operation | POST `{"arguments":[...]}` to its `href` | `200 {"result":R,"outputs":[...]}` |
-| Retaining output port | GET its `latestHref` | `200 {"hasSample":true,"value":V}` |
-| Input port | POST `{"value":V}` to its `samplesHref` | `204` for RTT WriteSuccess |
+| Output port | GET its `latestHref` | `200 {"hasSample":true,"value":V}` |
+| Input port | POST `{"value":V}` to its `samplesHref` | `204` when the transport stages the sample |
 
-Before the first retained sample, latest returns
+Every output has a latest route backed by its committed snapshot. Before the
+first committed sample, latest returns
 `{"hasSample":false,"value":null}`. Reads do not consume another reader's data.
-Non-retaining outputs have no latest route. HTTP input writes use independent
-RTT connections. Constants and other nonassignable values are read-only. Writes
+Changes to the component's output working image become visible after a successful
+cyclic commit. HTTP input writes use independent RTT staging connections; the
+component acquires a staged sample at its next input boundary. An HTTP success
+does not mean the component has processed the sample, and a request arriving
+during its hook does not modify the current input image. See
+[Automatic cyclic data ports](automatic-cyclic-io.md) for the execution contract.
+
+Constants and other nonassignable values are read-only. Writes
 replace whole values after complete validation. Operation arguments follow
 declaration order; non-const references also appear in `outputs`. A false result
 is still HTTP success, and a void result is null.

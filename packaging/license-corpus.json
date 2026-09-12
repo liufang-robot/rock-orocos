@@ -104,7 +104,7 @@
     {
       "name": "rtt_http",
       "source_lock_name": "rtt_http",
-      "revision": "d5be57f35efe457459ab0269ad8c1019ec18f934",
+      "revision": "bb6ff87491d4ebf97330112b1a1e1404833aa522",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_http",
@@ -176,7 +176,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "008a93faa0d95dade922367aefda8d5a75028b52",
+      "revision": "6dbc806dc655f5b48a1968d7244cb27e43ebbc73",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
@@ -316,7 +316,7 @@
     {
       "name": "orogen",
       "source_lock_name": "orogen",
-      "revision": "3346b6ac682ad772b57d07b2386cdaef47e4abbe",
+      "revision": "6575d81cf5dc344ed08ea84e5c5c3d79996ce9a0",
       "license": "GPL-2.0-or-later AND BSD-3-Clause AND LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/orogen",
@@ -356,7 +356,7 @@
     {
       "name": "rtt",
       "source_lock_name": "rtt",
-      "revision": "966fbcf0cf79c8c86b229200e5cfa34562462303",
+      "revision": "693481de31ac81a9287fdf5ac4b054980fcd82c8",
       "license": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/rtt",
@@ -376,7 +376,7 @@
     {
       "name": "rtt_opcua",
       "source_lock_name": "rtt_opcua",
-      "revision": "2989c4f41b98035c7aa3165f3724d64481467d9a",
+      "revision": "4fa1999551c30d52e4defcab53da4b171adf6424",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_opcua",
@@ -400,7 +400,7 @@
     {
       "name": "rtt_typelib",
       "source_lock_name": "rtt_typelib",
-      "revision": "c5b345a22036019f8ec4ed176299bab3b80aae0a",
+      "revision": "43610f13ef23c8372a100d04dbcbf759ed790f86",
       "license": "GPL-2.0-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_typelib",

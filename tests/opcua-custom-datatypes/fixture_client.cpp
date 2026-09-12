@@ -1,4 +1,5 @@
 #include "fixture_types.hpp"
+#include <rtt/internal/PortDataAccess.hpp>
 
 #include <rtt/opcua/node_id.hpp>
 #include <rtt/opcua/task_context_proxy.hpp>
@@ -266,7 +267,10 @@ void exercise(RTT::TaskContext &proxy, const std::string &stem,
   require(callOne<bool>(service, stem + "Emit", output_value),
           stem + " emit operation failed");
   T received{};
-  require(waitUntil([&] { return sink.read(received) == RTT::NewData; }),
+  require(waitUntil([&] {
+            return RTT::internal::PortDataAccess::receive(sink, received) == RTT::NewData &&
+                   equalValue(received, output_value);
+          }),
           stem + " output port timed out");
   require(equalValue(received, output_value),
           stem + " output port value mismatch");
@@ -279,7 +283,7 @@ void exercise(RTT::TaskContext &proxy, const std::string &stem,
               *remote_input,
               RTT::ConnPolicy::data(RTT::ConnPolicy::LOCK_FREE, false)),
           stem + " input connection failed");
-  require(source_port.write(input_value) == RTT::WriteSuccess,
+  require(RTT::internal::PortDataAccess::publish(source_port, input_value) == RTT::WriteSuccess,
           stem + " input write failed");
   require(waitUntil([&] {
             return equalValue(callZero<T>(service, stem + "Take"), input_value);
@@ -344,6 +348,8 @@ void verifyDeployerInterface(RTT::TaskContext &deployer) {
 }
 
 void exerciseSupportedComponent(RTT::TaskContext &proxy) {
+  require(proxy.configure(), "configure cyclic fixture component");
+  require(proxy.start(), "start cyclic fixture component");
   RTT::Service &service = *proxy.provides();
   require(callOne<std::int32_t>(service, "echo", std::int32_t{42}) == 42,
           "built-in echo operation round trip failed");
@@ -395,6 +401,7 @@ void exerciseSupportedComponent(RTT::TaskContext &proxy) {
            PointArray{{10.0, 11.0}, {12.0, 13.0}},
            PointArray{{14.0, 15.0}, {16.0, 17.0}},
            PointArray{{18.0, 19.0}, {20.0, 21.0}});
+  require(proxy.stop(), "stop cyclic fixture component");
 }
 
 std::uint16_t namespaceIndex(::opcua::Client &client, std::string_view uri,

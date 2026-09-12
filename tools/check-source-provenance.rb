@@ -91,7 +91,7 @@ module OrocosRock
           "rtt_opcua" => {
             "type" => "git",
             "url" => repositories.fetch("rtt_opcua"),
-            "branch" => "dev"
+            "branch" => "feat/automatic-cyclic-io"
           },
           "cpp-httplib" => {
             "type" => "git",
@@ -102,17 +102,17 @@ module OrocosRock
           "rtt_http" => {
             "type" => "git",
             "url" => repositories.fetch("rtt_http"),
-            "branch" => "dev"
+            "branch" => "feat/automatic-cyclic-io"
           }
         },
         "overrides" => {
-          "rtt" => { "type" => "git", "url" => repositories.fetch("rtt"), "branch" => "dev" },
-          "ocl" => { "type" => "git", "url" => repositories.fetch("ocl"), "branch" => "dev" },
+          "rtt" => { "type" => "git", "url" => repositories.fetch("rtt"), "branch" => "feat/automatic-cyclic-io" },
+          "ocl" => { "type" => "git", "url" => repositories.fetch("ocl"), "branch" => "feat/automatic-cyclic-io" },
           "orogen" => {
             "type" => "git",
             "url" => repositories.fetch("orogen"),
-            "branch" => "dev",
-            "commit" => "3346b6ac682ad772b57d07b2386cdaef47e4abbe"
+            "branch" => "feat/automatic-cyclic-io",
+            "commit" => "6575d81cf5dc344ed08ea84e5c5c3d79996ce9a0"
           },
           "typelib" => { "type" => "git", "url" => repositories.fetch("typelib"), "branch" => "dev" },
           "utilmm" => { "type" => "git", "url" => repositories.fetch("utilmm"), "branch" => "dev" },
@@ -125,7 +125,7 @@ module OrocosRock
           "rtt_typelib" => {
             "type" => "git",
             "url" => repositories.fetch("rtt_typelib"),
-            "branch" => "dev"
+            "branch" => "feat/automatic-cyclic-io"
           }
         }
       }

@@ -1,6 +1,7 @@
 #include "fixture_components.hpp"
 
 #include <rtt/InputPort.hpp>
+#include <rtt/Activity.hpp>
 #include <rtt/OutputPort.hpp>
 #include <rtt/Service.hpp>
 #include <rtt/rt_string.hpp>
@@ -21,13 +22,14 @@ template <typename T> struct Surface {
 
   T echo(T value) { return value; }
 
-  bool emit(T value) { return output.write(value) == RTT::WriteSuccess; }
-
-  T take() {
-    T value{};
-    static_cast<void>(input.read(value));
-    return value;
+  // OwnThread operations edit the owner image; the next successful cycle
+  // publishes it through the ordinary component execution engine.
+  bool emit(T value) {
+    output.data() = std::move(value);
+    return output.connected();
   }
+
+  T take() { return input.data(); }
 
   std::string stem;
   T property;
@@ -117,9 +119,13 @@ struct FixtureComponent::Impl {
 
 FixtureComponent::FixtureComponent(const std::string &name)
     : RTT::TaskContext(name, RTT::TaskContext::PreOperational),
-      impl_(std::make_unique<Impl>(*this)) {}
+      impl_(std::make_unique<Impl>(*this)) {
+  setActivity(new RTT::Activity(ORO_SCHED_OTHER, 0, 0.01));
+}
 
-FixtureComponent::~FixtureComponent() = default;
+FixtureComponent::~FixtureComponent() {
+  stop();
+}
 
 UnsupportedComponent::UnsupportedComponent(const std::string &name)
     : RTT::TaskContext(name, RTT::TaskContext::PreOperational) {

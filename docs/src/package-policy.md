@@ -119,6 +119,20 @@ raw-routing capabilities. An unpatched upstream header cannot satisfy service
 shutdown and failure isolation. HTTP does not link to `rtt_opcua`; ordinary
 application components and typekits remain independent of both transports.
 
+## Cyclic I/O feature selection
+
+The `feat/automatic-cyclic-io` integration branch selects matching feature
+branches of RTT, OCL, OroGen, `rtt_typelib`, `rtt_opcua`, and `rtt_http`.
+This is an authorized breaking runtime experiment: RTT 3 owns input/output
+images and executes I/O around component hooks. These packages must be built
+together in a separate prefix. The source lock and license inventory record
+exact feature revisions for reproducible validation.
+
+Keep the package PRs and integration PR unmerged while the complete change is
+being reviewed. Changing this branch's source selections does not publish a
+release or change the distribution checkout. See [Automatic cyclic data
+ports](automatic-cyclic-io.md) for the component and deployment contract.
+
 ## Source Of Truth
 
 Forked package policy should be documented here first and then encoded in the

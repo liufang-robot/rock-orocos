@@ -12,6 +12,7 @@
   - [Architecture](./architecture.md)
   - [Package Policy](./package-policy.md)
   - [Install Contract](./install-contract.md)
+  - [Automatic Cyclic Data Ports](./automatic-cyclic-io.md)
   - [Native OPC UA Reference](./opcua-reference.md)
   - [HTTP REST Reference](./http-reference.md)
 # Build And Verification
@@ -19,6 +20,7 @@
 - [Bootstrap Workflow](./bootstrap-workflow.md)
 - [Xenomai 3 Integration](./xenomai3-integration.md)
 - [Package Verification Matrix](./package-test-results.md)
+- [Cyclic I/O Validation](./cyclic-io-validation.md)
 - [Planned Work / TODO](./todo/index.md)
   - [OPC UA PKI And Authorization](./todo/opcua-security-prd.md)
   - [Deployer TUI](./todo/deployer-tui-prd.md)

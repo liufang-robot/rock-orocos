@@ -1,6 +1,8 @@
 #include "fixture_components.hpp"
 #include <rtt/http/reflected_codec.hpp>
 #include <rtt/InputPort.hpp>
+#include <rtt/extras/SlaveActivity.hpp>
+#include <rtt/internal/PortDataAccess.hpp>
 #include <rtt/PropertyBag.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
 #include <rtt/typekit/RealTimeTypekit.hpp>
@@ -84,11 +86,16 @@ int main(int argc, char **argv) {
     boost::json::value latest(context.storage());
     require(point->codec->portValue(output, &latest, context, nullptr) == PortValueStatus::waiting_for_initial_data,
             "custom codec distinguishes no initial sample");
-    require(output->write(Point{7, 8}) == RTT::WriteSuccess, "write custom RTT sample");
+    auto* activity = new RTT::extras::SlaveActivity(0.01);
+    require(component.setActivity(activity), "use deterministic fixture activity");
+    output->data() = Point{7, 8};
+    require(component.configure() && component.start(), "start custom cyclic component");
+    require(activity->execute(), "execute custom component cycle");
+    require(component.stop(), "stop custom cyclic component");
     require(point->codec->portValue(output, &latest, context, nullptr) == PortValueStatus::value &&
                 latest == boost::json::parse(R"({"x":7.0,"y":8.0})"), "custom retained sample encoded through reflection");
     Point consumed;
-    require(observer.read(consumed) == RTT::NewData && consumed == Point{7, 8},
+    require(RTT::internal::PortDataAccess::receive(observer, consumed) == RTT::NewData && consumed == Point{7, 8},
             "HTTP read leaves the independent reader's sample intact");
     std::cout << "Installed HTTP SDK: independent typekit/component/transport, composites, and ports passed\n";
     return 0;
