@@ -34,6 +34,10 @@ public:
 };
 ```
 
+Use `data()` in the owning component's hooks and lifecycle code. These are direct
+references to component storage; asynchronous observers use `snapshot()` or the
+transport observation API. No channel transfer occurs when accessing `data()`.
+
 Register typekit metadata for these structures to connect individual members.
 Whole supported values can connect without member metadata. Ports require types
 with value semantics: copying a pointer or nonowning view does not copy its target.

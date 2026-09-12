@@ -22,7 +22,7 @@ Package tests:
   rtt-http    Build and run HTTP SDK, OCL coexistence, and installed codec checks
   opcua-custom-datatypes
               Rebuild the OPC UA stack and run the installed external fixture
-  ocl-basic   Build and run OCL timer/taskbrowser CTest cases
+  ocl-basic   Build and run OCL timer/taskbrowser/value-renderer CTest cases
   ocl-integration
                Build and run stable OCL deployment/logging/reporting CTest cases
 
@@ -167,9 +167,9 @@ case "$PACKAGE_TEST" in
             -DENABLE_MQ=ON \
             -DENABLE_CORBA=OFF
         orocos_rock_info "Building RTT core tests"
-        build_targets toolchain/tools/rtt/build main-test list-test core-test task-test mqueue-test mqueue_archive_test
+        build_targets toolchain/tools/rtt/build main-test list-test core-test task-test mqueue-test mqueue_archive_test cyclic_ports_test cyclic_dataflow_test scripting_test
         orocos_rock_info "Running RTT core CTest subset"
-        run_ctest toolchain/tools/rtt/build '^(main-test|list-test|core-test|task-test|mqueue-test|mqueue_archive_test)$'
+        run_ctest toolchain/tools/rtt/build '^(main-test|list-test|core-test|task-test|mqueue-test|mqueue_archive_test|cyclic_ports_test|cyclic_dataflow_test|scripting_test)$'
         ;;
     rtt-opcua)
         orocos_rock_info "Configuring native RTT OPC UA tests"
@@ -231,31 +231,34 @@ case "$PACKAGE_TEST" in
     ocl-basic)
         orocos_rock_info "Configuring OCL basic tests"
         reconfigure toolchain/tools/ocl toolchain/tools/ocl/build \
+            -DBUILD_TESTING=ON \
             -DBUILD_TESTS=ON \
             -DBUILD_TIMER_TEST=ON \
             -DBUILD_TASKBROWSER_TEST=ON \
             -DBUILD_DEPLOYMENT_TEST=OFF \
             -DBUILD_LOGGING_TEST=OFF \
-            -DBUILD_REPORTING_TEST=OFF
+            -DBUILD_REPORTING_TEST=OFF \
+            -DOCL_HTTP_TEST_HTTPLIB_INCLUDE_DIR="$OROCOS_ROCK_ROOT/toolchain/cpp-httplib"
         orocos_rock_info "Building OCL basic tests"
-        build_targets toolchain/tools/ocl/build timer taskb
+        build_targets toolchain/tools/ocl/build timer taskb taskbrowser_value_renderer_test ocl_cyclic_timer_test
         orocos_rock_info "Running OCL basic CTest subset"
-        run_ctest toolchain/tools/ocl/build '^(timer|taskb)$'
+        run_ctest toolchain/tools/ocl/build '^(timer|taskb|taskbrowser_value_renderer_test|ocl_cyclic_timer)$'
         ;;
     ocl-integration)
         orocos_rock_info "Configuring OCL integration tests"
         reconfigure toolchain/tools/ocl toolchain/tools/ocl/build \
+            -DBUILD_TESTING=ON \
             -DBUILD_TESTS=ON \
             -DBUILD_TIMER_TEST=OFF \
             -DBUILD_TASKBROWSER_TEST=OFF \
             -DBUILD_DEPLOYMENT_TEST=ON \
             -DBUILD_LOGGING_TEST=ON \
             -DBUILD_REPORTING_TEST=ON
-        OCL_INTEGRATION_TARGETS=(deploy testlogging report tcpreport)
-        OCL_INTEGRATION_TEST_REGEX='^(deploy|testlogging|report|tcpreport)$'
+        OCL_INTEGRATION_TARGETS=(deploy testlogging report tcpreport ocl_cyclic_deployment_test ocl_cyclic_reporting_test)
+        OCL_INTEGRATION_TEST_REGEX='^(deploy|testlogging|report|tcpreport|ocl_cyclic_deployment|ocl_cyclic_reporting)$'
         if cmake_target_exists toolchain/tools/ocl/build ncreport; then
             OCL_INTEGRATION_TARGETS+=(ncreport)
-            OCL_INTEGRATION_TEST_REGEX='^(deploy|testlogging|report|tcpreport|ncreport)$'
+            OCL_INTEGRATION_TEST_REGEX='^(deploy|testlogging|report|tcpreport|ncreport|ocl_cyclic_deployment|ocl_cyclic_reporting)$'
         else
             orocos_rock_info "Skipping optional ncreport test target because NetCDF support is unavailable"
         fi

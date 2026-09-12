@@ -212,6 +212,36 @@ through the Deployer while the endpoint exists.
 > authentication or authorization. Use it only on an isolated network and/or
 > restrict access with host firewall rules.
 
+## Array Display In TaskBrowser
+
+The local Deployer and remote TaskBrowser display arrays as comma-separated
+values, with the element order indicating the index:
+
+```text
+Deployer [S]> var Float64Array b = Float64Array(-43.5,323.34)
+ = [-43.5, 323.34]
+Deployer [S]> var Int32Array a = Int32Array(11,24)
+ = [11, 24]
+```
+
+Custom array elements include their registered RTT type names and named fields,
+for example `[/orocos/fixture/Point{x: 1.0, y: 2.0}]`. Nested arrays keep their
+own brackets, such as `[[1, 2], [3, 4]]`. Results longer than 100 characters
+wrap across lines; small custom elements remain together on a line when they
+fit. Array previews show the first three elements and explicitly report any
+omitted items. The existing depth and output-size limits still apply.
+
+Use `.indices` to include explicit indices for inspection:
+
+```text
+Deployer [S]> .indices
+Deployer [S]> a
+ = [[0]: 11, [1]: 24]
+```
+
+Use `.noindices` to return to the default display. These commands affect output
+only; expressions such as `a[0]` continue to select elements by index.
+
 ## C++20 And Type Names
 
 This toolchain requires C++20. RTT scripts and generated interfaces use the

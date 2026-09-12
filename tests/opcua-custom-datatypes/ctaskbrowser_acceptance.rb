@@ -167,6 +167,9 @@ def expect_segment(segments, command, pattern, transcript)
 end
 
 first_commands = [
+  "Float64ArrayAttribute",
+  "Int32ArrayAttribute",
+  "StringArrayAttribute",
   "PointAttribute",
   "EnvelopeAttribute",
   "EnvelopeConstant",
@@ -191,6 +194,15 @@ first_transcript = run_session(options, first_commands)
 first = command_segments(
   first_transcript, options.fetch(:component), first_commands
 )
+expect_segment(first, "Float64ArrayAttribute",
+               /\A[ \t]*=[ \t]*\[3\.75, 5\.0\][ \t]*\z/,
+               first_transcript)
+expect_segment(first, "Int32ArrayAttribute",
+               /\A[ \t]*=[ \t]*\[30, 40\][ \t]*\z/,
+               first_transcript)
+expect_segment(first, "StringArrayAttribute",
+               /\A[ \t]*=[ \t]*\[gamma, delta\][ \t]*\z/,
+               first_transcript)
 expect_segment(first, "PointAttribute",
                /^[ \t]*=[ \t]*\{x: 10\.0, y: 20\.0\}[ \t]*$/,
                first_transcript)
@@ -206,7 +218,7 @@ expect_segment(
 )
 expect_segment(
   first, "PointArrayAttribute",
-  /^[ \t]*=[ \t]*\[\[0\]: \{x: 10\.0, y: 11\.0\}, \[1\]: \{x: 12\.0, y: 13\.0\}\][ \t]*$/,
+  %r{\A[ \t]*=[ \t]*\[/orocos/fixture/Point\{x: 10\.0, y: 11\.0\}, /orocos/fixture/Point\{x: 12\.0, y: 13\.0\}\][ \t]*\z},
   first_transcript
 )
 expect_segment(first, "PointAttribute.x",
@@ -240,10 +252,10 @@ expect_segment(
   first, "LargePointArrayAttribute",
   Regexp.new(
     "\\A[ \\t]*=[ \\t]*" \
-    "\\[\\[0\\]: \\{x: 1\\.0, y: 2\\.0\\}, " \
-    "\\[1\\]: \\{x: 3\\.0, y: 4\\.0\\}, " \
-    "\\[2\\]: \\{x: 5\\.0, y: 6\\.0\\}, " \
-    "\\.\\.\\. 997 items omitted\\][ \\t]*\\z"
+    "\\[\\n  /orocos/fixture/Point\\{x: 1\\.0, y: 2\\.0\\},\\n  " \
+    "/orocos/fixture/Point\\{x: 3\\.0, y: 4\\.0\\},\\n  " \
+    "/orocos/fixture/Point\\{x: 5\\.0, y: 6\\.0\\},\\n  " \
+    "\\.\\.\\. 997 items omitted\\n\\][ \\t]*\\z"
   ),
   first_transcript
 )
