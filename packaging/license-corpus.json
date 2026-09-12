@@ -104,7 +104,7 @@
     {
       "name": "rtt_http",
       "source_lock_name": "rtt_http",
-      "revision": "d5be57f35efe457459ab0269ad8c1019ec18f934",
+      "revision": "bb6ff87491d4ebf97330112b1a1e1404833aa522",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_http",
@@ -176,7 +176,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "8fdcb8f9d3fd4b087fa407efac3db5d124de4ce7",
+      "revision": "7f9942588f031f4087360ad06142e5d4454baded",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
@@ -185,7 +185,7 @@
       "notices": [
         {
           "path": "deployment/DeploymentComponent.cpp",
-          "sha256": "37562d85716f56991d1311e78821f97443487633cfd8bad5171ac20c285e3c55"
+          "sha256": "6f5a2be58002e44e6835fa0ddf9ca72a178f9be92a938547bc87e08f38d211aa"
         },
         {
           "path": "manifest.xml",
@@ -193,7 +193,7 @@
         },
         {
           "path": "package.xml",
-          "sha256": "6779f94c72388cf76552d9d847205b4ac2dd5d1b922e0f9c389f83ff02a230a9"
+          "sha256": "9ec8ebbaca364d8ac9be8d3ff6182a860d16f3d0a40bd54f7097ab31f04ef901"
         },
         {
           "path": "reporting/TableMarshaller.hpp",
@@ -205,7 +205,7 @@
         },
         {
           "path": "taskbrowser/TaskBrowser.cpp",
-          "sha256": "d4754264a4d1676e5194d536df03e8d210f5022044e8da4000a439e20464ea4e"
+          "sha256": "0636a50f88e17ed3fc873fcc573dc9095d0c5d25584e084288738b5fbd57d641"
         }
       ]
     },
@@ -316,7 +316,7 @@
     {
       "name": "orogen",
       "source_lock_name": "orogen",
-      "revision": "3346b6ac682ad772b57d07b2386cdaef47e4abbe",
+      "revision": "6575d81cf5dc344ed08ea84e5c5c3d79996ce9a0",
       "license": "GPL-2.0-or-later AND BSD-3-Clause AND LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/orogen",
@@ -356,7 +356,7 @@
     {
       "name": "rtt",
       "source_lock_name": "rtt",
-      "revision": "966fbcf0cf79c8c86b229200e5cfa34562462303",
+      "revision": "57a1c535887c8bd84aae355e988705e648643916",
       "license": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/rtt",
@@ -376,7 +376,7 @@
     {
       "name": "rtt_opcua",
       "source_lock_name": "rtt_opcua",
-      "revision": "2989c4f41b98035c7aa3165f3724d64481467d9a",
+      "revision": "7fb2b36f20914872c6ec0db34e372a63caf65f3d",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_opcua",
@@ -400,7 +400,7 @@
     {
       "name": "rtt_typelib",
       "source_lock_name": "rtt_typelib",
-      "revision": "c5b345a22036019f8ec4ed176299bab3b80aae0a",
+      "revision": "43610f13ef23c8372a100d04dbcbf759ed790f86",
       "license": "GPL-2.0-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_typelib",

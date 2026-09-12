@@ -59,26 +59,26 @@ expected_sources = {
   "rtlog-cpp" => { "url" => "https://github.com/liufang-robot/rtlog-cpp.git", "branch" => "main" },
   "open62541" => { "url" => "https://github.com/open62541/open62541.git", "tag" => "v1.4.15" },
   "open62541pp" => { "url" => "https://github.com/open62541pp/open62541pp.git", "tag" => "v0.21.2" },
-  "rtt" => { "url" => "https://github.com/liufang-robot/rtt.git", "branch" => "dev" },
+  "rtt" => { "url" => "https://github.com/liufang-robot/rtt.git", "branch" => "feat/automatic-cyclic-io" },
   "rtt_opcua" => {
     "url" => "https://github.com/liufang-robot/rtt_opcua.git",
-    "branch" => "dev"
+    "branch" => "feat/automatic-cyclic-io"
   },
-  "ocl" => { "url" => "https://github.com/liufang-robot/ocl.git", "branch" => "dev" },
+  "ocl" => { "url" => "https://github.com/liufang-robot/ocl.git", "branch" => "feat/automatic-cyclic-io" },
   "cpp-httplib" => {
     "url" => "https://github.com/liufang-robot/cpp-httplib.git",
     "branch" => "rtt-maintenance",
     "commit" => "6303872c8f419f6dda9b40bd3027c0116fdb3cc7"
   },
-  "rtt_http" => { "url" => "https://github.com/liufang-robot/rtt_http.git", "branch" => "dev" },
+  "rtt_http" => { "url" => "https://github.com/liufang-robot/rtt_http.git", "branch" => "feat/automatic-cyclic-io" },
   "orogen" => {
     "url" => "https://github.com/liufang-robot/tools-orogen.git",
-    "branch" => "dev",
-    "commit" => "3346b6ac682ad772b57d07b2386cdaef47e4abbe"
+    "branch" => "feat/automatic-cyclic-io",
+    "commit" => "6575d81cf5dc344ed08ea84e5c5c3d79996ce9a0"
   },
   "typelib" => { "url" => "https://github.com/liufang-robot/tools-typelib.git", "branch" => "dev" },
   "utilmm" => { "url" => "https://github.com/liufang-robot/utilmm.git", "branch" => "dev" },
-  "rtt_typelib" => { "url" => "https://github.com/liufang-robot/tools-rtt_typelib.git", "branch" => "dev" }
+  "rtt_typelib" => { "url" => "https://github.com/liufang-robot/tools-rtt_typelib.git", "branch" => "feat/automatic-cyclic-io" }
 }
 local_source_packages = %w[farbot rtlog-cpp open62541 open62541pp rtt_opcua cpp-httplib rtt_http]
 

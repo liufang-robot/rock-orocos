@@ -199,31 +199,32 @@ datatype and value rank exactly match the registered RTT type protocol:
 
 | RTT port | `value` access | Behavior |
 |---|---|---|
-| Input | `CurrentRead \| CurrentWrite` | Each valid OPC UA Write attempts one delivery to the RTT input port. |
-| Retaining output | `CurrentRead` only | Read or monitor the latest retained RTT sample without consuming it. |
-| Non-retaining output | absent | No canonical sample Variable is published. |
+| Input | `CurrentRead \| CurrentWrite` | Each valid OPC UA Write attempts to stage one sample for the RTT input port. |
+| Output | `CurrentRead` only | Read or monitor the latest committed RTT snapshot without consuming it. |
 
-Input `value` reads return the last OPC UA sample successfully delivered to the
-RTT input port. Before the first successful delivery, Read and monitoring
+Input `value` reads return the last OPC UA sample successfully staged for the
+RTT input port. Before the first successful staging, Read and monitoring
 return `BadWaitingForInitialData`. Every valid Write still attempts one RTT
-delivery, including an equal value; failed Writes do not replace the readback.
+staging operation, including an equal value; failed Writes do not replace the readback.
 A type or rank mismatch returns `BadTypeMismatch`. A successful Write means
-that the bridge accepted delivery to the RTT port. The readback is bridge-owned
-command state, not component consumption, acknowledgement, or process state,
-and does not mean that component logic consumed, processed, or acted on the
-sample.
+that the bridge accepted the sample into its transport channel. The component
+acquires it at the next cyclic input boundary; arrival during its hook does not
+modify the current input image. The readback is bridge-owned command state and
+does not mean that component logic consumed, processed, or acted on the sample.
 
-Retaining output `value` returns `BadWaitingForInitialData` until the first
-sample exists. Later reads are non-consuming and return the current retained
-sample. This is a latest-state contract: intermediate samples may be coalesced
+Every supported output exposes `value`, which returns `BadWaitingForInitialData`
+until the first committed sample exists. Later reads are non-consuming and
+return the committed snapshot. Edits to the output working image remain invisible
+until a successful cyclic commit. This is a latest-state contract: intermediate samples may be coalesced
 or missed. It does not project RTT connection policy, FIFO depth, buffering,
 locking, transport, or other QoS into OPC UA.
 
 There are no canonical `Ports/<name>/read` or `Ports/<name>/write` Methods.
 The ordinary RTT-generated port service remains recursively mapped below
-`Services/<name>`, including operations such as `read`, `clear`, `write`, or
-`last` when RTT provides them. Those operations belong to the service mapping;
-they are not the canonical OPC UA dataport transfer surface.
+`Services/<name>`. RTT 3 exposes input `status` and output `snapshot` observation
+operations. The manual `read`, `clear`, `write`, and `last` script operations
+have been removed. See [Automatic cyclic data ports](automatic-cyclic-io.md)
+for the component execution and observation contract.
 
 ## Task State Contract
 
@@ -270,8 +271,8 @@ mirror. Proxy inputs write the remote Variable. Proxy outputs poll its latest
 value at `port_poll_interval`; they do not reconstruct server-side sample
 history or `FlowStatus`. Polling may publish an unchanged retained value again,
 so local `NewData` identifies a proxy update, not necessarily a distinct remote
-RTT write. Outputs without `value` are not mirrored as ports, while their
-generated services remain available.
+component commit. Outputs without a supported `value` schema are not mirrored
+as ports, while supported generated services remain available.
 
 The proxy invokes the native `getTaskState` and `getTargetState` Methods
 independently and validates their exact `TaskState` result schema. Its

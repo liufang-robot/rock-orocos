@@ -77,12 +77,12 @@ package_test_contracts = {
     script_tokens: [
       "-DENABLE_MQ=ON",
       "-DENABLE_CORBA=OFF",
-      "build_targets toolchain/tools/rtt/build main-test list-test core-test task-test mqueue-test mqueue_archive_test",
-      "run_ctest toolchain/tools/rtt/build '^(main-test|list-test|core-test|task-test|mqueue-test|mqueue_archive_test)$'"
+      "build_targets toolchain/tools/rtt/build main-test list-test core-test task-test mqueue-test mqueue_archive_test cyclic_ports_test cyclic_dataflow_test scripting_test",
+      "run_ctest toolchain/tools/rtt/build '^(main-test|list-test|core-test|task-test|mqueue-test|mqueue_archive_test|cyclic_ports_test|cyclic_dataflow_test|scripting_test)$'"
     ],
     result_tokens: [
       "`main-test`", "`list-test`", "`core-test`", "`task-test`",
-      "`mqueue-test`", "`mqueue_archive_test`"
+      "`mqueue-test`", "`mqueue_archive_test`", "`cyclic_ports_test`", "`cyclic_dataflow_test`", "`scripting_test`"
     ]
   },
   "rtt-opcua" => {
@@ -103,10 +103,10 @@ package_test_contracts = {
       "-DBUILD_TESTING=ON",
       "-DBUILD_TIMER_TEST=ON",
       "-DBUILD_TASKBROWSER_TEST=ON",
-      "build_targets toolchain/tools/ocl/build timer taskb taskbrowser_value_renderer_test",
-      "run_ctest toolchain/tools/ocl/build '^(timer|taskb|taskbrowser_value_renderer_test)$'"
+      "build_targets toolchain/tools/ocl/build timer taskb taskbrowser_value_renderer_test ocl_cyclic_timer_test",
+      "run_ctest toolchain/tools/ocl/build '^(timer|taskb|taskbrowser_value_renderer_test|ocl_cyclic_timer)$'"
     ],
-    result_tokens: ["`timer`", "`taskb`", "`taskbrowser_value_renderer_test`"]
+    result_tokens: ["`timer`", "`taskb`", "`taskbrowser_value_renderer_test`", "`ocl_cyclic_timer`"]
   },
   "ocl-integration" => {
     script_tokens: [
@@ -115,13 +115,13 @@ package_test_contracts = {
       "-DBUILD_DEPLOYMENT_TEST=ON",
       "-DBUILD_LOGGING_TEST=ON",
       "-DBUILD_REPORTING_TEST=ON",
-      "OCL_INTEGRATION_TARGETS=(deploy testlogging report tcpreport)",
+      "OCL_INTEGRATION_TARGETS=(deploy testlogging report tcpreport ocl_cyclic_deployment_test ocl_cyclic_reporting_test)",
       "cmake_target_exists toolchain/tools/ocl/build ncreport",
       "OCL_INTEGRATION_TARGETS+=(ncreport)",
       'build_targets toolchain/tools/ocl/build "${OCL_INTEGRATION_TARGETS[@]}"',
       'run_ctest toolchain/tools/ocl/build "$OCL_INTEGRATION_TEST_REGEX"'
     ],
-    result_tokens: ["`deploy`", "`testlogging`", "`report`", "`tcpreport`", "`ncreport`", "optional"]
+    result_tokens: ["`deploy`", "`testlogging`", "`report`", "`tcpreport`", "`ncreport`", "optional", "`ocl_cyclic_deployment`", "`ocl_cyclic_reporting`"]
   }
 }.freeze
 
