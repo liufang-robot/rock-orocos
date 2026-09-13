@@ -45,6 +45,9 @@ endpoint cases include live typed member expressions, frozen compound samples,
 unavailable output propagation, read-only member storage, and retained observer
 lifetime. An unavailable operation argument must prevent the operation from
 executing; a same-name attribute or service must not bypass a registered port.
+All 44 browser cases also pass with AddressSanitizer, UndefinedBehaviorSanitizer,
+and leak checks against the matching sanitized RTT libraries. Browser fixtures
+use isolated history storage.
 
 HTTP and OPC UA publication tests retain existing local connections and permit
 passive observation of running components. Explicit input sources stage values
