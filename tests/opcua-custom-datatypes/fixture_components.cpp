@@ -26,7 +26,7 @@ template <typename T> struct Surface {
   // publishes it through the ordinary component execution engine.
   bool emit(T value) {
     output.data() = std::move(value);
-    return output.connected();
+    return true;
   }
 
   T take() { return input.data(); }

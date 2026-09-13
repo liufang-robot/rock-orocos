@@ -100,29 +100,27 @@ specifications and rejects the removed `in+event` form.
 
 ## Deployment connections
 
-Use `connectPort(source, destination)` for both whole values and members. An
-endpoint contains a service-qualified port path, optionally followed by `::` and
-a member selector:
+Use `connectPort(source, destination)` for both whole values and members. Its
+endpoints use exactly the same dot/index paths as TaskBrowser data expressions:
 
 | Connection | Deployment operation |
 |---|---|
 | Whole output to whole input | `connectPort("A.output", "B.input")` |
-| Member to member | `connectPort("A.output::y", "B.input::y")` |
-| Whole scalar to member | `connectPort("C.value", "B.input::x")` |
-| Member to whole scalar | `connectPort("A.output::z", "D.value")` |
-| Nested member or fixed-array element | `connectPort("A.motion.output::axes[2].position", "B.input::target.position")` |
+| Member to member | `connectPort("A.output.y", "B.input.y")` |
+| Whole scalar to member | `connectPort("C.value", "B.input.x")` |
+| Member to whole scalar | `connectPort("A.output.z", "D.value")` |
+| Nested member or fixed-array element | `connectPort("A.motion.output.axes[2].position", "B.input.target.position")` |
 
-The separate deployment `connectMember(source, member, destination, member)`
-operation and C++ method are removed. Move each nonempty selector into its endpoint
-after `::`. The deprecated `connectTwoPorts(component, port, component, port)`
-operation and its four-argument C++ `DeploymentComponent::connectPorts` overload
-are also removed. The output is always first and the input second. Component and
-service names are part of each qualified port path, before `::`.
+The resolver walks actual services to a registered port, then selects data
+members or constant indices. A bare port selects its whole value. Whole-port
+connections require matching whole types. Member connections require matching
+selected types, so `Output.y` can connect to `Input.y` although the parent
+structures differ. The output is always first and the input second.
 
-Omitting `::` selects the whole port value; an empty selector after `::` is an
-error. Whole-port connections require
-matching whole types. Member connections require matching selected types, so
-`Output.y` can connect to `Input.y` although the parent structures differ.
+The separate `connectMember` and deprecated `connectTwoPorts` deployment
+operations are removed, along with the four-argument C++
+`DeploymentComponent::connectPorts` overload. The earlier experimental `::`
+selector notation is rejected; use dots and fixed indices throughout.
 
 For the component types above, a complete wiring fragment after loading the
 components is:
@@ -131,8 +129,8 @@ components is:
 setActivity("A", 0.1, 0, ORO_SCHED_OTHER)
 setActivity("C", 0.1, 0, ORO_SCHED_OTHER)
 setActivity("B", 0.1, 0, ORO_SCHED_OTHER)
-connectPort("A.output::y", "B.input::y")
-connectPort("C.output::z", "B.input::x")
+connectPort("A.output.y", "B.input.y")
+connectPort("C.output.z", "B.input.x")
 finalizeConnections()
 startComponent("A")
 startComponent("C")
@@ -150,8 +148,8 @@ are rejected; whole dynamic values remain typed values. Fixed arrays embedded in
 owning structures are supported; nonowning `carray` wrappers cannot be root port
 images.
 
-Invalid paths, empty or repeated `::` delimiters, negative or out-of-range indices, type mismatches, array-shape
-mismatches, and overlapping writers fail configuration. Matching storage size
+Invalid paths, legacy `::` selectors, negative or out-of-range indices, type
+mismatches, array-shape mismatches, and overlapping writers fail configuration. Matching storage size
 alone does not make two types compatible, and numeric conversions are not implicit.
 
 ## Ports in services
@@ -176,6 +174,36 @@ port graph. Detaching a port-containing service removes its affected connections
 The explicit deployer call is optional: `startComponent()` prepares the component's
 connections automatically before entering its start hook. Use the explicit call
 when you want to check all component connections before starting any component.
+
+## Inspect and manage ports
+
+Ports are runtime objects with type, direction, values and connections. They do
+not create synthetic services or management operations under their names. Actual
+component services remain services. TaskBrowser reads port data directly:
+
+```text
+A.output
+A.output.y
+B.input.x
+A.motion.output.axes[2].position
+```
+
+These expressions are read-only. A data member named `data`, `snapshot`,
+`connected` or `name` remains an ordinary data member. There is no required
+`.data` or `.snapshot` wrapper. Input reads show configured defaults and then the
+last image acquired by the component. Output reads show the last committed
+publication, which is unavailable until the first commit.
+
+Use separate deployer operations for whole-port management:
+
+```text
+isPortConnected("B.input")
+disconnectPort("B.input")
+```
+
+Both operations require a whole port path. Stop affected components before
+disconnecting; this removes all mappings into the selected whole input. Use `ls`
+or `help` to inspect direction, type, value and source relationships.
 
 ## Inspect input connections
 
@@ -238,7 +266,8 @@ from different producer cycles. Several fields mapped from one source use one
 source subscription snapshot when assembling the destination. There is no global
 all-input/all-hook/all-output scheduler barrier.
 
-TaskBrowser, reporting, OPC UA, and HTTP observe committed snapshots. Each observer
+TaskBrowser, reporting, OPC UA, and HTTP observe acquired input images and
+committed output images. Each observer
 has independent freshness and does not consume the component's input channel.
 Observer storage is bounded. If slow observers occupy every snapshot slot, the
 cache retains an older committed value while channel delivery continues; observation
@@ -249,11 +278,37 @@ mean the component has already processed the value.
 
 Lua component hooks use `input:data()` and `output:data(value)`. Lua returns detached
 image copies; output image assignment is committed by the owner cycle. Native RTT
-scripts can use observation operations and component-defined attributes or
-operations. The old port-event state-machine shorthand has been removed.
+scripts use the same read-only dot/index expressions and component-defined
+attributes or operations. The old port-event state-machine shorthand has been removed.
 
 OCL timers expose cumulative `UInt64` expiration counters. Reporting samples each
 source once per report and may coalesce intermediate publications. See the OCL
 `doc/automatic-cyclic-io.md` guide for timer and reporting details.
 
 See [Cyclic I/O validation](cyclic-io-validation.md) for measured costs and validation limits.
+
+## External input sources
+
+HTTP and OPC UA publication is passive and read-only by default. It adds no
+connections, so connected or running ports can be published without changing
+their input sources. Network serialization runs outside the component cycle.
+
+Enable a network writer explicitly after publishing the target and while the
+component is stopped:
+
+```text
+http.enableInputWrite("B.input.x")
+opcua.enableInputWrite("B.input.y")
+```
+
+These sources can coexist because they claim disjoint regions. Claiming the
+whole input, the same member twice through different sources, or an overlapping
+parent region is rejected. Outputs cannot accept external writes. Both services
+also provide `disableInputWrite(endpoint)` during stopped configuration.
+
+A successful request stages the selected typed value. Reads continue to show the
+previous acquired image until the next input boundary. Requests to one enabled
+source update its latest state; they do not create a writer per client. HTTP
+exposes selected member routes; OPC UA creates a typed member Variable when a
+region is enabled and keeps it read-only after disabling. See the
+[HTTP](http-reference.md) and [OPC UA](opcua-reference.md) references for paths.

@@ -319,6 +319,8 @@ void requireOperationNames(RTT::Service &service,
 }
 
 const std::vector<std::string> kExpectedOpcUaOperations{
+    "disableInputWrite",
+    "enableInputWrite",
     "endpointUrl",
     "isRunning",
     "lastError",
@@ -455,7 +457,7 @@ void requireSelectedServicesAbsent(RTT::TaskContext &proxy) {
     for (const std::string_view suffix : {"Input", "Output"}) {
       const std::string service_name = std::string(stem) + std::string(suffix);
       require(root.getService(service_name) == nullptr,
-              "selected sample unexpectedly exposes generated port service " +
+              "sample unexpectedly exposes removed port service " +
                   service_name);
     }
   }

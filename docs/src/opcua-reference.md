@@ -115,7 +115,7 @@ unreserved ASCII characters are literal and every other byte is uppercase
 
 Each selected logical resource maps as one complete atomic OPC UA node bundle,
 including its required metadata and values. Service ancestors are included as
-needed. A port and a same-named generated service are independent resources:
+needed. A port and a same-named actual service are independent resources:
 `ports/Command` does not select `services/Command/**`, and vice versa.
 
 ## Mandatory Proxy Baseline
@@ -184,9 +184,10 @@ visible so their identity and documentation are preserved.
 - properties become readable and, when supported by RTT, writable Variables;
 - attributes become Variables with RTT mutability preserved;
 - constants are read-only Variables;
-- ports become metadata Objects with one direction-specific sample Variable;
-- nested services use the same recursive mapping; and
-- generated RTT port services remain available below their owning service.
+- ports become metadata Objects with a read-only sample Variable;
+- explicitly enabled input regions receive writable typed Variables; and
+- actual nested services use the same recursive mapping. Ports do not generate
+  services under their names.
 
 ## Port Contract
 
@@ -199,32 +200,49 @@ datatype and value rank exactly match the registered RTT type protocol:
 
 | RTT port | `value` access | Behavior |
 |---|---|---|
-| Input | `CurrentRead \| CurrentWrite` | Each valid OPC UA Write attempts to stage one sample for the RTT input port. |
-| Output | `CurrentRead` only | Read or monitor the latest committed RTT snapshot without consuming it. |
+| Input | `CurrentRead` by default | Read or monitor the last image acquired by the component, including configured defaults. |
+| Output | `CurrentRead` only | Read or monitor the latest committed output image. |
 
-Input `value` reads return the last OPC UA sample successfully staged for the
-RTT input port. Before the first successful staging, Read and monitoring
-return `BadWaitingForInitialData`. Every valid Write still attempts one RTT
-staging operation, including an equal value; failed Writes do not replace the readback.
-A type or rank mismatch returns `BadTypeMismatch`. A successful Write means
-that the bridge accepted the sample into its transport channel. The component
-acquires it at the next cyclic input boundary; arrival during its hook does not
-modify the current input image. The readback is bridge-owned command state and
-does not mean that component logic consumed, processed, or acted on the sample.
+Publication adds no port connections, so existing local sources and running
+components remain observable. Each observer has its own safe snapshot.
 
-Every supported output exposes `value`, which returns `BadWaitingForInitialData`
-until the first committed sample exists. Later reads are non-consuming and
-return the committed snapshot. Edits to the output working image remain invisible
-until a successful cyclic commit. This is a latest-state contract: intermediate samples may be coalesced
-or missed. It does not project RTT connection policy, transport queue capacity,
-locking, or other QoS into OPC UA.
+Enable a network input source explicitly while its published component is stopped:
 
-There are no canonical `Ports/<name>/read` or `Ports/<name>/write` Methods.
-The ordinary RTT-generated port service remains recursively mapped below
-`Services/<name>`. RTT 3 exposes input `status` and output `snapshot` observation
-operations. The manual `read`, `clear`, `write`, and `last` script operations
-have been removed. See [Automatic cyclic data ports](automatic-cyclic-io.md)
-for the component execution and observation contract.
+```text
+opcua.enableInputWrite("arm.command")
+opcua.enableInputWrite("arm.motion.target.axes[2].position")
+```
+
+A whole-port declaration makes its existing `value` Variable writable. A member
+declaration creates a typed Variable at
+`ports/target/members/<encoded-selector>` below the port's owning service path,
+with `CurrentRead | CurrentWrite` access. The complete member selector is one
+percent-escaped NodeId segment. Other regions remain read-only. This does not
+partially merge a whole structure: every Write supplies the exact selected type.
+NumericRange reads and writes are rejected; use the selected region Variable.
+
+Overlapping writers are rejected, including an existing local source, a source
+from another transport, and parent/child regions. One enabled source accepts
+latest-state updates from clients. Outputs are never externally writable.
+`opcua.disableInputWrite(endpoint)` releases the writer during stopped
+configuration; a created member Variable remains available as read-only data.
+The C++ equivalents are `ObjectModel::enableInputWrite(component, relativeEndpoint)`
+and `disableInputWrite(component, relativeEndpoint)`.
+
+A successful Write stages the sample for the next input boundary. Reading or
+monitoring the input still returns its previous acquired image until that
+boundary. The acknowledgement does not mean the component has processed the
+sample. Type/rank mismatches fail without changing the input image.
+
+Output `value` returns `BadWaitingForInitialData` until the first committed
+sample. Later reads return the committed image; editing the working image does
+not publish it. Intermediate publications may be coalesced. No RTT channel QoS
+or sample history is projected into OPC UA.
+
+There are no generated `Services/<port>` wrappers or port read/write Methods.
+TaskBrowser reads `arm.command` or `arm.motion.target.axes[2].position` directly.
+See [Automatic cyclic data ports](automatic-cyclic-io.md) for execution and
+observation semantics.
 
 ## Task State Contract
 
@@ -267,12 +285,14 @@ and `RtString`. Remote endpoints cannot trigger local plugin loading.
 `TaskContextProxy` reconstructs the supported RTT service graph, resource
 mutability, operations, and ports from the endpoint. It validates each port's
 `direction`, `value` datatype, value rank, and access before creating a local
-mirror. Proxy inputs write the remote Variable. Proxy outputs poll its latest
+mirror. Proxy inputs can write the remote Variable only when its whole input
+source was enabled on the server. Proxy outputs poll its latest
 value at `port_poll_interval`; they do not reconstruct server-side sample
 history or `FlowStatus`. Polling may publish an unchanged retained value again,
 so local `NewData` identifies a proxy update, not necessarily a distinct remote
-component commit. Outputs without a supported `value` schema are not mirrored
-as ports, while supported generated services remain available.
+component commit. Ports without a supported `value` schema cannot be mirrored. Direct proxy
+observation reads the remote acquired input or committed output even without a
+local channel; it does not depend on the transfer pump or synthetic services.
 
 The proxy invokes the native `getTaskState` and `getTargetState` Methods
 independently and validates their exact `TaskState` result schema. Its

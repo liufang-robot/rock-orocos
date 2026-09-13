@@ -104,7 +104,7 @@
     {
       "name": "rtt_http",
       "source_lock_name": "rtt_http",
-      "revision": "bb6ff87491d4ebf97330112b1a1e1404833aa522",
+      "revision": "98852d15984c1bd17957b25d816f8a3df9f59348",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_http",
@@ -176,7 +176,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "b90cce109ab9711fe5f8a2d3fda9063411e6df58",
+      "revision": "09511a6cad0a43320d1b1e56ded1ea4486ad4f23",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
@@ -185,7 +185,7 @@
       "notices": [
         {
           "path": "deployment/DeploymentComponent.cpp",
-          "sha256": "d10da2f46a42a9011e131f92715985862b5f56c28801af600585c48064bcdc1a"
+          "sha256": "c2af3c7bc3aff315d6a5a7f1c78a800e65a01a98ea5f42a58d7e904790a33bb2"
         },
         {
           "path": "manifest.xml",
@@ -205,7 +205,7 @@
         },
         {
           "path": "taskbrowser/TaskBrowser.cpp",
-          "sha256": "0636a50f88e17ed3fc873fcc573dc9095d0c5d25584e084288738b5fbd57d641"
+          "sha256": "e0c4bbdf955421b9513dcc6e449d259e49a9e4d8264aabed3d618197b7ae1db9"
         }
       ]
     },
@@ -356,7 +356,7 @@
     {
       "name": "rtt",
       "source_lock_name": "rtt",
-      "revision": "d3926edd29f0b4a26749c63c5b4a13f0e6cd2908",
+      "revision": "c2554980b455e13189585a4b0ce92c4bfac77fd6",
       "license": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/rtt",
@@ -376,7 +376,7 @@
     {
       "name": "rtt_opcua",
       "source_lock_name": "rtt_opcua",
-      "revision": "756ef0db2a0da9225ffb17b37e49bc4f6143b720",
+      "revision": "4c03115a45c4db550236fe3f0aa397cbc383214f",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_opcua",

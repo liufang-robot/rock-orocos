@@ -23,13 +23,13 @@ lifecycle state observation, failure suppression, and deployment shutdown.
 | Validation | Result |
 |---|---|
 | Preserved RTT 2 baseline | 43/43 CTest suites passed |
-| RTT 3 complete core build | 45/45 CTest suites passed |
+| RTT 3 complete core build | 46/46 CTest suites passed |
 | New port image and mapping cases | 15 image cases and 28 runtime cases passed |
-| AddressSanitizer + UndefinedBehaviorSanitizer | Image, mapping, and channel suites passed, leak checks enabled |
-| OCL | 39/39 CTest suites passed |
-| TaskBrowser values and input-source listings | 35 cases passed, including nested services, reconnects, and nonconsuming inspection |
+| AddressSanitizer + UndefinedBehaviorSanitizer | Five endpoint, scripting, image, mapping, and channel suites passed, leak checks enabled |
+| OCL | 40/40 CTest suites passed |
+| TaskBrowser values and input-source listings | 44 cases passed, including nested services, reconnects, unavailable values, name collisions, and read-only inspection |
 | OPC UA | 11/11 CTest suites passed |
-| HTTP | 6/6 CTest suites passed |
+| HTTP | 10/10 CTest suites passed |
 | Typelib bridge | 1/1 CTest suite passed |
 | Native OroGen component/typekit cases | 3 tests, 11 assertions passed |
 | Native generated deployments and activities | Four scenarios passed: periodic state/shutdown, cross-project types, activity kinds, and file-descriptor scheduling |
@@ -40,6 +40,21 @@ The unified `connectPort` deployment fixture covers whole values, selected
 members, nested fixed-array elements and structures, whole fixed-array fields,
 multiple sources, and invalid endpoints. Removed `connectMember` and event-port
 registration APIs are checked in the installed C++ SDK and Lua interface.
+Connection endpoints and browser values use the same dot/index paths. The 19
+endpoint cases include live typed member expressions, frozen compound samples,
+unavailable output propagation, read-only member storage, and retained observer
+lifetime. An unavailable operation argument must prevent the operation from
+executing; a same-name attribute or service must not bypass a registered port.
+
+HTTP and OPC UA publication tests retain existing local connections and permit
+passive observation of running components. Explicit input sources stage values
+for the next input acquisition; network reads continue to show the last acquired
+image. Checks cover disjoint writers, source reconnection, rejected overlaps,
+type/shape validation, and read-only defaults. HTTP also checks observation after
+port destruction and concurrent requests. OPC UA failure injection verifies that
+failed writer removal preserves the connected source and writable access, and
+failed member-node creation preserves foreign nodes and permits a clean retry.
+
 OroGen model specifications pass 124 tests with 191 assertions, and focused
 generation checks pass nine tests with 27 assertions. Generated native components
 and explicit nonperiodic service-port tests verify that data ingress alone does

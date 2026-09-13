@@ -115,6 +115,12 @@ int ORO_main(int argc, char **argv) {
                                  " unsupported resources");
       }
 
+      for (const std::string stem : {"Float64Array", "Int32Array", "StringArray",
+                                     "RtString", "Point", "Envelope", "PointArray"}) {
+        if (!model->enableInputWrite(*component, stem + "Input", &error))
+          throw std::runtime_error(error);
+      }
+
       std::ofstream ready(ready_file, std::ios::trunc);
       if (!ready) {
         throw std::runtime_error("unable to create ready file: " + ready_file);
