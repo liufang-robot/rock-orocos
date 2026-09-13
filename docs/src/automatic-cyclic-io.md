@@ -64,24 +64,63 @@ value-initialized defaults; the engine still calls the hook.
 boundary. Repeated observation does not consume or clear freshness. `NewData`
 means a new publication was acquired, even when its value equals the previous one.
 
+## Execution scheduling
+
+An activity or an external scheduler determines when the component executes.
+Port data arrival does not schedule a component cycle. Each scheduled cycle
+refreshes all registered inputs, runs `updateHook()`, and publishes all outputs,
+including ports in nested services.
+
+For example, configure a 10 Hz activity in the deployment before startup:
+
+```text
+setActivity("controller", 0.1, 0, ORO_SCHED_OTHER)
+```
+
+`addEventPort()`, port-specific callbacks, and port-driven OroGen models are
+removed. Register every data input with `addPort()` and explicitly select an
+activity or external execution source. A nonperiodic component needs an explicit
+trigger or scheduler invocation for subsequent cycles; receiving a sample alone
+will not run its hook. Operation and transport scheduling remain separate from
+data-port publication.
+
+For an OroGen model that previously used `port_driven "input"`, choose its
+execution schedule explicitly, for example:
+
+```ruby
+task_context "Controller" do
+    input_port "input", "double"
+    output_port "output", "double"
+    periodic 0.1
+end
+```
+
+Lua components also use `addPort`; `rttlib.create_if` accepts `in` and `out` port
+specifications and rejects the removed `in+event` form.
+
 ## Deployment connections
 
-Use service-qualified port paths and separate member selectors:
+Use `connectPort(source, destination)` for both whole values and members. An
+endpoint contains a service-qualified port path, optionally followed by `::` and
+a member selector:
 
 | Connection | Deployment operation |
 |---|---|
 | Whole output to whole input | `connectPort("A.output", "B.input")` |
-| Member to member | `connectMember("A.output", "y", "B.input", "y")` |
-| Whole scalar to member | `connectMember("C.value", "", "B.input", "x")` |
-| Member to whole scalar | `connectMember("A.output", "z", "D.value", "")` |
+| Member to member | `connectPort("A.output::y", "B.input::y")` |
+| Whole scalar to member | `connectPort("C.value", "B.input::x")` |
+| Member to whole scalar | `connectPort("A.output::z", "D.value")` |
+| Nested member or fixed-array element | `connectPort("A.motion.output::axes[2].position", "B.input::target.position")` |
 
-The deprecated `connectTwoPorts(component, port, component, port)` operation and
-its four-argument C++ `DeploymentComponent::connectPorts` overload are removed.
-Use `connectPort("source.motion.output", "sink.io.input")` for an explicit
-whole-port connection, with the output first and the input second. Component and
-service names are part of each qualified port path.
+The separate deployment `connectMember(source, member, destination, member)`
+operation and C++ method are removed. Move each nonempty selector into its endpoint
+after `::`. The deprecated `connectTwoPorts(component, port, component, port)`
+operation and its four-argument C++ `DeploymentComponent::connectPorts` overload
+are also removed. The output is always first and the input second. Component and
+service names are part of each qualified port path, before `::`.
 
-An empty selector means the whole port value. Whole-port connections require
+Omitting `::` selects the whole port value; an empty selector after `::` is an
+error. Whole-port connections require
 matching whole types. Member connections require matching selected types, so
 `Output.y` can connect to `Input.y` although the parent structures differ.
 
@@ -89,8 +128,11 @@ For the component types above, a complete wiring fragment after loading the
 components is:
 
 ```text
-connectMember("A.output", "y", "B.input", "y")
-connectMember("C.output", "z", "B.input", "x")
+setActivity("A", 0.1, 0, ORO_SCHED_OTHER)
+setActivity("C", 0.1, 0, ORO_SCHED_OTHER)
+setActivity("B", 0.1, 0, ORO_SCHED_OTHER)
+connectPort("A.output::y", "B.input::y")
+connectPort("C.output::z", "B.input::x")
 finalizeConnections()
 startComponent("A")
 startComponent("C")
@@ -108,7 +150,7 @@ are rejected; whole dynamic values remain typed values. Fixed arrays embedded in
 owning structures are supported; nonowning `carray` wrappers cannot be root port
 images.
 
-Invalid paths, negative or out-of-range indices, type mismatches, array-shape
+Invalid paths, empty or repeated `::` delimiters, negative or out-of-range indices, type mismatches, array-shape
 mismatches, and overlapping writers fail configuration. Matching storage size
 alone does not make two types compatible, and numeric conversions are not implicit.
 
@@ -179,7 +221,7 @@ Multiple sources can still populate disjoint members or fixed-array elements,
 and one output can supply many inputs. Use a component with separate inputs and
 an explicit selection rule when several producers represent alternative sources.
 
-Internal operation, callback, logging, and network queues remain part of the
+Internal operation, logging, and network queues remain part of the
 runtime. POSIX mqueue retains its transport queue; `ConnPolicy.size` specifies
 transport capacity where supported. `buffer_policy` continues to describe data
 storage placement and sharing, and does not select FIFO delivery. Shared storage
@@ -188,8 +230,8 @@ another component's update. A publication concurrent with acquisition may be
 observed on the following cycle or reported again; latest-state delivery does
 not provide exactly-once event delivery. `UNBUFFERED`
 is reserved for output streams. Discrete commands belong in operations; event
-counts or bounded batches can represent events in state data. An EventPort wakeup
-does not promise one hook invocation for every publication.
+counts or bounded batches can represent events in state data. Data ports do not
+provide event callbacks or publication-driven component wakeups.
 
 Each component has its own boundary. Fields from different producers may come
 from different producer cycles. Several fields mapped from one source use one

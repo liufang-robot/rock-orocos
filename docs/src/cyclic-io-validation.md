@@ -24,7 +24,7 @@ lifecycle state observation, failure suppression, and deployment shutdown.
 |---|---|
 | Preserved RTT 2 baseline | 43/43 CTest suites passed |
 | RTT 3 complete core build | 45/45 CTest suites passed |
-| New port image and mapping cases | 13 image cases and 28 runtime cases passed |
+| New port image and mapping cases | 15 image cases and 28 runtime cases passed |
 | AddressSanitizer + UndefinedBehaviorSanitizer | Image, mapping, and channel suites passed, leak checks enabled |
 | OCL | 39/39 CTest suites passed |
 | TaskBrowser values and input-source listings | 35 cases passed, including nested services, reconnects, and nonconsuming inspection |
@@ -32,9 +32,18 @@ lifecycle state observation, failure suppression, and deployment shutdown.
 | HTTP | 6/6 CTest suites passed |
 | Typelib bridge | 1/1 CTest suite passed |
 | Native OroGen component/typekit cases | 3 tests, 11 assertions passed |
-| Native generated deployment and shutdown | 1 test, 28 assertions passed |
+| Native generated deployments and activities | Four scenarios passed: periodic state/shutdown, cross-project types, activity kinds, and file-descriptor scheduling |
 | Separate installed SDK consumers | HTTP and OPC UA custom datatype tests passed |
 | CTaskBrowser with the installed OPC UA fixture | Scalar and nested writes, compact arrays, persistence, constant rejection, truncation, and clean shutdown passed |
+
+The unified `connectPort` deployment fixture covers whole values, selected
+members, nested fixed-array elements and structures, whole fixed-array fields,
+multiple sources, and invalid endpoints. Removed `connectMember` and event-port
+registration APIs are checked in the installed C++ SDK and Lua interface.
+OroGen model specifications pass 124 tests with 191 assertions, and focused
+generation checks pass nine tests with 27 assertions. Generated native components
+and explicit nonperiodic service-port tests verify that data ingress alone does
+not execute a hook; an explicit scheduled cycle still refreshes and publishes.
 
 A pre-existing yielding-function hang also reproduced against the RTT 2 baseline.
 The executor could finish its callback before the caller recorded queue acceptance,
@@ -74,6 +83,10 @@ Instrumentation found zero C++ `new`/`new[]` calls over 10,000 prepared cycles
 with fixed structs and member arrays. A concurrent producer test checked 20,000
 related-field publications without mixed source samples. This does not measure
 arbitrary `malloc`, user-defined copy implementations, or target scheduling.
+
+The timing results below were recorded before event-port scheduling was removed
+and deployment member selection was unified under `connectPort`. They describe
+that earlier feature revision; they are not new measurements of the latest head.
 
 The timing probe uses a 512-byte frame and a source/sink pair. Sequential cases
 include both component cycles; concurrent cases measure the consumer while the

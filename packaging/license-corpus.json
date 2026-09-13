@@ -176,7 +176,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "5fe2a221b29b9ad647b23d7206172e7b942af916",
+      "revision": "b90cce109ab9711fe5f8a2d3fda9063411e6df58",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
@@ -185,7 +185,7 @@
       "notices": [
         {
           "path": "deployment/DeploymentComponent.cpp",
-          "sha256": "33cc270d230571bcf29ef2305d77f32f4362cd31e709a2f9b7c06d479b1d1c9d"
+          "sha256": "d10da2f46a42a9011e131f92715985862b5f56c28801af600585c48064bcdc1a"
         },
         {
           "path": "manifest.xml",
@@ -316,7 +316,7 @@
     {
       "name": "orogen",
       "source_lock_name": "orogen",
-      "revision": "bc52ebca705fbeef58caa782750aa2b0d69b07ef",
+      "revision": "6b388fa80a2011fa00fb7bbf7ea91c0ce67f3b79",
       "license": "GPL-2.0-or-later AND BSD-3-Clause AND LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/orogen",
@@ -356,7 +356,7 @@
     {
       "name": "rtt",
       "source_lock_name": "rtt",
-      "revision": "267803f440179b1802dc07d1b29343ffb438e901",
+      "revision": "d3926edd29f0b4a26749c63c5b4a13f0e6cd2908",
       "license": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/rtt",
@@ -376,7 +376,7 @@
     {
       "name": "rtt_opcua",
       "source_lock_name": "rtt_opcua",
-      "revision": "668767123e3e66e45a12114575d47fe0c54ba516",
+      "revision": "756ef0db2a0da9225ffb17b37e49bc4f6143b720",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_opcua",

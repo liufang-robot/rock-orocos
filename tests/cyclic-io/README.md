@@ -30,7 +30,9 @@ isolation was configured.
 
 The baseline runtime is the unchanged RTT commit
 `966fbcf0cf79c8c86b229200e5cfa34562462303`; the feature is the matching
-`feat/automatic-cyclic-io` SDK. All 20 scenarios in each run passed their
+`feat/automatic-cyclic-io` SDK at the time of that run, before the subsequent
+event-port removal and unified deployment endpoint API. These recorded results
+are not a benchmark of the latest feature head. All 20 scenarios in each run passed their
 coherence checks. The baseline executable loaded the preserved baseline build
 library; the feature executable loaded the private RTT 3 installation.
 
