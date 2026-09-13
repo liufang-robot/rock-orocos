@@ -75,6 +75,12 @@ Use service-qualified port paths and separate member selectors:
 | Whole scalar to member | `connectMember("C.value", "", "B.input", "x")` |
 | Member to whole scalar | `connectMember("A.output", "z", "D.value", "")` |
 
+The deprecated `connectTwoPorts(component, port, component, port)` operation and
+its four-argument C++ `DeploymentComponent::connectPorts` overload are removed.
+Use `connectPort("source.motion.output", "sink.io.input")` for an explicit
+whole-port connection, with the output first and the input second. Component and
+service names are part of each qualified port path.
+
 An empty selector means the whole port value. Whole-port connections require
 matching whole types. Member connections require matching selected types, so
 `Output.y` can connect to `Input.y` although the parent structures differ.

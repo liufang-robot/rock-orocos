@@ -34,7 +34,7 @@
     {
       "name": "ocl",
       "repository": "https://github.com/liufang-robot/ocl.git",
-      "revision": "33144b51b48afefd7115d7f9d2eb34ae0bffc1b3"
+      "revision": "5fe2a221b29b9ad647b23d7206172e7b942af916"
     },
     {
       "name": "cpp-httplib",
