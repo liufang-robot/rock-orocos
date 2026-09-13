@@ -14,7 +14,7 @@
     {
       "name": "rtt",
       "repository": "https://github.com/liufang-robot/rtt.git",
-      "revision": "57a1c535887c8bd84aae355e988705e648643916"
+      "revision": "267803f440179b1802dc07d1b29343ffb438e901"
     },
     {
       "name": "open62541",
@@ -29,12 +29,12 @@
     {
       "name": "rtt_opcua",
       "repository": "https://github.com/liufang-robot/rtt_opcua.git",
-      "revision": "7fb2b36f20914872c6ec0db34e372a63caf65f3d"
+      "revision": "668767123e3e66e45a12114575d47fe0c54ba516"
     },
     {
       "name": "ocl",
       "repository": "https://github.com/liufang-robot/ocl.git",
-      "revision": "7f9942588f031f4087360ad06142e5d4454baded"
+      "revision": "33144b51b48afefd7115d7f9d2eb34ae0bffc1b3"
     },
     {
       "name": "cpp-httplib",
@@ -74,7 +74,7 @@
     {
       "name": "orogen",
       "repository": "https://github.com/liufang-robot/tools-orogen.git",
-      "revision": "6575d81cf5dc344ed08ea84e5c5c3d79996ce9a0"
+      "revision": "bc52ebca705fbeef58caa782750aa2b0d69b07ef"
     },
     {
       "name": "rock-package-set",

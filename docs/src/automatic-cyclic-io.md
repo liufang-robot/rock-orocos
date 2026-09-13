@@ -125,6 +125,10 @@ Stop all affected components before changing the graph or storage shape.
 requires a prepared valid graph. Operation-only service changes do not change the
 port graph. Detaching a port-containing service removes its affected connections.
 
+The explicit deployer call is optional: `startComponent()` prepares the component's
+connections automatically before entering its start hook. Use the explicit call
+when you want to check all component connections before starting any component.
+
 ## Inspect input connections
 
 In the deployer's TaskBrowser, `ls B` lists the component's root ports and
@@ -156,8 +160,28 @@ preparation. Dynamically allocated whole types require representative
 resizing during execution can allocate. Type copying, transport, synchronization,
 and scheduling still determine timing on the target platform.
 
-State channels use latest-value delivery. Component FIFO inputs and multiple
-whole-port writers are rejected. Discrete commands belong in operations; event
+Data ports use latest-value delivery. For example, if a producer publishes 10,
+20, and 30 before the next consumer cycle, that cycle can acquire 30; the channel
+does not retain the intermediate samples for later cycles. Public FIFO and
+circular-buffer data-port modes and their construction helpers are removed.
+Scripts, generators, and transport policy decoding reject the removed modes;
+an old buffered configuration is not silently changed to latest-value delivery.
+
+A whole input has one source. Two outputs cannot both supply the same whole
+input or overlapping input members, including through a shared DATA channel.
+Multiple sources can still populate disjoint members or fixed-array elements,
+and one output can supply many inputs. Use a component with separate inputs and
+an explicit selection rule when several producers represent alternative sources.
+
+Internal operation, callback, logging, and network queues remain part of the
+runtime. POSIX mqueue retains its transport queue; `ConnPolicy.size` specifies
+transport capacity where supported. `buffer_policy` continues to describe data
+storage placement and sharing, and does not select FIFO delivery. Shared storage
+tracks freshness separately for each cyclic input, so one reader cannot consume
+another component's update. A publication concurrent with acquisition may be
+observed on the following cycle or reported again; latest-state delivery does
+not provide exactly-once event delivery. `UNBUFFERED`
+is reserved for output streams. Discrete commands belong in operations; event
 counts or bounded batches can represent events in state data. An EventPort wakeup
 does not promise one hook invocation for every publication.
 

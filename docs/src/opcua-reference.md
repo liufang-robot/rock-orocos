@@ -216,8 +216,8 @@ Every supported output exposes `value`, which returns `BadWaitingForInitialData`
 until the first committed sample exists. Later reads are non-consuming and
 return the committed snapshot. Edits to the output working image remain invisible
 until a successful cyclic commit. This is a latest-state contract: intermediate samples may be coalesced
-or missed. It does not project RTT connection policy, FIFO depth, buffering,
-locking, transport, or other QoS into OPC UA.
+or missed. It does not project RTT connection policy, transport queue capacity,
+locking, or other QoS into OPC UA.
 
 There are no canonical `Ports/<name>/read` or `Ports/<name>/write` Methods.
 The ordinary RTT-generated port service remains recursively mapped below

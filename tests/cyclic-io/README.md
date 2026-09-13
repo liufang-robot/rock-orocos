@@ -22,7 +22,7 @@ percentiles and observed maxima are not single-cycle worst-case latency bounds.
 
 ## Recorded run
 
-`baseline.csv` and `feature.csv` contain the 2026-09-12 validation run on
+`baseline.csv` and `feature.csv` contain the 2026-09-13 validation run on
 Ubuntu 24.04 under WSL2, Linux 6.6.87.2, four virtual CPUs on an Intel Core
 Ultra 7 255HX, GCC 13.3, `-O3`, and Boost 1.84. Both executions used the
 same host without agent compilation running. No realtime scheduler or CPU
