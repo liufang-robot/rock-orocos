@@ -196,16 +196,31 @@ These expressions are read-only. A data member named `data`, `snapshot`,
 last image acquired by the component. Output reads show the last committed
 publication, which is unavailable until the first commit.
 
-Use separate deployer operations for whole-port management:
+Use separate deployer operations to query metadata and manage whole ports:
 
 ```text
 isPortConnected("B.input")
+getPortDescription("A.output")
+getPortDirection("A.output")
+getPortType("A.output")
 disconnectPort("B.input")
 ```
 
-Both operations require a whole port path. Stop affected components before
-disconnecting; this removes all mappings into the selected whole input. Use `ls`
-or `help` to inspect direction, type, value and source relationships.
+All these operations require a whole port path, including nested services such
+as `B.motion.feedback.input`. Member selectors, properties and attributes are
+rejected. `this.input` addresses a port owned by the deployer.
+
+`getPortDescription` returns the port's documentation; `getPortType` returns its
+canonical RTT type name. `getPortDirection` returns `0` for input and `1` for
+output, matching OPC UA's direction codes. An invalid path logs an error and
+returns an empty string from the description/type queries or `-1` from the
+direction query. An undocumented valid port also has an empty description.
+
+Metadata queries work for connected and unconnected ports while components are
+stopped or running. They are management operations, outside the realtime cycle;
+they do not acquire or publish port data. Stop affected components before
+disconnecting; this removes all mappings into the selected whole input. Use
+`ls` or `help` to inspect direction, type, value and source relationships.
 
 ## Inspect input connections
 

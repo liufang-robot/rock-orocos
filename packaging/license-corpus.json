@@ -176,7 +176,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "756c04381329f6f8d371597266c4f409131fd813",
+      "revision": "c97c612db207472b4617fa0632fe6d62a0e76112",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
