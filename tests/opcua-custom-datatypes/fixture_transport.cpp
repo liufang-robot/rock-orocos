@@ -268,7 +268,7 @@ public:
       return RTT::opcua::PortValueStatus::error;
     }
     T sample{};
-    if (!typed->getLastWrittenValue(sample)) {
+    if (!typed->snapshot(sample)) {
       return RTT::opcua::PortValueStatus::waiting_for_initial_data;
     }
     *value = CodecTraits<T>::encode(sample, *native_type_);

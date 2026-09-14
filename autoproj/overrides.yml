@@ -27,7 +27,7 @@ version_control:
   - rtt_opcua:
     type: git
     url: https://github.com/liufang-robot/rtt_opcua.git
-    branch: dev
+    branch: feat/automatic-cyclic-io
 
   - cpp-httplib:
     type: git
@@ -38,24 +38,24 @@ version_control:
   - rtt_http:
     type: git
     url: https://github.com/liufang-robot/rtt_http.git
-    branch: dev
+    branch: feat/automatic-cyclic-io
 
 overrides:
   - rtt:
     type: git
     url: https://github.com/liufang-robot/rtt.git
-    branch: dev
+    branch: feat/automatic-cyclic-io
 
   - ocl:
     type: git
     url: https://github.com/liufang-robot/ocl.git
-    branch: dev
+    branch: feat/automatic-cyclic-io
 
   - orogen:
     type: git
     url: https://github.com/liufang-robot/tools-orogen.git
-    branch: dev
-    commit: 3346b6ac682ad772b57d07b2386cdaef47e4abbe
+    branch: feat/automatic-cyclic-io
+    commit: 6575d81cf5dc344ed08ea84e5c5c3d79996ce9a0
 
   - typelib:
     type: git
@@ -80,4 +80,4 @@ overrides:
   - rtt_typelib:
     type: git
     url: https://github.com/liufang-robot/tools-rtt_typelib.git
-    branch: dev
+    branch: feat/automatic-cyclic-io

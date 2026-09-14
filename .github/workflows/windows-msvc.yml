@@ -57,11 +57,11 @@ on:
       rtt_ref:
         description: RTT branch, tag, or SHA
         required: false
-        default: dev
+        default: feat/automatic-cyclic-io
       ocl_ref:
         description: OCL branch, tag, or SHA
         required: false
-        default: dev
+        default: feat/automatic-cyclic-io
       utilmm_ref:
         description: utilmm branch, tag, or SHA
         required: false
@@ -73,11 +73,11 @@ on:
       rtt_typelib_ref:
         description: rtt_typelib branch, tag, or SHA
         required: false
-        default: dev
+        default: feat/automatic-cyclic-io
       orogen_ref:
         description: OroGen branch, tag, or SHA
         required: false
-        default: dev
+        default: feat/automatic-cyclic-io
 
 jobs:
   build:
@@ -89,12 +89,12 @@ jobs:
       OROCOS_TARGET: win32
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.cache/vcpkg/archives
       VCPKG_DOWNLOADS: ${{ github.workspace }}/.cache/vcpkg/downloads
-      RTT_REF: ${{ github.event.inputs.rtt_ref || github.event.client_payload.rtt_ref || 'dev' }}
-      OCL_REF: ${{ github.event.inputs.ocl_ref || github.event.client_payload.ocl_ref || 'dev' }}
+      RTT_REF: ${{ github.event.inputs.rtt_ref || github.event.client_payload.rtt_ref || 'feat/automatic-cyclic-io' }}
+      OCL_REF: ${{ github.event.inputs.ocl_ref || github.event.client_payload.ocl_ref || 'feat/automatic-cyclic-io' }}
       UTILMM_REF: ${{ github.event.inputs.utilmm_ref || github.event.client_payload.utilmm_ref || 'dev' }}
       TYPELIB_REF: ${{ github.event.inputs.typelib_ref || github.event.client_payload.typelib_ref || 'dev' }}
-      RTT_TYPELIB_REF: ${{ github.event.inputs.rtt_typelib_ref || github.event.client_payload.rtt_typelib_ref || 'dev' }}
-      OROGEN_REF: ${{ github.event.inputs.orogen_ref || github.event.client_payload.orogen_ref || 'dev' }}
+      RTT_TYPELIB_REF: ${{ github.event.inputs.rtt_typelib_ref || github.event.client_payload.rtt_typelib_ref || 'feat/automatic-cyclic-io' }}
+      OROGEN_REF: ${{ github.event.inputs.orogen_ref || github.event.client_payload.orogen_ref || 'feat/automatic-cyclic-io' }}
 
     steps:
       - name: Check out repository

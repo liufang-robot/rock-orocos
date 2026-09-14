@@ -4,6 +4,10 @@ Release workflows are configured to publish `orocos` and `orocos-dev` for
 `linux-64` and `win-64` to Prefix.dev. A platform is installable after its
 release workflow has populated the corresponding channel subdirectory.
 
+The examples target version `0.2.0`. While that release is being prepared,
+validate this branch with its isolated source build; the package commands
+below require the corresponding published release artifacts.
+
 | Package | Description | Choose it when |
 |---|---|---|
 | `orocos` | RTT and OCL runtime, scripting, type transports, and native OPC UA deployer and TaskBrowser tools | The environment only runs existing components and deployments |
@@ -27,7 +31,7 @@ channels = ["https://prefix.dev/liufang-robot/orocos", "conda-forge"]
 platforms = ["linux-64", "win-64"]
 
 [dependencies]
-orocos-dev = "==0.1.9"
+orocos-dev = "==0.2.0"
 
 [target.unix.activation]
 scripts = ["scripts/activate-orocos.sh"]
@@ -36,8 +40,8 @@ scripts = ["scripts/activate-orocos.sh"]
 scripts = ["scripts/activate-orocos.ps1"]
 ```
 
-Runtime-only users replace `orocos-dev = "==0.1.9"` with
-`orocos = "==0.1.9"` under `[dependencies]`.
+Runtime-only users replace `orocos-dev = "==0.2.0"` with
+`orocos = "==0.2.0"` under `[dependencies]`.
 
 Runtime-only Linux consumers remove `[target.unix.activation]`. The `orocos`
 package installs `etc/conda/activate.d/orocos-activate.sh`, which Pixi and

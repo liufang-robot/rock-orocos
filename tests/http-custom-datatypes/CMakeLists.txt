@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(orocos_http_fixture LANGUAGES CXX)
 
-find_package(OROCOS-RTT REQUIRED)
+find_package(OROCOS-RTT 3.0 REQUIRED)
 find_package(rtt_http CONFIG REQUIRED)
 include(CTest)
 set(CMAKE_CXX_STANDARD 20)

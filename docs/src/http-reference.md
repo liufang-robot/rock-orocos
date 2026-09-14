@@ -31,7 +31,8 @@ component owners, and duplicate service loads are unsupported.
 
 The local service provides `start()`, `stop()`, `isRunning()`, `state()`,
 `endpointUrl()`, `lastError()`, `publishComponent(name)`,
-`publicationDiagnostics(name)`, and `pendingOperationCount()`. Its own controls
+`publicationDiagnostics(name)`, `pendingOperationCount()`,
+`enableInputWrite(endpoint)`, and `disableInputWrite(endpoint)`. Its own controls
 are absent from REST. Listener states are Stopped, Starting, Running, and Stopping.
 
 Configuration properties can be written only while Stopped:
@@ -62,13 +63,40 @@ services, properties, attributes, operations, ports, and canonical type schemas.
 | Property or attribute | GET its `href` | `200 {"value":V}` |
 | Writable value | PUT `{"value":V}` to its `href` | `204`, no body |
 | Operation | POST `{"arguments":[...]}` to its `href` | `200 {"result":R,"outputs":[...]}` |
-| Retaining output port | GET its `latestHref` | `200 {"hasSample":true,"value":V}` |
-| Input port | POST `{"value":V}` to its `samplesHref` | `204` for RTT WriteSuccess |
+| Input or output port | GET its `latestHref` | `200 {"hasSample":true,"value":V}` |
+| Explicitly enabled input region | POST `{"value":V}` to its `samplesHref` | `204` when the transport stages the sample |
 
-Before the first retained sample, latest returns
-`{"hasSample":false,"value":null}`. Reads do not consume another reader's data.
-Non-retaining outputs have no latest route. HTTP input writes use independent
-RTT connections. Constants and other nonassignable values are read-only. Writes
+Publication adds no connections and makes both directions readable. Input
+latest reads return configured defaults and then the last component-acquired
+image. Output latest reads return `{"hasSample":false,"value":null}` before the
+first commit, then the committed image. Uncommitted output edits remain invisible.
+
+Enable an input source explicitly during stopped configuration, after publication:
+
+```text
+http.enableInputWrite("arm.command")
+http.enableInputWrite("arm.motion.target.position")
+```
+
+A whole input exposes `/ports/command/samples` only when that whole endpoint is
+enabled. A selected region uses
+`/ports/target/members/<encoded-selector>/samples`, below its owning service path;
+its `latest` route observes the selected typed value. Metadata supplies member
+route templates and the explicitly enabled input regions. Percent-encode the
+complete selector as one URL segment. For example, `axes[2].position` becomes
+`axes%5B2%5D.position`. Member selection follows RTT's fixed dot/index rules.
+
+HTTP decodes and validates the selected type; it does not merge partial JSON into
+the whole input. Competing whole/member writers, overlaps, type/shape mismatches
+and output writes are rejected. Disable an input source while stopped with
+`http.disableInputWrite(endpoint)`.
+
+A successful POST stages a sample for the next input boundary. GET continues to
+show the prior acquired image until that boundary, including while a hook runs.
+Reads do not consume samples or schedule a component cycle. See
+[Automatic cyclic data ports](automatic-cyclic-io.md) for the execution contract.
+
+Constants and other nonassignable values are read-only. Writes
 replace whole values after complete validation. Operation arguments follow
 declaration order; non-const references also appear in `outputs`. A false result
 is still HTTP success, and a void result is null.
