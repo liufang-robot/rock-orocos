@@ -3,6 +3,8 @@
 RTT 3 gives each component stable input and output images. Component code accesses
 those images, and its execution engine transfers samples around `updateHook()`.
 This is a breaking change under development on `feat/automatic-cyclic-io`.
+Follow [Migrating Applications to 0.2.0](./cyclic-io-migration.md) when adapting
+existing applications.
 
 > The feature remains unmerged. Use a complete feature build in a private prefix;
 > rebuild components, typekits, OCL, generators, and transports together. RTT 2
@@ -100,16 +102,16 @@ specifications and rejects the removed `in+event` form.
 
 ## Deployment connections
 
-Use `connectPort(source, destination)` for both whole values and members. Its
+Use `connectPortData(source, destination)` for both whole values and members. Its
 endpoints use exactly the same dot/index paths as TaskBrowser data expressions:
 
 | Connection | Deployment operation |
 |---|---|
-| Whole output to whole input | `connectPort("A.output", "B.input")` |
-| Member to member | `connectPort("A.output.y", "B.input.y")` |
-| Whole scalar to member | `connectPort("C.value", "B.input.x")` |
-| Member to whole scalar | `connectPort("A.output.z", "D.value")` |
-| Nested member or fixed-array element | `connectPort("A.motion.output.axes[2].position", "B.input.target.position")` |
+| Whole output to whole input | `connectPortData("A.output", "B.input")` |
+| Member to member | `connectPortData("A.output.y", "B.input.y")` |
+| Whole scalar to member | `connectPortData("C.value", "B.input.x")` |
+| Member to whole scalar | `connectPortData("A.output.z", "D.value")` |
+| Nested member or fixed-array element | `connectPortData("A.motion.output.axes[2].position", "B.input.target.position")` |
 
 The resolver walks actual services to a registered port, then selects data
 members or constant indices. A bare port selects its whole value. Whole-port
@@ -129,8 +131,8 @@ components is:
 setActivity("A", 0.1, 0, ORO_SCHED_OTHER)
 setActivity("C", 0.1, 0, ORO_SCHED_OTHER)
 setActivity("B", 0.1, 0, ORO_SCHED_OTHER)
-connectPort("A.output.y", "B.input.y")
-connectPort("C.output.z", "B.input.x")
+connectPortData("A.output.y", "B.input.y")
+connectPortData("C.output.z", "B.input.x")
 finalizeConnections()
 startComponent("A")
 startComponent("C")

@@ -36,7 +36,7 @@ lifecycle state observation, failure suppression, and deployment shutdown.
 | Separate installed SDK consumers | HTTP and OPC UA custom datatype tests passed |
 | CTaskBrowser with the installed OPC UA fixture | Scalar and nested writes, compact arrays, persistence, constant rejection, truncation, and clean shutdown passed |
 
-The unified `connectPort` deployment fixture covers whole values, selected
+The unified `connectPortData` deployment fixture covers whole values, selected
 members, nested fixed-array elements and structures, whole fixed-array fields,
 multiple sources, and invalid endpoints. Removed `connectMember` and event-port
 registration APIs are checked in the installed C++ SDK and Lua interface.
@@ -103,7 +103,7 @@ related-field publications without mixed source samples. This does not measure
 arbitrary `malloc`, user-defined copy implementations, or target scheduling.
 
 The timing results below were recorded before event-port scheduling was removed
-and deployment member selection was unified under `connectPort`. They describe
+and deployment member selection was unified under `connectPortData`. They describe
 that earlier feature revision; they are not new measurements of the latest head.
 
 The timing probe uses a 512-byte frame and a source/sink pair. Sequential cases

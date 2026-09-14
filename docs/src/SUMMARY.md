@@ -13,6 +13,7 @@
   - [Package Policy](./package-policy.md)
   - [Install Contract](./install-contract.md)
   - [Automatic Cyclic Data Ports](./automatic-cyclic-io.md)
+  - [Migrating Applications to 0.2.0](./cyclic-io-migration.md)
   - [Native OPC UA Reference](./opcua-reference.md)
   - [HTTP REST Reference](./http-reference.md)
 # Build And Verification

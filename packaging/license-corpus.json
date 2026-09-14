@@ -176,7 +176,7 @@
     {
       "name": "ocl",
       "source_lock_name": "ocl",
-      "revision": "091ce70e3fd1cfdbef8b642dc306219d87114768",
+      "revision": "756c04381329f6f8d371597266c4f409131fd813",
       "license": "GPL-2.0-or-later AND LGPL-2.1-or-later AND LicenseRef-OCL-GPL-2.0-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/ocl",
@@ -185,7 +185,7 @@
       "notices": [
         {
           "path": "deployment/DeploymentComponent.cpp",
-          "sha256": "c2af3c7bc3aff315d6a5a7f1c78a800e65a01a98ea5f42a58d7e904790a33bb2"
+          "sha256": "1fe2c96fc418ab36ec45bf02924db7677f4c8d61db8606661ac53a0c6d6615d2"
         },
         {
           "path": "manifest.xml",
@@ -205,7 +205,7 @@
         },
         {
           "path": "taskbrowser/TaskBrowser.cpp",
-          "sha256": "e0c4bbdf955421b9513dcc6e449d259e49a9e4d8264aabed3d618197b7ae1db9"
+          "sha256": "5ccbb51fecb3f2a184c96c0678aafd950f9d1a99feba38c7b6148551fdafb949"
         }
       ]
     },
