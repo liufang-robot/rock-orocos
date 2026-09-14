@@ -264,9 +264,36 @@ counts or bounded batches can represent events in state data. Data ports do not
 provide event callbacks or publication-driven component wakeups.
 
 Each component has its own boundary. Fields from different producers may come
-from different producer cycles. Several fields mapped from one source use one
-source subscription snapshot when assembling the destination. There is no global
-all-input/all-hook/all-output scheduler barrier.
+from different producer cycles. All member mappings from one output into one
+component share one source acquisition, including destinations in different input
+ports and nested services. The runtime acquires that source once before applying
+its selected fields, so these member destinations see the same source sample in
+that cycle. Different consuming components acquire independently. Ordinary
+whole-port channels remain separate. There is no global all-input/all-hook/all-output
+scheduler barrier.
+
+Logical connections remain individually inspectable and disconnectable. Removing
+one destination keeps the shared acquisition for the others; removing its last
+destination releases the channel. A newly connected destination joins an unread
+publication already pending in that acquisition. If the publication was already
+consumed, it is not replayed: the new destination keeps its default and `NoData`
+until another publication arrives. Existing destinations retain their values and
+`OldData` in that case.
+
+Member selection still copies values into each component's owning input images.
+Source images are copied once per acquisition, rather than once per destination
+port. Internal acquisition inputs have no observation snapshots; registered input
+ports retain their normal synchronized snapshots. This reduces full-image copy
+volume and storage without borrowing component memory or changing `data()`.
+
+The remaining cost depends on the number and size of distinct sources, consuming
+components, selected assignments and destination snapshots. With the default local
+policy, one source supplying member mappings to one consumer needs two full-source
+publication copies (output observation and channel) and one acquisition copy,
+regardless of the number of mapped destination ports. Every additional consuming
+component needs its own channel and acquisition. Selected values and destination
+observation images still copy for each destination; mapping a large structure to
+many inputs therefore still transfers that structure many times.
 
 TaskBrowser, reporting, OPC UA, and HTTP observe acquired input images and
 committed output images. Each observer

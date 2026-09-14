@@ -1,0 +1,326 @@
+{
+  "created_utc": "2026-09-14T03:45:28.066535+00:00",
+  "description": "Quiet local comparison of RTT 3 before and after shared source acquisition. Results are host observations, not realtime certification.",
+  "host": {
+    "hostname": "LAPTOP-PCH20GTB",
+    "uname": [
+      "Linux",
+      "LAPTOP-PCH20GTB",
+      "6.6.87.2-microsoft-standard-WSL2",
+      "#1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025",
+      "x86_64",
+      "x86_64"
+    ],
+    "os_release": "PRETTY_NAME=\"Ubuntu 24.04.4 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.4 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo",
+    "proc_version": "Linux version 6.6.87.2-microsoft-standard-WSL2 (root@439a258ad544) (gcc (GCC) 11.2.0, GNU ld (GNU Binutils) 2.37) #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025",
+    "cpu": {
+      "vendor_id": "GenuineIntel",
+      "cpu family": "6",
+      "model": "198",
+      "model name": "Intel(R) Core(TM) Ultra 7 255HX",
+      "stepping": "2",
+      "microcode": "0xffffffff",
+      "cpu MHz": "2880.000",
+      "cache size": "30720 KB"
+    },
+    "logical_cpus": 4,
+    "affinity_cpus": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "scheduler_policy": 0,
+    "scheduler_name": "SCHED_OTHER",
+    "scheduler_priority": 0,
+    "nice": 0,
+    "isolated_cpus": "",
+    "load_average_before": [
+      1.40087890625,
+      0.90576171875,
+      1.07568359375
+    ],
+    "explicit_realtime_priority_configured": false,
+    "explicit_affinity_or_isolation_configured": false,
+    "load_average_after": [
+      1.83447265625,
+      1.88671875,
+      1.49560546875
+    ]
+  },
+  "compiler": "c++ (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0\nCopyright (C) 2023 Free Software Foundation, Inc.\nThis is free software; see the source for copying conditions.  There is NO\nwarranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.",
+  "build_flags": [
+    "-std=c++20",
+    "-O3",
+    "-DNDEBUG",
+    "-DOROCOS_TARGET=gnulinux",
+    "-lorocos-rtt-gnulinux",
+    "-pthread"
+  ],
+  "harness_sha256": "755d49c093b062cbb33dd795a4fc99fd6b06fa5119907d33fc20e2d697d4af2f",
+  "runner_sha256": "473454ef08f2b0d034f5dbc53a0b2ad2984968d93e45ad781418dd5dc727111b",
+  "dependency_prefix": "/home/liufang/.orocos/toolchain",
+  "baseline_rtt_revision": "c2554980b455e13189585a4b0ce92c4bfac77fd6",
+  "candidate_rtt_revision": "0b38144ced83418e52cfbcd3a1b049ad5b4a773b",
+  "integration_revision_before_results": "ee1b0f50989b279365435c5ec425568f450ed0b5",
+  "sdk": {
+    "baseline": {
+      "prefix": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-baseline",
+      "binary": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-baseline/scaling-benchmark",
+      "binary_sha256": "4fecbfd4529b9e9a40dbeb6efb8241ea7d736a12007cc23aa03c5395846c8a95",
+      "headers": {
+        "files": 419,
+        "sha256_relative_path_nul_content_digest": "0dad900bfbd2908d14f6c0d83a87d2d220cd2abd6cc5c93d4500fa5a53922856"
+      },
+      "library_sha256": {
+        "core": "6d3d004ad71788a1acd70e107cba4505551277d1b8b04fc967a4f379d95881c8",
+        "typekit": "c8f05b161012ced63eca1dabe13aebd1efaf3b46d62e8a8aeb4a391b3105ccbc",
+        "scripting": "c9db93fb1635e00e99ef5d6538d37f1ae3c65101b9c057951b481ff990e01372"
+      },
+      "compiled_harness_sha256": "755d49c093b062cbb33dd795a4fc99fd6b06fa5119907d33fc20e2d697d4af2f"
+    },
+    "candidate": {
+      "prefix": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install",
+      "binary": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-candidate/scaling-benchmark",
+      "binary_sha256": "2165952ba92cde946173fe641904a319eaec63a2fd07d5925c3573a136bc5895",
+      "headers": {
+        "files": 419,
+        "sha256_relative_path_nul_content_digest": "64771d5372cae9253493d61752e0945178144a436307f41fe3f92fefff4c5446"
+      },
+      "library_sha256": {
+        "core": "7d1038c9a89d98ce5dbfb4b6188888db72ec5ea5a951b0232eb9ab90a848099e",
+        "typekit": "bfbb58d92a0c3d1a9954884b798c4dee58f9693671d3a03848edf7945dff88a7",
+        "scripting": "c9db93fb1635e00e99ef5d6538d37f1ae3c65101b9c057951b481ff990e01372"
+      },
+      "compiled_harness_sha256": "755d49c093b062cbb33dd795a4fc99fd6b06fa5119907d33fc20e2d697d4af2f"
+    }
+  },
+  "runs": [
+    {
+      "label": "baseline-matrix",
+      "variant": "baseline",
+      "started_utc": "2026-09-14T03:45:28.075883+00:00",
+      "command": [
+        "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-baseline/scaling-benchmark",
+        "--iterations",
+        "10000",
+        "--check-iterations",
+        "1000",
+        "--warmup",
+        "1000"
+      ],
+      "environment": {
+        "RTT_COMPONENT_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-baseline/lib/orocos",
+        "OROCOS_COMPONENT_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-baseline/lib/orocos",
+        "LD_LIBRARY_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-baseline/lib:/home/liufang/.orocos/toolchain/lib"
+      },
+      "csv": "tests/cyclic-io/scaling-baseline.csv",
+      "stderr_log": "build/scaling-baseline-matrix.log",
+      "finished_utc": "2026-09-14T03:52:22.318262+00:00",
+      "elapsed_seconds": 413.5211681210203,
+      "exit_code": 0,
+      "csv_sha256": "04bef414b9f7ccbfb6642862d912219ab77218f9dafd67183630648863ae9e28",
+      "rows": 48
+    },
+    {
+      "label": "candidate-matrix",
+      "variant": "candidate",
+      "started_utc": "2026-09-14T03:52:22.320818+00:00",
+      "command": [
+        "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-candidate/scaling-benchmark",
+        "--iterations",
+        "10000",
+        "--check-iterations",
+        "1000",
+        "--warmup",
+        "1000",
+        "--require-coherence"
+      ],
+      "environment": {
+        "RTT_COMPONENT_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib/orocos",
+        "OROCOS_COMPONENT_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib/orocos",
+        "LD_LIBRARY_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib:/home/liufang/.orocos/toolchain/lib"
+      },
+      "csv": "tests/cyclic-io/scaling-feature.csv",
+      "stderr_log": "build/scaling-candidate-matrix.log",
+      "finished_utc": "2026-09-14T03:52:35.774011+00:00",
+      "elapsed_seconds": 13.45290800195653,
+      "exit_code": 0,
+      "csv_sha256": "05d18b7b94a22af037e9c60f9f75195595142928fdd813020ae090adbeeb9a80",
+      "rows": 48
+    },
+    {
+      "label": "periodic-128",
+      "variant": "candidate",
+      "started_utc": "2026-09-14T03:52:35.775736+00:00",
+      "command": [
+        "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-candidate/scaling-benchmark",
+        "--iterations",
+        "10000",
+        "--check-iterations",
+        "1000",
+        "--warmup",
+        "1000",
+        "--require-coherence",
+        "--source-bytes",
+        "8192",
+        "--mappings",
+        "128",
+        "--layout",
+        "scalar",
+        "--period-us",
+        "1000"
+      ],
+      "environment": {
+        "RTT_COMPONENT_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib/orocos",
+        "OROCOS_COMPONENT_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib/orocos",
+        "LD_LIBRARY_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib:/home/liufang/.orocos/toolchain/lib"
+      },
+      "csv": "build/scaling-periodic-128.csv",
+      "stderr_log": "build/scaling-periodic-128.log",
+      "finished_utc": "2026-09-14T03:52:45.813098+00:00",
+      "elapsed_seconds": 10.037107155949343,
+      "exit_code": 0,
+      "csv_sha256": "538fff00b3af7f7f5f71de0cd92fec2acefd381c606aeb15b66197f0d0d0c6a1",
+      "rows": 1
+    },
+    {
+      "label": "periodic-512",
+      "variant": "candidate",
+      "started_utc": "2026-09-14T03:52:45.814761+00:00",
+      "command": [
+        "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/build/cyclic-scaling-candidate/scaling-benchmark",
+        "--iterations",
+        "10000",
+        "--check-iterations",
+        "1000",
+        "--warmup",
+        "1000",
+        "--require-coherence",
+        "--source-bytes",
+        "8192",
+        "--mappings",
+        "512",
+        "--layout",
+        "scalar",
+        "--period-us",
+        "1000"
+      ],
+      "environment": {
+        "RTT_COMPONENT_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib/orocos",
+        "OROCOS_COMPONENT_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib/orocos",
+        "LD_LIBRARY_PATH": "/home/liufang/MetaNC/rock-orocos/liufang/.worktrees/automatic-cyclic-io/install/lib:/home/liufang/.orocos/toolchain/lib"
+      },
+      "csv": "build/scaling-periodic-512.csv",
+      "stderr_log": "build/scaling-periodic-512.log",
+      "finished_utc": "2026-09-14T03:52:55.922114+00:00",
+      "elapsed_seconds": 10.06052656105021,
+      "exit_code": 0,
+      "csv_sha256": "10501630d578521ac34a42b1bb790905ef10f5771fbb2c1488634827e5631b77",
+      "rows": 1
+    }
+  ],
+  "methodology": {
+    "matrix": {
+      "source_bytes": [
+        512,
+        8192
+      ],
+      "mappings": [
+        128,
+        512,
+        2048
+      ],
+      "layouts": [
+        "grouped",
+        "scalar",
+        "grouped16",
+        "scalar16"
+      ],
+      "producer_modes": [
+        "sequential",
+        "concurrent"
+      ],
+      "iterations": 10000,
+      "check_iterations": 1000,
+      "warmup": 1000
+    },
+    "timing_order": [
+      "baseline matrix",
+      "candidate matrix",
+      "candidate scalar 128 mappings at 1000 us",
+      "candidate scalar 512 mappings at 1000 us"
+    ],
+    "timing_units": "nanoseconds; individual calls, no batch averages; nearest-rank percentiles",
+    "round_scope": "sequential source publication plus all consumer cycles and instrumentation; concurrent excludes independently running producer",
+    "memory_scope": "setup live/peak requested bytes through interposed C++ new/new[]/aligned new; type registration and measurement buffers excluded; allocator headers, malloc/calloc/realloc, stacks and RSS not measured",
+    "allocation_scope": "Separate unpaced correctness pass: global new/new[]/aligned new interceptions count component Activity::execute calls on consumer and producer threads; concurrent background allocations/requested bytes reported separately. Thread creation and first deterministic publication excluded. Not a process-wide zero-allocation claim.",
+    "coherence_scope": "fields from one source within each individual consumer hook; no cross-consumer atomicity claim",
+    "baseline_coherence_policy": "reported in CSV; older behavior may mix generations; all other correctness and allocation checks must pass",
+    "periodic_scope": "sequential rounds; absolute steady_clock/sleep_until releases; wake lateness is max(0,actual start-planned release); deadline_misses count finish>release+period; overruns retain schedule phase; no realtime scheduling guarantees",
+    "quiet_host_coordination": "Root confirmed no builds/tests running. After diagnosing asynchronous logger allocation accounting, both harnesses were rebuilt and four focused cases passed. This restarted timing sequence runs with no local heavy work scheduled."
+  },
+  "diagnosis": {
+    "excluded_initial_attempt": "Initial global-allocation run completed 48 rows but exited 1 because the RTT asynchronous logger allocated while draining setup records. This attempt is not the recorded performance comparison.",
+    "preserved_initial_csv": "build/scaling-baseline-first-global-allocations.csv",
+    "preserved_initial_metadata": "build/scaling-first-global-allocations-environment.json",
+    "stack_receipt": "build/scaling-allocation-diagnostic.log",
+    "stack": "std::string::reserve -> std::stringbuf::overflow -> RTT logger formatting -> RTT::Logger::D::startDrainThread() std::thread",
+    "correction": "Scope cyclic allocation totals to Activity::execute on source/consumer threads using a thread-local RAII guard; report concurrent background allocation count and cumulative requested bytes separately. Rebuilt both executables and repeated the full comparison.",
+    "bookkeeping_synchronization": "Allocation-free spinlock serializes phase resets, allocation attribution and tracked-free epoch checks; prevents background threads crossing a phase boundary from corrupting counters.",
+    "accounting_selfcheck": {
+      "source": "build/scaling-accounting-selfcheck.cpp",
+      "receipt": "build/scaling-accounting-selfcheck.log",
+      "exact_component_counts_each_kind": 2,
+      "exact_producer_allocations": 4,
+      "exact_background_allocations": 4,
+      "phase_transitions": 100000,
+      "background_allocate_free_operations": 603163,
+      "maximum_phase_peak_bytes": 64,
+      "passed": true
+    },
+    "interrupted_epoch_review_attempt": "A restarted baseline was interrupted at 22 rows for review of the accounting epoch race; preserved only under build/scaling-baseline-interrupted-epoch-review.csv and build/scaling-interrupted-epoch-review-environment.json."
+  },
+  "combined_periodic_csv": {
+    "path": "tests/cyclic-io/scaling-periodic.csv",
+    "rows": 2,
+    "sha256": "88ad1884dd6b287f5094992253f45ee4bdd748f378b3574534b7163f7ae13db8"
+  },
+  "finished_utc": "2026-09-14T03:52:55.923052+00:00",
+  "validation": {
+    "scaling-baseline.csv": {
+      "rows": 48,
+      "mixed_generation_hooks": 14233,
+      "minimum_checked_producer_cycles": 1000,
+      "background_allocations": 540,
+      "background_requested_bytes": 142576,
+      "all_required_checks_passed": true
+    },
+    "scaling-feature.csv": {
+      "rows": 48,
+      "mixed_generation_hooks": 0,
+      "minimum_checked_producer_cycles": 1000,
+      "background_allocations": 603,
+      "background_requested_bytes": 157603,
+      "all_required_checks_passed": true
+    },
+    "scaling-periodic.csv": {
+      "rows": 2,
+      "mixed_generation_hooks": 0,
+      "minimum_checked_producer_cycles": 1000,
+      "background_allocations": 0,
+      "background_requested_bytes": 0,
+      "all_required_checks_passed": true
+    },
+    "checks": [
+      "48 unique expected scenarios per matrix; 2 periodic rows",
+      "All measured_iterations=10000; all check_iterations=1000",
+      "Positive checked and timed producer cycles",
+      "Zero required correctness and component-cycle C++ allocation counters",
+      "Candidate within-consumer coherence failures=0",
+      "Exact field status sample coverage; initial NoData samples equal mappings",
+      "Setup live <= peak < 1 GiB; no underflow",
+      "Recorded harness, binary and CSV hashes verified after completion"
+    ]
+  }
+}

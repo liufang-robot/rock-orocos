@@ -356,7 +356,7 @@
     {
       "name": "rtt",
       "source_lock_name": "rtt",
-      "revision": "c2554980b455e13189585a4b0ce92c4bfac77fd6",
+      "revision": "0b38144ced83418e52cfbcd3a1b049ad5b4a773b",
       "license": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/rtt",
