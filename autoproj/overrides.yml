@@ -4,6 +4,12 @@
 # Packages imported from remote package sets use overrides.
 #
 version_control:
+  - eigen_typekit:
+    type: git
+    url: https://github.com/liufang-robot/rtt_geometry.git
+    branch: dev
+    commit: d66e15bc28603004a7a35c1aebf98ca4936f0fef
+
   - farbot:
     type: git
     url: https://github.com/liufang-robot/farbot.git

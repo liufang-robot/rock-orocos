@@ -29,7 +29,7 @@ TARGET="$OROCOS_ROCK_DEFAULT_TARGET"
 EXPORT_ENV=1
 INSTALL_OSDEPS=1
 BUILD_ARGS=()
-SOURCE_PACKAGES=(farbot rtlog-cpp rtt open62541 open62541pp rtt_opcua cpp-httplib rtt_http ocl orogen typelib utilmm rtt_typelib)
+SOURCE_PACKAGES=(farbot rtlog-cpp rtt eigen_typekit open62541 open62541pp rtt_opcua cpp-httplib rtt_http ocl orogen typelib utilmm rtt_typelib)
 
 while [ "$#" -gt 0 ]; do
     case "$1" in

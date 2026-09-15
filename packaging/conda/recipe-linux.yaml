@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.9"
+  version: "0.1.10"
   build_number: 0
 
 recipe:
@@ -16,6 +16,7 @@ source:
         - autoproj/**
         - packaging/native-boost.json
         - tests/http-service/**
+        - tests/eigen-typekit/**
         - tests/http-custom-datatypes/**
         - tests/opcua-custom-datatypes/**
         - packaging/license-corpus.json
@@ -141,6 +142,7 @@ outputs:
         - ruby >=3.4,<3.5
       host:
         - boost-cpp >=1.84,<1.85
+        - eigen >=3.4,<4
         - openssl >=3,<4
         - castxml >=0.7,<0.8
         - libffi >=3.4,<4
@@ -206,6 +208,8 @@ outputs:
               - share/licenses/orocos/manifest.json
               - toolchain/bin/deployer-opcua-gnulinux
               - toolchain/lib/orocos/gnulinux/types/librtt-transport-mqueue-gnulinux.so
+              - toolchain/lib/orocos/gnulinux/eigen_typekit/types/libeigen_typekit-gnulinux.so
+              - toolchain/lib/orocos/gnulinux/eigen_typekit/types/libeigen-transport-mqueue-gnulinux.so
               - toolchain/lib/liborocos-rtt-http-gnulinux.so
               - toolchain/lib/orocos/gnulinux/rtt_http/types/librtt-transport-http-gnulinux.so
               - toolchain/lib/orocos/gnulinux/ocl/plugins/libhttp-gnulinux.so
@@ -218,6 +222,7 @@ outputs:
         files:
           source:
             - tests/http-service/runtime.ops
+            - tests/eigen-typekit/runtime.ops
     about:
       homepage: https://github.com/liufang-robot/rock-orocos
       repository: https://github.com/liufang-robot/rock-orocos
@@ -263,6 +268,7 @@ outputs:
         - ${{ pin_subpackage('orocos', exact=True) }}
         - __glibc >=2.17
         - boost-cpp >=1.84,<1.85
+        - eigen >=3.4,<4
         - castxml >=0.7,<0.8
         - cmake >=3.28,<4
         - cxx-compiler >=1.11,<3
@@ -286,6 +292,8 @@ outputs:
               - toolchain/include/orocos/rtt/http/server.hpp
               - toolchain/lib/cmake/rtt_http/rtt_httpConfig.cmake
               - toolchain/lib/pkgconfig/rtt_http-gnulinux.pc
+              - toolchain/lib/pkgconfig/eigen_typekit-gnulinux.pc
+              - toolchain/include/orocos/eigen_typekit/eigen_typekit.hpp
             not_exists:
               - env.sh
               - etc/conda/activate.d/orocos-activate.sh
@@ -296,6 +304,7 @@ outputs:
         files:
           source:
             - tests/http-custom-datatypes/**
+            - tests/eigen-typekit/**
             - tests/opcua-custom-datatypes/**
     about:
       homepage: https://github.com/liufang-robot/rock-orocos

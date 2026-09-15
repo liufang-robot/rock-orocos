@@ -608,6 +608,13 @@ $taskBrowser = (Get-Command "ctaskbrowser-opcua-win32.exe" -ErrorAction Stop).So
 if ($LASTEXITCODE -ne 0) {
     throw "The installed HTTP/OPC UA service plugin validation failed."
 }
+& deployer-win32.exe --check (Join-Path (Get-Location) "tests/eigen-typekit/runtime.ops")
+if ($LASTEXITCODE -ne 0) {
+    throw "The installed Eigen typekit validation failed."
+}
+if (Test-Path (Join-Path $libraryPrefix "lib/orocos/win32/kdl_typekit")) {
+    throw "The Eigen-only package unexpectedly contains kdl_typekit."
+}
 $savedErrorActionPreference = $ErrorActionPreference
 $ErrorActionPreference = "Continue"
 try {

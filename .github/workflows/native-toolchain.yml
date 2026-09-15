@@ -8,6 +8,7 @@ on:
       - "autoproj/**"
       - "packaging/native-boost.json"
       - "tests/http-service/**"
+      - "tests/eigen-typekit/**"
       - "tools/**"
   push:
     branches:
@@ -18,6 +19,7 @@ on:
       - "autoproj/**"
       - "packaging/native-boost.json"
       - "tests/http-service/**"
+      - "tests/eigen-typekit/**"
       - "tools/**"
   workflow_dispatch:
 

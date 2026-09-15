@@ -120,3 +120,5 @@ opcua_output="$(deployer-opcua-gnulinux --version 2>&1 || true)"
 grep -q "OROCOS Toolchain version" <<<"$opcua_output"
 ctaskbrowser-opcua-gnulinux --version >/dev/null
 deployer-gnulinux --check tests/http-service/runtime.ops
+deployer-gnulinux --check tests/eigen-typekit/runtime.ops
+[ ! -e "$PREFIX/toolchain/lib/orocos/gnulinux/kdl_typekit" ]

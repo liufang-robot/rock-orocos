@@ -10,6 +10,7 @@ on:
       - "tests/opcua-custom-datatypes/**"
       - "tests/http-custom-datatypes/**"
       - "tests/http-service/**"
+      - "tests/eigen-typekit/**"
   workflow_dispatch:
 
 jobs:

@@ -13,7 +13,7 @@ INVENTORY = File.join(ROOT, "packaging", "license-corpus.json")
 SOURCE_LOCK = File.join(ROOT, "packaging", "source-lock.json")
 
 EXPECTED_SOURCES = %w[
-  cpp-httplib farbot metaruby ocl open62541 open62541pp orogen rtlog-cpp rtt rtt_http rtt_opcua
+  cpp-httplib eigen_typekit farbot metaruby ocl open62541 open62541pp orogen rtlog-cpp rtt rtt_http rtt_opcua
   rtt_typelib typelib utilmm utilrb
 ].freeze
 EXPECTED_REMOTE_GEMS = {
@@ -42,6 +42,7 @@ EXPECTED_LICENSE_REFS = %w[
   LicenseRef-rtlog-cpp-Bundled-License-Exceptions
 ].freeze
 EXPECTED_COMPONENT_LICENSES = {
+  "eigen_typekit" => "LGPL-2.1-or-later",
   "ocl" =>
     "GPL-2.0-or-later AND LGPL-2.1-or-later AND " \
     "LicenseRef-OCL-GPL-2.0-Linking-Exception",
@@ -53,6 +54,11 @@ EXPECTED_COMPONENT_LICENSES = {
   "cpp-httplib" => "MIT"
 }.freeze
 EXPECTED_SOURCE_NOTICES = {
+  "eigen_typekit" => %w[
+    eigen_typekit/eigen_typekit.cpp
+    eigen_typekit/include/orocos/eigen_typekit/eigen_typekit.hpp
+    eigen_typekit/package.xml
+  ],
   "ocl" => %w[
     deployment/DeploymentComponent.cpp
     manifest.xml

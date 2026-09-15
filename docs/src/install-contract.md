@@ -31,6 +31,7 @@ the behavior described here.
 The installed prefix must provide:
 
 - Orocos runtime tools
+- the Eigen vector/matrix typekit, with mqueue transport on Linux targets
 - OCL deployer support
 - native RTT OPC UA libraries, type transport, deployer, and TaskBrowser client
 - the OCL component-owned `opcua` service plugin for the ordinary deployer
@@ -50,6 +51,16 @@ For `gnulinux` and `xenomai`, respectively, the required mqueue transport is:
 
 The prefix does not include RTT or OCL CORBA libraries and executables in
 either target build.
+
+The selected `eigen_typekit` package installs its plugin under
+`toolchain/lib/orocos/$OROCOS_TARGET/eigen_typekit/types` on Linux and
+`lib/orocos/win32/eigen_typekit/types` inside the native Windows prefix.
+`import("eigen_typekit")` works after runtime activation. Its public header and
+`eigen_typekit-$OROCOS_TARGET` pkg-config metadata belong to `orocos-dev`.
+Linux development consumers receive Eigen3 through the package dependency;
+Windows consumers use Eigen3 from the bundled development SDK.
+The installation excludes KDL and `kdl_typekit`.
+See [Eigen Typekit](eigen-typekit.md) for a standalone consumer example.
 
 The installed `deployer-opcua` binds all IPv4 interfaces by default at
 `opc.tcp://0.0.0.0:4840/rtt`. Downstream clients connect through a concrete

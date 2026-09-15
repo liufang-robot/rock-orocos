@@ -1,5 +1,19 @@
 cmake_package "farbot"
 
+# rtt_geometry contains independent Eigen and KDL packages. Import the source
+# repository once and configure only its eigen_typekit subdirectory.
+cmake_package "eigen_typekit" do |pkg|
+  pkg.importdir = File.dirname(pkg.srcdir)
+  pkg.use_package_xml = false
+  pkg.depends_on "rtt"
+  pkg.depends_on "eigen3"
+  pkg.define "CMAKE_CXX_STANDARD", "20"
+  pkg.define "CMAKE_CXX_STANDARD_REQUIRED", "ON"
+  pkg.define "CMAKE_CXX_EXTENSIONS", "OFF"
+end
+
+move_package "eigen_typekit", "rtt_geometry"
+
 cmake_package "rtlog-cpp" do |pkg|
   pkg.depends_on "farbot"
 end

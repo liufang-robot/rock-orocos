@@ -14,6 +14,7 @@ module OrocosRock
       "farbot" => "farbot",
       "rtlog-cpp" => "rtlog-cpp",
       "rtt" => "rtt",
+      "eigen_typekit" => "eigen_typekit",
       "open62541" => "open62541",
       "open62541pp" => "open62541pp",
       "rtt_opcua" => "rtt_opcua",
@@ -31,6 +32,7 @@ module OrocosRock
       "farbot" => "toolchain/farbot",
       "rtlog-cpp" => "toolchain/rtlog-cpp",
       "rtt" => "toolchain/tools/rtt",
+      "eigen_typekit" => "toolchain/rtt_geometry",
       "open62541" => "toolchain/open62541",
       "open62541pp" => "toolchain/open62541pp",
       "rtt_opcua" => "toolchain/tools/rtt_opcua",
@@ -48,6 +50,7 @@ module OrocosRock
     }.freeze
     COMMON_GENERATED_CHECKOUT_PATH_PREFIXES = %w[build/].freeze
     SOURCE_GENERATED_CHECKOUT_PATH_PREFIXES = {
+      "eigen_typekit" => %w[eigen_typekit/build/].freeze,
       "open62541" => %w[tools/nodeset_compiler/__pycache__/].freeze
     }.freeze
     EXPECTED_REPOSITORIES =

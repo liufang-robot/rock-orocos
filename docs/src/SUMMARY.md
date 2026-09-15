@@ -12,6 +12,7 @@
   - [Architecture](./architecture.md)
   - [Package Policy](./package-policy.md)
   - [Install Contract](./install-contract.md)
+  - [Eigen Typekit](./eigen-typekit.md)
   - [Native OPC UA Reference](./opcua-reference.md)
   - [HTTP REST Reference](./http-reference.md)
 # Build And Verification

@@ -19,6 +19,7 @@ esac
 [ -f "$PREFIX/toolchain/lib/cmake/orocos-rtt/orocos-rtt-config.cmake" ]
 pkg-config --exists rtt_opcua-gnulinux
 pkg-config --exists rtt_http-gnulinux
+pkg-config --exists eigen_typekit-gnulinux
 pkg-config --exists ocl-deployment-gnulinux
 ruby -e 'require "typelib"; require "orogen"'
 orogen --help >/dev/null
@@ -52,3 +53,7 @@ cmake -S tests/http-custom-datatypes -B "$temporary_directory/http-sdk" \
     -DCMAKE_BUILD_TYPE=Release
 cmake --build "$temporary_directory/http-sdk" --parallel 2
 ctest --test-dir "$temporary_directory/http-sdk" --output-on-failure --no-tests=error
+cmake -S tests/eigen-typekit -B "$temporary_directory/eigen-typekit" \
+    -DCMAKE_BUILD_TYPE=Release
+cmake --build "$temporary_directory/eigen-typekit" --parallel 2
+ctest --test-dir "$temporary_directory/eigen-typekit" --output-on-failure --no-tests=error

@@ -1,0 +1,10 @@
+do import("eigen_typekit")
+var Float64Array eigen_values = Float64Array(3, 0.0)
+set eigen_values[0] = 1.0
+set eigen_values[1] = 2.0
+set eigen_values[2] = 3.0
+var eigen_vector3 eigen_fixed = eigen_vector3(eigen_values)
+set eigen_fixed[1] = 4.0
+var Float64 eigen_first = eigen_fixed[0]
+var eigen_vector eigen_dynamic = eigen_vector(6, 0.0)
+var eigen_matrix eigen_matrix_value = eigen_matrix(3, 3)

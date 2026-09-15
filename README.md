@@ -1,7 +1,7 @@
 # orocos-rock
 
 Standalone Orocos/Rock toolchain workspace for current Linux distributions and
-native Windows. It builds RTT, OCL, OroGen, Typegen, the native RTT OPC UA
+native Windows. It builds RTT, OCL, the Eigen typekit, OroGen, Typegen, the native RTT OPC UA
 transport, and the HTTP REST service into one reusable runtime/development prefix.
 
 Downstream projects consume the installed prefix or the published packages.
@@ -11,7 +11,7 @@ They do not depend on this repository's Autoproj checkout layout.
 
 After artifacts for the current version and platform have been published, the
 complete [Pixi consumer example](https://github.com/liufang-robot/rock-orocos/tree/main/examples/pixi-consumer)
-provides the Prefix.dev and conda-forge channels, `orocos-dev==0.1.9`, and
+provides the Prefix.dev and conda-forge channels, `orocos-dev==0.1.10`, and
 development activation wrappers for both Unix and Windows targets. The Linux
 and Windows `orocos` runtime packages activate themselves through Conda
 package hooks. Start from that example:

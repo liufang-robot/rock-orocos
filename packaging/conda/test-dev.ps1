@@ -82,6 +82,18 @@ try {
     }
 }
 
+$eigenFixtureBuild = Join-Path ([IO.Path]::GetTempPath()) ("orocos-eigen-sdk-" + [guid]::NewGuid())
+try {
+    Invoke-Native cmake -S (Join-Path (Get-Location) "tests/eigen-typekit") `
+        -B $eigenFixtureBuild -G Ninja @externalWarningArguments -DCMAKE_BUILD_TYPE=Release
+    Invoke-Native cmake --build $eigenFixtureBuild --parallel 2
+    Invoke-Native ctest --test-dir $eigenFixtureBuild --output-on-failure --no-tests=error
+} finally {
+    if (Test-Path -LiteralPath $eigenFixtureBuild -PathType Container) {
+        Remove-Item -LiteralPath $eigenFixtureBuild -Recurse -Force
+    }
+}
+
 $orogen = (Get-Command "orogen" -ErrorAction Stop).Source
 $typegen = (Get-Command "typegen" -ErrorAction Stop).Source
 Invoke-Native $orogen --version

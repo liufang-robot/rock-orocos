@@ -544,7 +544,7 @@ else
   unless development_test.include?('Join-Path $bundledVcpkg "include"') &&
          development_test.include?("Microsoft Visual Studio|Windows Kits") &&
          development_test.include?("/external:W0") &&
-         development_test.scan("@externalWarningArguments").size == 3
+         development_test.scan("@externalWarningArguments").size == 4
     errors << "Windows development package test must suppress only dependency and SDK warnings"
   end
   unless development_test.include?('$cxxFlags = (@("/EHsc") + $externalOptions) -join " "') &&
