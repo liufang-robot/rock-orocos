@@ -28,7 +28,7 @@ param(
     [string]$FarbotRef = "master",
     [string]$RtlogRef = "main",
     [string]$RttRef = "dev",
-    [string]$EigenTypekitRef = "d66e15bc28603004a7a35c1aebf98ca4936f0fef",
+    [string]$EigenTypekitRef = "8a717a9855472bfb0ccefb53c576a3a952c903ad",
     [string]$Open62541Ref = "v1.4.15",
     [string]$Open62541ppRef = "v0.21.2",
     [string]$RttOpcuaRef = "dev",
@@ -615,6 +615,27 @@ Invoke-Step "Install RTT" {
         --target $CMakeInstallTarget --parallel 4
 }
 
+# The pinned typekit consumes the legacy Eigen include variable; vcpkg exports a target.
+Invoke-Step "Configure Eigen typekit" {
+    Invoke-Native cmake -S (Join-Path $EigenTypekitSource "eigen_typekit") `
+        -B $EigenTypekitBuild @CMakeGeneratorArguments @CMakeCompilerFlagArguments `
+        -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
+        -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
+        -DCMAKE_INSTALL_PREFIX="$Prefix" `
+        -DEIGEN3_INCLUDE_DIRS="$VcpkgInstalled/include/eigen3" `
+        -DCMAKE_CXX_FLAGS_RELEASE_INIT=/bigobj `
+        -DOROCOS_TARGET=win32 `
+        -DCMAKE_CXX_STANDARD=20 `
+        -DCMAKE_CXX_STANDARD_REQUIRED=ON `
+        -DCMAKE_CXX_EXTENSIONS=OFF `
+        -DCMAKE_BUILD_TYPE=Release
+}
+
+Invoke-Step "Install Eigen typekit" {
+    Invoke-Native cmake --build $EigenTypekitBuild --config Release `
+        --target $CMakeInstallTarget --parallel 2
+}
+
 Invoke-Step "Configure open62541" {
     Invoke-Native cmake -S $Open62541Source -B $Open62541Build @CMakeGeneratorArguments `
         @CMakeCompilerFlagArguments `
@@ -686,27 +707,6 @@ Invoke-Step "Configure rtt_http" {
 Invoke-Step "Install rtt_http" {
     Invoke-Native cmake --build $RttHttpBuild --config Release `
         --target $CMakeInstallTarget --parallel 4
-}
-
-# The pinned typekit consumes the legacy Eigen include variable; vcpkg exports a target.
-Invoke-Step "Configure Eigen typekit" {
-    Invoke-Native cmake -S (Join-Path $EigenTypekitSource "eigen_typekit") `
-        -B $EigenTypekitBuild @CMakeGeneratorArguments @CMakeCompilerFlagArguments `
-        -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
-        -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
-        -DCMAKE_INSTALL_PREFIX="$Prefix" `
-        -DEIGEN3_INCLUDE_DIRS="$VcpkgInstalled/include/eigen3" `
-        -DCMAKE_CXX_FLAGS_RELEASE_INIT=/bigobj `
-        -DOROCOS_TARGET=win32 `
-        -DCMAKE_CXX_STANDARD=20 `
-        -DCMAKE_CXX_STANDARD_REQUIRED=ON `
-        -DCMAKE_CXX_EXTENSIONS=OFF `
-        -DCMAKE_BUILD_TYPE=Release
-}
-
-Invoke-Step "Install Eigen typekit" {
-    Invoke-Native cmake --build $EigenTypekitBuild --config Release `
-        --target $CMakeInstallTarget --parallel 2
 }
 
 Invoke-Step "Configure OCL" {

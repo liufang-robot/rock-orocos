@@ -19,7 +19,7 @@
     {
       "name": "eigen_typekit",
       "repository": "https://github.com/liufang-robot/rtt_geometry.git",
-      "revision": "d66e15bc28603004a7a35c1aebf98ca4936f0fef"
+      "revision": "8a717a9855472bfb0ccefb53c576a3a952c903ad"
     },
     {
       "name": "open62541",

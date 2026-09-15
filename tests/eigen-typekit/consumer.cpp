@@ -1,9 +1,9 @@
-#include <eigen_typekit/eigen_typekit.hpp>
 #include <rtt/OperationCaller.hpp>
 #include <rtt/Port.hpp>
 #include <rtt/TaskContext.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
 #include <rtt/types/Types.hpp>
+#include <eigen_typekit/eigen_typekit.hpp>
 
 #include <iostream>
 #include <stdexcept>
