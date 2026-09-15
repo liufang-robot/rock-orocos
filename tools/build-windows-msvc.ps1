@@ -11,6 +11,7 @@ param(
     [string]$FarbotRepository = "https://github.com/liufang-robot/farbot.git",
     [string]$RtlogRepository = "https://github.com/liufang-robot/rtlog-cpp.git",
     [string]$RttRepository = "https://github.com/liufang-robot/rtt.git",
+    [string]$EigenTypekitRepository = "https://github.com/liufang-robot/rtt_geometry.git",
     [string]$Open62541Repository = "https://github.com/open62541/open62541.git",
     [string]$Open62541ppRepository = "https://github.com/open62541pp/open62541pp.git",
     [string]$RttOpcuaRepository = "https://github.com/liufang-robot/rtt_opcua.git",
@@ -27,6 +28,7 @@ param(
     [string]$FarbotRef = "master",
     [string]$RtlogRef = "main",
     [string]$RttRef = "dev",
+    [string]$EigenTypekitRef = "7660c0721d5ba3471690c03c3431d3280bb4bf52",
     [string]$Open62541Ref = "v1.4.15",
     [string]$Open62541ppRef = "v0.21.2",
     [string]$RttOpcuaRef = "dev",
@@ -333,6 +335,7 @@ if (-not [string]::IsNullOrWhiteSpace($SourceLockPath)) {
         "FarbotRepository", "RtlogRepository", "RttRepository",
         "Open62541Repository", "Open62541ppRepository", "RttOpcuaRepository",
         "HttplibRepository", "RttHttpRepository", "HttplibRef", "RttHttpRef",
+        "EigenTypekitRepository", "EigenTypekitRef",
         "OclRepository", "UtilmmRepository", "TypelibRepository",
         "RttTypelibRepository", "UtilrbRepository", "MetarubyRepository",
         "OrogenRepository", "VcpkgRepository", "FarbotRef", "RtlogRef",
@@ -357,6 +360,8 @@ if (-not [string]::IsNullOrWhiteSpace($SourceLockPath)) {
     $RtlogRef = $SourceLock["rtlog-cpp"].revision
     $RttRepository = $SourceLock["rtt"].repository
     $RttRef = $SourceLock["rtt"].revision
+    $EigenTypekitRepository = $SourceLock["eigen_typekit"].repository
+    $EigenTypekitRef = $SourceLock["eigen_typekit"].revision
     $Open62541Repository = $SourceLock["open62541"].repository
     $Open62541Ref = $SourceLock["open62541"].revision
     $Open62541ppRepository = $SourceLock["open62541pp"].repository
@@ -396,6 +401,7 @@ $VcpkgRoot = Convert-ToFullPath $VcpkgRoot
 $FarbotRepository = Resolve-GitRepository $FarbotRepository
 $RtlogRepository = Resolve-GitRepository $RtlogRepository
 $RttRepository = Resolve-GitRepository $RttRepository
+$EigenTypekitRepository = Resolve-GitRepository $EigenTypekitRepository
 $Open62541Repository = Resolve-GitRepository $Open62541Repository
 $Open62541ppRepository = Resolve-GitRepository $Open62541ppRepository
 $RttOpcuaRepository = Resolve-GitRepository $RttOpcuaRepository
@@ -441,6 +447,8 @@ $typelibDefaultPluginPath = if ($RelocatablePrefix) {
 $FarbotSource = Join-Path $Workspace "src\farbot"
 $RtlogSource = Join-Path $Workspace "src\rtlog-cpp"
 $RttSource = Join-Path $Workspace "src\rtt"
+$EigenTypekitSource = Join-Path $Workspace "src\rtt_geometry"
+$EigenTypekitBuild = Join-Path $Workspace "build\eigen_typekit"
 $Open62541Source = Join-Path $Workspace "src\open62541"
 $Open62541ppSource = Join-Path $Workspace "src\open62541pp"
 $RttOpcuaSource = Join-Path $Workspace "src\rtt_opcua"
@@ -498,6 +506,7 @@ Invoke-Step "Check out source repositories" {
     Sync-GitRepository -Repository $FarbotRepository -Ref $FarbotRef -Path $FarbotSource
     Sync-GitRepository -Repository $RtlogRepository -Ref $RtlogRef -Path $RtlogSource
     Sync-GitRepository -Repository $RttRepository -Ref $RttRef -Path $RttSource
+    Sync-GitRepository -Repository $EigenTypekitRepository -Ref $EigenTypekitRef -Path $EigenTypekitSource
     Sync-GitRepository -Repository $Open62541Repository -Ref $Open62541Ref -Path $Open62541Source
     Sync-GitRepository -Repository $Open62541ppRepository -Ref $Open62541ppRef -Path $Open62541ppSource
     Sync-GitRepository -Repository $RttOpcuaRepository -Ref $RttOpcuaRef -Path $RttOpcuaSource
@@ -548,6 +557,7 @@ Invoke-Step "Install vcpkg dependencies" {
         "boost-program-options:${VcpkgTriplet}" `
         "boost-regex:${VcpkgTriplet}" `
         "boost-test:${VcpkgTriplet}" `
+        "eigen3:${VcpkgTriplet}" `
         "libxml2:${VcpkgTriplet}" `
         "openssl:${VcpkgTriplet}" `
         "readline:${VcpkgTriplet}"
@@ -603,6 +613,27 @@ Invoke-Step "Configure RTT" {
 Invoke-Step "Install RTT" {
     Invoke-Native cmake --build $RttBuild --config Release `
         --target $CMakeInstallTarget --parallel 4
+}
+
+# The pinned typekit consumes the legacy Eigen include variable; vcpkg exports a target.
+Invoke-Step "Configure Eigen typekit" {
+    Invoke-Native cmake -S (Join-Path $EigenTypekitSource "eigen_typekit") `
+        -B $EigenTypekitBuild @CMakeGeneratorArguments @CMakeCompilerFlagArguments `
+        -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
+        -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
+        -DCMAKE_INSTALL_PREFIX="$Prefix" `
+        -DEIGEN3_INCLUDE_DIRS="$VcpkgInstalled/include/eigen3" `
+        -DCMAKE_CXX_FLAGS_RELEASE_INIT=/bigobj `
+        -DOROCOS_TARGET=win32 `
+        -DCMAKE_CXX_STANDARD=20 `
+        -DCMAKE_CXX_STANDARD_REQUIRED=ON `
+        -DCMAKE_CXX_EXTENSIONS=OFF `
+        -DCMAKE_BUILD_TYPE=Release
+}
+
+Invoke-Step "Install Eigen typekit" {
+    Invoke-Native cmake --build $EigenTypekitBuild --config Release `
+        --target $CMakeInstallTarget --parallel 2
 }
 
 Invoke-Step "Configure open62541" {
@@ -911,6 +942,9 @@ Invoke-Step "Validate Windows prefix" {
         "lib\pkgconfig\typelib.pc",
         "lib\pkgconfig\typelib_ruby.pc",
         "lib\pkgconfig\rtt_typelib-win32.pc",
+        "lib\pkgconfig\eigen_typekit-win32.pc",
+        "include\orocos\eigen_typekit\eigen_typekit.hpp",
+        "lib\orocos\win32\eigen_typekit\types\eigen_typekit-win32.dll",
         "toolchain\bin\orogen.bat",
         "toolchain\bin\typegen.bat",
         "env.ps1",
@@ -1064,6 +1098,20 @@ Invoke-Step "Validate Windows prefix" {
     }
     Invoke-Native (Join-Path $Prefix "bin/deployer-win32.exe") --check `
         (Join-Path $PSScriptRoot "../tests/http-service/runtime.ops")
+    Invoke-Native (Join-Path $Prefix "bin/deployer-win32.exe") --check `
+        (Join-Path $PSScriptRoot "../tests/eigen-typekit/runtime.ops")
+    $eigenFixtureBuild = Join-Path $Workspace "smoke/eigen-typekit"
+    Invoke-Native cmake -S (Join-Path $PSScriptRoot "../tests/eigen-typekit") `
+        -B $eigenFixtureBuild @CMakeGeneratorArguments @CMakeCompilerFlagArguments `
+        -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
+        -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
+        -DOROCOS_TARGET=win32 -DCMAKE_BUILD_TYPE=Release
+    Invoke-Native cmake --build $eigenFixtureBuild --config Release --parallel 2
+    Invoke-Native ctest --test-dir $eigenFixtureBuild -C Release `
+        --output-on-failure --no-tests=error
+    if (Test-Path (Join-Path $Prefix "lib/orocos/win32/kdl_typekit")) {
+        throw "The Eigen-only build unexpectedly installed kdl_typekit."
+    }
     $httpFixtureBuild = Join-Path $Workspace "smoke/http-sdk"
     Invoke-Native cmake -S (Join-Path $PSScriptRoot "../tests/http-custom-datatypes") `
         -B $httpFixtureBuild @CMakeGeneratorArguments @CMakeCompilerFlagArguments `

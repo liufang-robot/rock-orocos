@@ -18,3 +18,6 @@ libncurses-dev:
 
 openssl:
   debian,ubuntu: libssl-dev
+
+eigen3:
+  debian,ubuntu: libeigen3-dev

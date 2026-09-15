@@ -55,6 +55,11 @@ rtlog_prefix_check_path = File.join(root, "tools", "check-rtlog-prefix.sh")
 resolved_dependencies_check_path = File.join(root, "tools", "check-resolved-dependencies.rb")
 
 expected_sources = {
+  "eigen_typekit" => {
+    "url" => "https://github.com/liufang-robot/rtt_geometry.git",
+    "branch" => "dev",
+    "commit" => "7660c0721d5ba3471690c03c3431d3280bb4bf52"
+  },
   "farbot" => { "url" => "https://github.com/liufang-robot/farbot.git", "branch" => "master" },
   "rtlog-cpp" => { "url" => "https://github.com/liufang-robot/rtlog-cpp.git", "branch" => "main" },
   "open62541" => { "url" => "https://github.com/open62541/open62541.git", "tag" => "v1.4.15" },
@@ -80,7 +85,7 @@ expected_sources = {
   "utilmm" => { "url" => "https://github.com/liufang-robot/utilmm.git", "branch" => "dev" },
   "rtt_typelib" => { "url" => "https://github.com/liufang-robot/tools-rtt_typelib.git", "branch" => "dev" }
 }
-local_source_packages = %w[farbot rtlog-cpp open62541 open62541pp rtt_opcua cpp-httplib rtt_http]
+local_source_packages = %w[farbot rtlog-cpp eigen_typekit open62541 open62541pp rtt_opcua cpp-httplib rtt_http]
 
 manifest = File.read(manifest_path)
 source_selection = YAML.safe_load_file(overrides_path)
@@ -122,6 +127,20 @@ local_osdeps = File.file?(local_osdeps_path) ? File.read(local_osdeps_path) : ""
 local_osdeps_data = local_osdeps.empty? ? {} : (YAML.safe_load(local_osdeps) || {})
 export_env_script = File.read(export_env_path)
 validate_install_script = File.read(validate_install_path)
+
+layout_packages = YAML.safe_load(manifest).fetch("layout").flat_map(&:values).flatten
+unless layout_packages.include?("eigen_typekit")
+  errors << "autoproj/manifest: must select eigen_typekit"
+end
+if layout_packages.any? { |name| name.match?(/kdl|rtt_geometry|catkin/) }
+  errors << "autoproj/manifest: Eigen-only selection must exclude KDL and the ROS metapackage"
+end
+unless local_autobuild_script.include?('pkg.importdir = File.dirname(pkg.srcdir)') &&
+       local_autobuild_script.include?('move_package "eigen_typekit", "rtt_geometry"') &&
+       local_autobuild_script.include?('pkg.depends_on "eigen3"') &&
+       local_autobuild_script.include?('pkg.use_package_xml = false')
+  errors << "autoproj/local.autobuild: must build the independent Eigen subdirectory without ROS metadata"
+end
 
 errors << "missing executable tools/update.sh" unless executable_file?(root, update_path)
 errors << "missing executable tools/test-update.sh" unless executable_file?(root, update_test_path)

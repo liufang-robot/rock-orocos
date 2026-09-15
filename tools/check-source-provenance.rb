@@ -11,6 +11,7 @@ module OrocosRock
       "farbot" => "farbot",
       "rtlog-cpp" => "rtlog-cpp",
       "rtt" => "rtt",
+      "eigen_typekit" => "rtt_geometry",
       "rtt_opcua" => "rtt_opcua",
       "cpp-httplib" => "cpp-httplib",
       "rtt_http" => "rtt_http",
@@ -36,6 +37,7 @@ module OrocosRock
       "farbot" => "FarbotRepository",
       "rtlog-cpp" => "RtlogRepository",
       "rtt" => "RttRepository",
+      "eigen_typekit" => "EigenTypekitRepository",
       "open62541" => "Open62541Repository",
       "open62541pp" => "Open62541ppRepository",
       "rtt_opcua" => "RttOpcuaRepository",
@@ -84,6 +86,12 @@ module OrocosRock
     def expected_autoproj_sources(repositories)
       {
         "version_control" => {
+          "eigen_typekit" => {
+            "type" => "git",
+            "url" => repositories.fetch("eigen_typekit"),
+            "branch" => "dev",
+            "commit" => "7660c0721d5ba3471690c03c3431d3280bb4bf52"
+          },
           "farbot" => { "type" => "git", "url" => repositories.fetch("farbot"), "branch" => "master" },
           "rtlog-cpp" => { "type" => "git", "url" => repositories.fetch("rtlog-cpp"), "branch" => "main" },
           "open62541" => { "type" => "git", "url" => repositories.fetch("open62541"), "tag" => "v1.4.15" },

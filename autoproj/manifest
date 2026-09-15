@@ -7,6 +7,7 @@ layout:
     - farbot
     - rtlog-cpp
     - rtt
+    - eigen_typekit
     - open62541
     - open62541pp
     - rtt_opcua

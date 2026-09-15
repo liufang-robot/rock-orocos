@@ -1,7 +1,7 @@
 schema_version: 1
 
 context:
-  version: "0.1.9"
+  version: "0.1.10"
   build_number: 0
 
 recipe:
@@ -15,6 +15,7 @@ source:
       include:
         - packaging/license-corpus.json
         - tests/http-service/**
+        - tests/eigen-typekit/**
         - tests/http-custom-datatypes/**
         - tests/opcua-custom-datatypes/**
         - packaging/source-lock.json
@@ -110,6 +111,7 @@ outputs:
               - Library/share/licenses/orocos/LICENSES.md
               - Library/share/licenses/orocos/manifest.json
               - Library/lib/orocos/win32/types/rtt-typekit-win32.dll
+              - Library/lib/orocos/win32/eigen_typekit/types/eigen_typekit-win32.dll
               - Library/bin/orocos-rtt-http-win32.dll
               - Library/lib/orocos/win32/rtt_http/types/rtt-transport-http-win32.dll
               - Library/lib/orocos/win32/ocl/plugins/http-win32.dll
@@ -121,6 +123,7 @@ outputs:
         files:
           source:
             - tests/http-service/runtime.ops
+            - tests/eigen-typekit/runtime.ops
     about:
       homepage: https://github.com/liufang-robot/rock-orocos
       repository: https://github.com/liufang-robot/rock-orocos
@@ -198,6 +201,7 @@ outputs:
             - test-data/**
           source:
             - tests/http-custom-datatypes/**
+            - tests/eigen-typekit/**
             - tests/opcua-custom-datatypes/**
     about:
       homepage: https://github.com/liufang-robot/rock-orocos

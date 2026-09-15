@@ -29,7 +29,7 @@ TARGET="$OROCOS_ROCK_DEFAULT_TARGET"
 EXPORT_ENV=1
 INSTALL_OSDEPS=1
 BUILD_ARGS=()
-SOURCE_PACKAGES=(farbot rtlog-cpp rtt open62541 open62541pp rtt_opcua cpp-httplib rtt_http ocl orogen typelib utilmm rtt_typelib)
+SOURCE_PACKAGES=(farbot rtlog-cpp rtt eigen_typekit open62541 open62541pp rtt_opcua cpp-httplib rtt_http ocl orogen typelib utilmm rtt_typelib)
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
@@ -74,7 +74,11 @@ orocos_rock_require_autoproj
 orocos_rock_ensure_workspace_ruby_gems
 orocos_rock_source_workspace_env
 orocos_rock_configure_target_environment "$TARGET"
-orocos_rock_prepare_autoproj_workspace "$PREFIX" "none" "$TARGET"
+if [ "$INSTALL_OSDEPS" -eq 1 ]; then
+    orocos_rock_prepare_autoproj_workspace "$PREFIX" "os" "$TARGET"
+else
+    orocos_rock_prepare_autoproj_workspace "$PREFIX" "none" "$TARGET"
+fi
 
 cd "$OROCOS_ROCK_ROOT"
 

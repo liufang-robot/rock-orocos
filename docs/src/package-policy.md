@@ -21,6 +21,7 @@ Everything else starts excluded unless a concrete toolchain need appears.
 | `farbot` | lock-free queue dependency for the future RT-safe logger core | Public maintenance fork while install/export rules are needed |
 | `rtlog-cpp` | RT-safe logging queue and bounded formatting implementation for the RTT logger core | Public maintenance fork while install/export rules are needed |
 | `rtt` | Orocos runtime | Public maintenance fork |
+| `eigen_typekit` | RTT support for Eigen vectors and matrices | `liufang-robot/rtt_geometry`, pinned `dev` revision; only the `eigen_typekit/` package |
 | `open62541` | OPC UA C stack used by the native RTT transport | Upstream tag `v1.4.15` |
 | `open62541pp` | C++ API used by `rtt_opcua` | Upstream tag `v0.21.2` |
 | `rtt_opcua` | Generic native OPC UA server, RTT object model, proxy, and port transport | `liufang-robot` upstream |
@@ -42,7 +43,6 @@ prefix.
 
 | Package | Why it may help | Source policy |
 |---|---|---|
-| `rtt_geometry` | useful geometry helpers without changing the runtime model | Upstream |
 | `base/cmake` | build helper layer if a package truly needs it | Upstream |
 | selected plain C++ Rock libraries | only when they solve a concrete toolchain problem | Prefer upstream |
 
@@ -73,6 +73,7 @@ Initial public maintenance source set:
 - `farbot`
 - `rtlog-cpp`
 - `rtt`
+- `rtt_geometry` (only `eigen_typekit`)
 - `rtt_opcua`
 - `cpp-httplib`
 - `rtt_http`
@@ -95,7 +96,6 @@ Upstream by default:
 
 - `open62541` at the selected compatibility tag
 - `open62541pp` at the selected compatibility tag
-- `rtt_geometry`
 - `utilrb`
 - `metaruby`
 
@@ -107,6 +107,13 @@ The workspace consumes the selected official `open62541` and `open62541pp`
 tags unchanged. Their dependency tests are disabled in the workspace build;
 maintained integration tests prove the behavior used by this toolchain.
 Experimental local dependency branches are neither selected nor published.
+
+The `rtt_geometry` source repository also contains `kdl_typekit` and a ROS
+metapackage named `rtt_geometry`. The selected package is `eigen_typekit` alone:
+Autoproj imports the repository and configures its `eigen_typekit/` directory.
+Its dependencies are RTT and Eigen3; KDL, `kdl_typekit`, catkin and ROS are not
+selected. Windows configures the same subdirectory. See [Eigen Typekit](eigen-typekit.md)
+for the installed consumer contract and current supported types.
 
 HTTP uses Boost.JSON from the dependency SDK and optional OpenSSL for HTTPS.
 Native Linux source builds provision the pinned official Boost 1.84 source

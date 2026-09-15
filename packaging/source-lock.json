@@ -17,6 +17,11 @@
       "revision": "966fbcf0cf79c8c86b229200e5cfa34562462303"
     },
     {
+      "name": "eigen_typekit",
+      "repository": "https://github.com/liufang-robot/rtt_geometry.git",
+      "revision": "7660c0721d5ba3471690c03c3431d3280bb4bf52"
+    },
+    {
       "name": "open62541",
       "repository": "https://github.com/open62541/open62541.git",
       "revision": "45e4cd3ef6c79a8e503d37c9f5c89fefe90d99db"

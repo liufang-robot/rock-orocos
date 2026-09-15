@@ -86,6 +86,30 @@
   ],
   "sources": [
     {
+      "name": "eigen_typekit",
+      "source_lock_name": "eigen_typekit",
+      "revision": "7660c0721d5ba3471690c03c3431d3280bb4bf52",
+      "license": "LGPL-2.1-or-later",
+      "checkouts": {
+        "linux": "toolchain/rtt_geometry",
+        "windows": "src/rtt_geometry"
+      },
+      "notices": [
+        {
+          "path": "eigen_typekit/eigen_typekit.cpp",
+          "sha256": "9a2b8d8b33b4acf1f9d581fe6d0b8b7c01e9a6f2488ce0badbea421ef64b97a3"
+        },
+        {
+          "path": "eigen_typekit/include/orocos/eigen_typekit/eigen_typekit.hpp",
+          "sha256": "efbbb87504f8510a71743e2de1b90908e6a0f6c77c6056c81f0d2336843042d1"
+        },
+        {
+          "path": "eigen_typekit/package.xml",
+          "sha256": "9255f01b33108bf2ef25d879db4f935592c45988380c98fc1ccec3606b92ad42"
+        }
+      ]
+    },
+    {
       "name": "cpp-httplib",
       "source_lock_name": "cpp-httplib",
       "revision": "6303872c8f419f6dda9b40bd3027c0116fdb3cc7",
