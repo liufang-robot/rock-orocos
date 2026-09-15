@@ -49,7 +49,7 @@ RTT, Eigen3 and the typekit from the installation:
 
 ```cmake
 find_package(OROCOS-RTT REQUIRED)
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(EIGEN_TYPEKIT REQUIRED IMPORTED_TARGET
                   eigen_typekit-${OROCOS_TARGET})

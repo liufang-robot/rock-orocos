@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(orocos_eigen_consumer LANGUAGES CXX)
 
 find_package(OROCOS-RTT REQUIRED)
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(EIGEN_TYPEKIT REQUIRED IMPORTED_TARGET eigen_typekit-${OROCOS_TARGET})
 pkg_get_variable(EIGEN_PLUGIN_DIR eigen_typekit-${OROCOS_TARGET} orocos_libdir)

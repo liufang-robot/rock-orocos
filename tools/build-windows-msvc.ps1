@@ -688,12 +688,15 @@ Invoke-Step "Install rtt_http" {
         --target $CMakeInstallTarget --parallel 4
 }
 
+# The pinned typekit consumes the legacy Eigen include variable; vcpkg exports a target.
 Invoke-Step "Configure Eigen typekit" {
     Invoke-Native cmake -S (Join-Path $EigenTypekitSource "eigen_typekit") `
         -B $EigenTypekitBuild @CMakeGeneratorArguments @CMakeCompilerFlagArguments `
         -DCMAKE_TOOLCHAIN_FILE="$VcpkgToolchain" `
         -DCMAKE_PREFIX_PATH="$Prefix;$VcpkgInstalled" `
         -DCMAKE_INSTALL_PREFIX="$Prefix" `
+        -DEIGEN3_INCLUDE_DIRS="$VcpkgInstalled/include/eigen3" `
+        -DCMAKE_CXX_FLAGS_RELEASE_INIT=/bigobj `
         -DOROCOS_TARGET=win32 `
         -DCMAKE_CXX_STANDARD=20 `
         -DCMAKE_CXX_STANDARD_REQUIRED=ON `
