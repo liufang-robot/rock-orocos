@@ -28,7 +28,7 @@ param(
     [string]$FarbotRef = "master",
     [string]$RtlogRef = "main",
     [string]$RttRef = "dev",
-    [string]$EigenTypekitRef = "bd26355f680d0cd1fbe814c89374dd5e19c6431a",
+    [string]$EigenTypekitRef = "9540914d6d308bd9bb1b4884867d21c2822ccfc0",
     [string]$Open62541Ref = "v1.4.15",
     [string]$Open62541ppRef = "v0.21.2",
     [string]$RttOpcuaRef = "dev",

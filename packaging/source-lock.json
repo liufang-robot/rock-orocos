@@ -14,12 +14,12 @@
     {
       "name": "rtt",
       "repository": "https://github.com/liufang-robot/rtt.git",
-      "revision": "966fbcf0cf79c8c86b229200e5cfa34562462303"
+      "revision": "1ce2c27c08246b2192ea9857766b0cf68c558d56"
     },
     {
       "name": "eigen_typekit",
       "repository": "https://github.com/liufang-robot/rtt_geometry.git",
-      "revision": "bd26355f680d0cd1fbe814c89374dd5e19c6431a"
+      "revision": "9540914d6d308bd9bb1b4884867d21c2822ccfc0"
     },
     {
       "name": "open62541",

@@ -88,7 +88,7 @@
     {
       "name": "eigen_typekit",
       "source_lock_name": "eigen_typekit",
-      "revision": "bd26355f680d0cd1fbe814c89374dd5e19c6431a",
+      "revision": "9540914d6d308bd9bb1b4884867d21c2822ccfc0",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/rtt_geometry",
@@ -97,11 +97,11 @@
       "notices": [
         {
           "path": "eigen_typekit/eigen_typekit.cpp",
-          "sha256": "3a4507bdbc7b3d588879bd6982a0cd696700423e82ee5e89580ee4c18bf3f3a9"
+          "sha256": "4aa5282aad35929db77dc57c07998b3b8b43ef7143231b344d5061b7f7339995"
         },
         {
           "path": "eigen_typekit/include/orocos/eigen_typekit/eigen_typekit.hpp",
-          "sha256": "efbbb87504f8510a71743e2de1b90908e6a0f6c77c6056c81f0d2336843042d1"
+          "sha256": "a7549bd28c3d56b16cbdcbb01795d41a9ac83cec9b779c0c854ae07d36d99eaa"
         },
         {
           "path": "eigen_typekit/package.xml",
@@ -380,7 +380,7 @@
     {
       "name": "rtt",
       "source_lock_name": "rtt",
-      "revision": "966fbcf0cf79c8c86b229200e5cfa34562462303",
+      "revision": "1ce2c27c08246b2192ea9857766b0cf68c558d56",
       "license": "LicenseRef-Orocos-RTT-GPL-2.0-Linking-Exception AND LicenseRef-Orocos-RTT-TLSF-Linking-Exception",
       "checkouts": {
         "linux": "toolchain/tools/rtt",
