@@ -3,8 +3,16 @@ var Float64Array eigen_values = Float64Array(3, 0.0)
 set eigen_values[0] = 1.0
 set eigen_values[1] = 2.0
 set eigen_values[2] = 3.0
-var eigen_vector3 eigen_fixed = eigen_vector3(eigen_values)
+var Eigen.Vector3d eigen_fixed = Eigen.Vector3d(eigen_values)
 set eigen_fixed[1] = 4.0
 var Float64 eigen_first = eigen_fixed[0]
-var eigen_vector eigen_dynamic = eigen_vector(6, 0.0)
-var eigen_matrix eigen_matrix_value = eigen_matrix(3, 3)
+var Eigen.VectorXd eigen_dynamic = Eigen.VectorXd(6, 0.0)
+var Eigen.VectorXd eigen_sized = Eigen.VectorXd(3)
+var Eigen.VectorXd eigen_from_array = Eigen.VectorXd(eigen_values)
+var Eigen.Vector2d eigen_two = Eigen.Vector2d(Float64Array(2, 2.0))
+var Eigen.Vector4d eigen_four = Eigen.Vector4d(Float64Array(4, 4.0))
+var Eigen.Vector6d eigen_six = Eigen.Vector6d(Float64Array(6, 6.0))
+var Eigen.MatrixXd eigen_matrix_value = Eigen.MatrixXd(3, 3)
+var Eigen.Matrix2d eigen_matrix_two
+var Eigen.Matrix3d eigen_matrix_three
+var Eigen.Matrix4d eigen_matrix_four

@@ -16,18 +16,25 @@ Orocos script:
 
 ```text
 import("eigen_typekit")
-var eigen_vector vector = eigen_vector(3, 0.0)
+var Eigen.VectorXd vector = Eigen.VectorXd(3, 0.0)
 vector[0] = 1.0
 ```
 
-The current type names are:
+Each C++ type has one canonical RTT registration. CPF files use the slash form;
+TaskBrowser `.types`, scripts and constructors use the dotted form. RTT resolves
+both spellings to the same type.
 
-| C++ type | RTT type |
-| --- | --- |
-| `Eigen::VectorXd` | `eigen_vector` |
-| `Eigen::Vector2d`, `Vector3d`, `Vector4d`, `Vector6d` | `eigen_vector2`, `eigen_vector3`, `eigen_vector4`, `eigen_vector6` |
-| `Eigen::MatrixXd` | `eigen_matrix` |
-| `Eigen::Matrix2d`, `Matrix3d`, `Matrix4d` | `eigen_matrix2`, `eigen_matrix3`, `eigen_matrix4` |
+| C++ type | RTT / CPF name | TaskBrowser / script name |
+| --- | --- | --- |
+| `Eigen::VectorXd` | `/Eigen/VectorXd` | `Eigen.VectorXd` |
+| `Eigen::Vector2d` | `/Eigen/Vector2d` | `Eigen.Vector2d` |
+| `Eigen::Vector3d` | `/Eigen/Vector3d` | `Eigen.Vector3d` |
+| `Eigen::Vector4d` | `/Eigen/Vector4d` | `Eigen.Vector4d` |
+| `Eigen::Vector6d` | `/Eigen/Vector6d` | `Eigen.Vector6d` |
+| `Eigen::MatrixXd` | `/Eigen/MatrixXd` | `Eigen.MatrixXd` |
+| `Eigen::Matrix2d` | `/Eigen/Matrix2d` | `Eigen.Matrix2d` |
+| `Eigen::Matrix3d` | `/Eigen/Matrix3d` | `Eigen.Matrix3d` |
+| `Eigen::Matrix4d` | `/Eigen/Matrix4d` | `Eigen.Matrix4d` |
 
 `Vector6d` is the alias supplied by the typekit header. Fixed vectors can be
 constructed from an RTT `Float64Array` with the matching number of elements; vector
@@ -41,6 +48,26 @@ construction, indexing and assignment with the real deployer:
 source ~/.orocos/env.sh
 deployer-gnulinux --check tests/eigen-typekit/runtime.ops
 ```
+
+## Migrating From 0.1.10
+
+> [!IMPORTANT]
+> Version 0.1.11 replaces the legacy Eigen type names. The old names are not
+> registered as aliases. Update existing scripts, CPF files and string-based
+> RTT type lookups before upgrading, then restart the deployer and components.
+
+Replace `eigen_vector` with `Eigen.VectorXd` in scripts, and replace
+`eigen_vector2`, `eigen_vector3`, `eigen_vector4` and `eigen_vector6` with the
+corresponding `Eigen.Vector2d`, `Eigen.Vector3d`, `Eigen.Vector4d` and
+`Eigen.Vector6d`. Replace `eigen_matrix` with `Eigen.MatrixXd`, and
+`eigen_matrix2`, `eigen_matrix3` and `eigen_matrix4` with `Eigen.Matrix2d`,
+`Eigen.Matrix3d` and `Eigen.Matrix4d`.
+
+CPF `type` attributes and canonical RTT lookups use the slash names in the
+table. Migrate nested matrix rows too: their type is `/Eigen/VectorXd`.
+For example, `type="eigen_vector3"` becomes `type="/Eigen/Vector3d"`.
+The package is still imported with `import("eigen_typekit")`, and C++ consumers
+continue to use the Eigen namespace and types shown above.
 
 ## C++ Consumers
 
@@ -63,8 +90,10 @@ A standalone numerical library can include Eigen directly and remain
 independent of RTT.
 
 The independent consumer under `tests/eigen-typekit` verifies the installed
-header and library, registered names, writable vector members, operation calls
-and local port transfer:
+header and library, canonical and dotted names, absence of legacy aliases,
+writable vector members, operation calls, local port transfer and CPF round
+trips for all nine types. Linux builds also check dynamic vector and matrix
+mqueue transfers:
 
 ```bash
 source ~/.orocos/dev-env.sh
@@ -79,11 +108,12 @@ Windows uses the same consumer with its activated development environment and
 ## Supported Boundaries
 
 Linux `gnulinux` and Xenomai builds include the typekit's mqueue plugin when
-RTT provides mqueue. Windows installs the base typekit. CORBA is disabled by
-the toolchain policy.
+RTT provides mqueue. This transport supports `Eigen.VectorXd` and
+`Eigen.MatrixXd`; fixed-size transport support is not included. Windows installs
+the base typekit. CORBA is disabled by the toolchain policy.
 
 This integration retains the existing vector and matrix API. `Quaterniond`,
-`Isometry3d`, `Affine3d`, `/Eigen/...` names and generated composite types with
+`Isometry3d`, `Affine3d` and generated composite types with
 Eigen members require separate implementation and validation. Importing this
 typekit does not add Typelib, OPC UA or HTTP transport support for Eigen types.
 The existing dynamic containers, registration and reflection paths carry no
