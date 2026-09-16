@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(orocos_eigen_consumer LANGUAGES CXX)
 
-find_package(OROCOS-RTT REQUIRED COMPONENTS rtt-marshalling)
+find_package(OROCOS-RTT REQUIRED COMPONENTS rtt-marshalling rtt-scripting)
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(EIGEN_TYPEKIT REQUIRED IMPORTED_TARGET eigen_typekit-${OROCOS_TARGET})
@@ -20,3 +20,13 @@ if(MSVC)
 endif()
 add_test(NAME installed-eigen-consumer COMMAND eigen-consumer "${EIGEN_PLUGIN_DIR}")
 set_tests_properties(installed-eigen-consumer PROPERTIES TIMEOUT 20)
+
+add_executable(eigen-scripting scripting.cpp)
+target_compile_features(eigen-scripting PRIVATE cxx_std_20)
+target_link_libraries(eigen-scripting PRIVATE PkgConfig::EIGEN_TYPEKIT Eigen3::Eigen
+  ${OROCOS-RTT_TYPEKIT_LIBRARIES} ${OROCOS-RTT_RTT-SCRIPTING_LIBRARY})
+if(MSVC)
+  target_compile_options(eigen-scripting PRIVATE /bigobj)
+endif()
+add_test(NAME installed-eigen-scripting COMMAND eigen-scripting "${EIGEN_PLUGIN_DIR}")
+set_tests_properties(installed-eigen-scripting PROPERTIES TIMEOUT 20)

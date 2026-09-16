@@ -16,3 +16,45 @@ var Eigen.MatrixXd eigen_matrix_value = Eigen.MatrixXd(3, 3)
 var Eigen.Matrix2d eigen_matrix_two
 var Eigen.Matrix3d eigen_matrix_three
 var Eigen.Matrix4d eigen_matrix_four
+// Fixed defaults are zero. Dimensions are checked before construction.
+set eigen_matrix_four[0][3] = 1.0
+var Float64 eigen_matrix_cell = eigen_matrix_four[0][3]
+var Int32 eigen_rows = eigen_matrix_four.rows
+var Int32 eigen_cols = eigen_matrix_four.cols
+var Int32 eigen_size = eigen_matrix_four.size
+var Float64Array eigen_data = eigen_matrix_four.data
+var String eigen_matrix_text = Eigen.Matrix4d.toString(eigen_matrix_four)
+var Eigen.Matrix4d eigen_identity = Eigen.Matrix4d.identity()
+var Eigen.Matrix4d eigen_constant = Eigen.Matrix4d.constant(2.0)
+var Eigen.Matrix4d eigen_from_data = Eigen.Matrix4d(eigen_data)
+var Eigen.Matrix4d eigen_sized_fixed = Eigen.Matrix4d(4, 4)
+var Eigen.Matrix4d eigen_arithmetic = (2 * eigen_identity + eigen_constant - eigen_identity) / 2.0
+var Eigen.Matrix4d eigen_product = eigen_identity * eigen_arithmetic
+var Eigen.Vector4d eigen_transformed = eigen_product * eigen_four
+var Eigen.Matrix4d eigen_transpose = Eigen.Matrix4d.transpose(eigen_product)
+var Eigen.MatrixXd eigen_dynamic_copy = Eigen.MatrixXd(eigen_product)
+var Eigen.Matrix4d eigen_fixed_copy = Eigen.Matrix4d(eigen_dynamic_copy)
+var Eigen.VectorXd eigen_dynamic_vector_copy = Eigen.VectorXd(eigen_fixed)
+var Eigen.Vector3d eigen_fixed_vector_copy = Eigen.Vector3d(eigen_dynamic_vector_copy)
+var Float64 eigen_norm = Eigen.Vector3d.norm(eigen_fixed)
+var Float64 eigen_dot = Eigen.Vector3d.dot(eigen_fixed, eigen_fixed)
+var Eigen.Vector3d eigen_unit = Eigen.Vector3d.normalized(eigen_fixed)
+var Eigen.Vector3d eigen_cross = Eigen.Vector3d.cross(eigen_fixed, eigen_unit)
+// Quaternion constructor/CPF order is w, x, y, z. Default is identity.
+var Eigen.Quaterniond eigen_orientation
+var Eigen.Quaterniond eigen_half_turn = Eigen.Quaterniond(0.0, 0.0, 0.0, 1.0)
+set eigen_orientation.z = 1.0
+set eigen_orientation = Eigen.Quaterniond.normalized(eigen_orientation)
+var Eigen.Vector3d eigen_rotated = eigen_half_turn * eigen_fixed
+var Eigen.Quaterniond eigen_inverse = Eigen.Quaterniond.inverse(eigen_half_turn)
+var Eigen.Quaterniond eigen_conjugate = Eigen.Quaterniond.conjugate(eigen_half_turn)
+var Eigen.Quaterniond eigen_composed = eigen_half_turn * eigen_inverse
+var Eigen.Matrix3d eigen_rotation = Eigen.Quaterniond.toRotationMatrix(eigen_half_turn)
+var Eigen.Quaterniond eigen_from_rotation = Eigen.Quaterniond.fromRotationMatrix(eigen_rotation)
+// Qualified names work as script function return types too.
+Eigen.Matrix4d eigen_translation(Float64 distance) {
+    var Eigen.Matrix4d value = Eigen.Matrix4d.identity()
+    set value[0][3] = distance
+    return value
+}
+var Eigen.Matrix4d eigen_translated = eigen_translation(2.5)

@@ -58,7 +58,7 @@ expected_sources = {
   "eigen_typekit" => {
     "url" => "https://github.com/liufang-robot/rtt_geometry.git",
     "branch" => "dev",
-    "commit" => "bd26355f680d0cd1fbe814c89374dd5e19c6431a"
+    "commit" => "95227db5f2f6dc738420188598cabb219c1e14ff"
   },
   "farbot" => { "url" => "https://github.com/liufang-robot/farbot.git", "branch" => "master" },
   "rtlog-cpp" => { "url" => "https://github.com/liufang-robot/rtlog-cpp.git", "branch" => "main" },

@@ -30,6 +30,70 @@ Eigen::Vector3d echoVector(Eigen::Vector3d value) {
     return value;
 }
 
+Eigen::Quaterniond echoQuaternion(Eigen::Quaterniond value) { return value; }
+
+void checkQuaternion() {
+    const Eigen::Quaterniond expected(1.0, 2.0, 3.0, 4.0);
+    RTT::Property<Eigen::Quaterniond> property("Orientation", "Quaternion CPF", expected);
+    RTT::TaskContext task("quaternion_consumer");
+    task.properties()->addProperty(property);
+    RTT::marsh::PropertyLoader loader(&task);
+    require(loader.store("Quaterniond.cpf"), "could not write quaternion CPF");
+    property.set(Eigen::Quaterniond::Identity());
+    require(loader.configure("Quaterniond.cpf", true) && property.get().coeffs().isApprox(expected.coeffs()),
+            "quaternion CPF changed coefficient order or normalized the value");
+    std::remove("Quaterniond.cpf");
+    task.provides()->addOperation("echoQuaternion", &echoQuaternion, RTT::ClientThread);
+    RTT::OperationCaller<Eigen::Quaterniond(Eigen::Quaterniond)> echo = task.getOperation("echoQuaternion");
+    require(echo.ready() && echo(expected).coeffs().isApprox(expected.coeffs()), "quaternion operation failed");
+    RTT::OutputPort<Eigen::Quaterniond> output("output");
+    RTT::InputPort<Eigen::Quaterniond> input("input");
+    require(output.connectTo(&input), "quaternion ports could not connect");
+    require(output.write(expected) == RTT::WriteSuccess, "quaternion port write failed");
+    Eigen::Quaterniond received = Eigen::Quaterniond::Identity();
+    require(input.read(received) == RTT::NewData && received.coeffs().isApprox(expected.coeffs()),
+            "quaternion port round trip failed");
+    output.disconnect();
+}
+
+void checkMatrixProperty() {
+    RTT::Property<Eigen::Matrix3d> property("Matrix", "", Eigen::Matrix3d::Identity());
+    auto row = property.getTypeInfo()->getMember(property.getDataSource(), "1");
+    auto column = row->getTypeInfo()->getMember(row, "2");
+    auto writable = RTT::internal::AssignableDataSource<double>::narrow(column.get());
+    require(writable != nullptr, "matrix property element is not writable");
+    writable->set(8.0);
+    require(property.get()(1, 2) == 8.0, "matrix assignment only modified a temporary row");
+}
+
+RTT::PropertyBag vectorBag(int size) {
+    RTT::PropertyBag bag("/Eigen/VectorXd");
+    for (int i = 0; i < size; ++i)
+        bag.ownProperty(new RTT::Property<double>(std::to_string(i + 1), "", 99.0));
+    return bag;
+}
+
+void checkInvalidCpf() {
+    RTT::Property<Eigen::Vector3d> vector("Vector", "", Eigen::Vector3d::Ones());
+    auto values = vectorBag(4);
+    values.setType("/Eigen/Vector3d");
+    RTT::Property<RTT::PropertyBag> bag("Vector", "", values);
+    require(!vector.compose(bag) && vector.get().isApprox(Eigen::Vector3d::Ones()),
+            "fixed vector CPF accepted the wrong dimensions or partially changed its value");
+    RTT::Property<Eigen::Matrix2d> matrix("Matrix", "", Eigen::Matrix2d::Identity());
+    RTT::PropertyBag rows("/Eigen/Matrix2d");
+    rows.ownProperty(new RTT::Property<RTT::PropertyBag>("1", "", vectorBag(2)));
+    rows.ownProperty(new RTT::Property<RTT::PropertyBag>("2", "", vectorBag(3)));
+    RTT::Property<RTT::PropertyBag> matrixBag("Matrix", "", rows);
+    require(!matrix.compose(matrixBag) && matrix.get().isApprox(Eigen::Matrix2d::Identity()),
+            "ragged matrix CPF accepted or partially modified the matrix");
+    rows.setType("/Eigen/Matrix3d");
+    RTT::Property<Eigen::Matrix3d> fixed("Matrix", "", Eigen::Matrix3d::Identity());
+    RTT::Property<RTT::PropertyBag> wrongShape("Matrix", "", rows);
+    require(!fixed.compose(wrongShape) && fixed.get().isApprox(Eigen::Matrix3d::Identity()),
+            "matrix CPF with incorrect fixed dimensions was accepted");
+}
+
 template<class T>
 void checkCpf(const char* name, int rows, int columns) {
     T expected(rows, columns);
@@ -55,6 +119,7 @@ void checkCpf(const char* name, int rows, int columns) {
                 xml.find("eigen_matrix") == std::string::npos,
                 "CPF contains a legacy Eigen name");
     }
+    if constexpr (T::SizeAtCompileTime == Eigen::Dynamic) property.set().resize(1, 1);
     property.set().setZero();
     require(loader.configure(filename, true), "could not load and compose Eigen CPF");
     require(property.getType() == canonical && property.get().rows() == rows &&
@@ -104,7 +169,7 @@ int main(int argc, char** argv) {
         auto types = RTT::types::Types();
         const auto dotted = types->getDottedTypes();
         for (const auto* name : {"VectorXd", "Vector2d", "Vector3d", "Vector4d",
-                                "Vector6d", "MatrixXd", "Matrix2d", "Matrix3d", "Matrix4d"}) {
+                                "Vector6d", "MatrixXd", "Matrix2d", "Matrix3d", "Matrix4d", "Quaterniond"}) {
             const std::string canonical = std::string("/Eigen/") + name;
             const std::string script = std::string("Eigen.") + name;
             const auto type = types->type(canonical);
@@ -156,6 +221,13 @@ int main(int argc, char** argv) {
         checkCpf<Eigen::Matrix2d>("Matrix2d", 2, 2);
         checkCpf<Eigen::Matrix3d>("Matrix3d", 3, 3);
         checkCpf<Eigen::Matrix4d>("Matrix4d", 4, 4);
+        checkCpf<Eigen::VectorXd>("VectorXd", 0, 1);
+        checkCpf<Eigen::MatrixXd>("MatrixXd", 0, 0);
+        checkCpf<Eigen::MatrixXd>("MatrixXd", 0, 5);
+        checkCpf<Eigen::MatrixXd>("MatrixXd", 3, 0);
+        checkMatrixProperty();
+        checkQuaternion();
+        checkInvalidCpf();
 #ifdef EIGEN_TEST_MQUEUE
         checkMqueue<Eigen::VectorXd>(Eigen::VectorXd::LinSpaced(5, 1.0, 5.0));
         Eigen::MatrixXd matrix(2, 3);
