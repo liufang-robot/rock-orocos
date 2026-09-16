@@ -88,7 +88,7 @@
     {
       "name": "eigen_typekit",
       "source_lock_name": "eigen_typekit",
-      "revision": "95227db5f2f6dc738420188598cabb219c1e14ff",
+      "revision": "9540914d6d308bd9bb1b4884867d21c2822ccfc0",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/rtt_geometry",
@@ -101,7 +101,7 @@
         },
         {
           "path": "eigen_typekit/include/orocos/eigen_typekit/eigen_typekit.hpp",
-          "sha256": "3f57ae153c08edbaf50ceff48b57d84a7d9b75408bd7e6c8149115e67a4d7aed"
+          "sha256": "a7549bd28c3d56b16cbdcbb01795d41a9ac83cec9b779c0c854ae07d36d99eaa"
         },
         {
           "path": "eigen_typekit/package.xml",
