@@ -217,7 +217,10 @@ jobs:
           retention-days: 90
 
   clean:
-    if: always() && needs.publish.result != 'skipped'
+    if: >-
+      always() && github.repository == 'OptimalCNC/rock-orocos' &&
+      github.ref == 'refs/heads/main' && needs.publish.result != 'skipped' &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_image))
     needs: publish
     runs-on: ubuntu-24.04
     environment: ${{ inputs.environment || 'image-publish' }}
