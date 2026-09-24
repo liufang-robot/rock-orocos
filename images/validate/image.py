@@ -93,7 +93,7 @@ def wait_for_ssh(ssh: list[str], process, deadline: float, log):
         time.sleep(min(1, remaining(deadline)))
 
 
-def run_guest(ssh: list[str], temporary: Path, deadline: float, log):
+def run_guest(ssh: list[str], temporary: Path, deadline: float, log, expected_revision: str):
     archive = temporary / "test.tar"
     with tarfile.open(archive, "w") as stream:
         for name in ("CMakeLists.txt", "main.c"):
@@ -111,14 +111,16 @@ def run_guest(ssh: list[str], temporary: Path, deadline: float, log):
         subprocess.run([*ssh, f"mkdir -m 0700 {GUEST_DIRECTORY} && tar -xf - -C {GUEST_DIRECTORY}"],
                        stdin=stream, stdout=log, stderr=log, check=True, timeout=remaining(deadline))
     command = shlex.join(["bash", f"{GUEST_DIRECTORY}/validate-guest.sh",
-                          GUEST_DIRECTORY, subprocess.check_output(
-                              ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()])
+                          GUEST_DIRECTORY, expected_revision])
     subprocess.run([*ssh, command], stdout=log, stderr=log, check=True, timeout=remaining(deadline))
 
 
 def validate(image: Path, output: Path, *, accelerator: str, cpus: int,
-             memory_mib: int, timeout_seconds: int):
+             memory_mib: int, timeout_seconds: int, expected_revision: str | None = None):
     image = image.resolve(strict=True)
+    if expected_revision is None:
+        expected_revision = subprocess.check_output(
+            ["git", "-C", str(ROOT), "rev-parse", "HEAD"], text=True).strip()
     output = output.resolve()
     output.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + timeout_seconds
@@ -140,7 +142,7 @@ def validate(image: Path, output: Path, *, accelerator: str, cpus: int,
         ssh = ssh_command(key, port)
         with running_vm(command, output / "qemu.log") as process, (output / "ssh.log").open("wb") as log:
             wait_for_ssh(ssh, process, deadline, log)
-            run_guest(ssh, temporary, deadline, log)
+            run_guest(ssh, temporary, deadline, log, expected_revision)
 
 
 def main():
@@ -151,9 +153,11 @@ def main():
     parser.add_argument("--cpus", type=int, default=2)
     parser.add_argument("--memory-mib", type=int, default=2048)
     parser.add_argument("--timeout-seconds", type=int, default=300)
+    parser.add_argument("--image-revision", help="Expected source revision of an existing disk; defaults to this checkout's HEAD")
     args = parser.parse_args()
     validate(args.image, args.output, accelerator=args.accelerator, cpus=args.cpus,
-             memory_mib=args.memory_mib, timeout_seconds=args.timeout_seconds)
+             memory_mib=args.memory_mib, timeout_seconds=args.timeout_seconds,
+             expected_revision=args.image_revision)
     print(f"Xenomai/Orocos VM validation passed; logs: {args.output}")
 
 

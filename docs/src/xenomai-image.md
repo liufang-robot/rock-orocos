@@ -103,6 +103,9 @@ Use a new build output directory for each attempt. Progress is in
 `images/.local/build/packer.log`; VM boot and validation diagnostics are in
 `images/.local/validation`. `--accelerator tcg` selects software emulation for
 either command when KVM is unavailable, with substantially slower compilation.
+When retrying validation of a previously built disk with updated test scripts,
+pass `--image-revision` with the full revision recorded in that build's
+`source.json`. The default continues to require the current checkout's revision.
 
 > [!IMPORTANT]
 > Installing Cobalt into the disk does not change the running build VM's
@@ -117,6 +120,9 @@ opening a master. No source tree or build output from provisioning is present.
 Maintained Smokey cases cover arithmetic, POSIX clocks, condition variables,
 mutexes, XDDP, IDDP and BUFP. Each must print an explicit success result;
 Smokey's successful exit status alone does not accept skipped cases.
+The POSIX clock case runs through `sudo` because it changes the system clock
+and needs `CAP_SYS_TIME`. The other Smokey cases, the Cobalt primary-mode sample,
+and installed-prefix consumers run as the unprivileged `runner` account.
 
 Run the fast checks without a VM or AWS credentials:
 

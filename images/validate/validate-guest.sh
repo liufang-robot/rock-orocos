@@ -33,13 +33,17 @@ done
     -DXENOMAI_ROOT=/usr/xenomai
 /usr/bin/cmake --build "$directory/build"
 timeout 20s "$directory/build/cobalt"
-smokey_tests=(arith posix_clock posix_cond posix_mutex xddp iddp bufp)
+smokey_tests=(arith posix_cond posix_mutex xddp iddp bufp)
 smokey_selection=$(IFS=,; printf '%s' "${smokey_tests[*]}")
 timeout 180s /usr/xenomai/bin/smokey --vm --run="$smokey_selection" \
     2>&1 | tee "$directory/smokey.log"
+# This case changes CLOCK_REALTIME, which needs CAP_SYS_TIME independently of
+# Cobalt group access. Keep the other cases and application checks unprivileged.
+sudo -n timeout 180s /usr/xenomai/bin/smokey --vm --run=posix_clock \
+    2>&1 | tee -a "$directory/smokey.log"
 # Smokey returns success for unsupported tests. Require explicit success for
 # every maintained case so a skipped test cannot satisfy image acceptance.
-for name in "${smokey_tests[@]}"; do
+for name in "${smokey_tests[@]}" posix_clock; do
     grep -Fx "$name OK" "$directory/smokey.log"
 done
 bash "$directory/orocos/tools/validate-install.sh" --prefix /opt/orocos --target xenomai
