@@ -43,7 +43,10 @@ int ORO_main(int argc, char **argv) {
     const auto *point = catalog->find(point_type);
     const auto *envelope = catalog->find(std::string(kEnvelopeTypeName));
     const auto *sequence = catalog->find(std::string(kPointArrayTypeName));
-    require(point && envelope && sequence && point->codec->supportsPortValue(), "custom reflection and typed sample support");
+    require(point != nullptr, "custom point reflection is registered");
+    require(envelope != nullptr, "custom envelope reflection is registered");
+    require(sequence != nullptr, "custom sequence reflection is registered");
+    require(point->codec->supportsPortValue(), "custom point codec supports typed port samples");
     require(catalog->find(RTT::types::Types()->type("orocos.fixture.Point")) == point,
             "dotted RTT lookup shares canonical type binding");
     const boost::json::string_view point_name(kPointTypeName.data(), kPointTypeName.size());
