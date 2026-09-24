@@ -2,10 +2,10 @@ name: Xenomai Image Checks
 
 on:
   pull_request:
-    paths: ["images/**", "execution/cobalt/**", ".github/workflows/image-*.yml"]
+    paths: ["images/**", "execution/**", ".github/workflows/image-*.yml"]
   push:
     branches: [main]
-    paths: ["images/**", "execution/cobalt/**", ".github/workflows/image-*.yml"]
+    paths: ["images/**", "execution/**", ".github/workflows/image-*.yml"]
   workflow_dispatch:
 
 permissions:
@@ -31,7 +31,7 @@ jobs:
           packer validate -syntax-only build/image.pkr.hcl
       - name: Check shell syntax
         run: |
-          find images -name '*.sh' -type f -print0 | xargs -0 -n1 bash -n
+          find images execution -name '*.sh' -type f -print0 | xargs -0 -n1 bash -n
       - name: Lint image workflows
         uses: raven-actions/actionlint@v2.2.0
         with:

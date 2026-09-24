@@ -162,6 +162,20 @@ that run's image identity, Cobalt evidence and Orocos Xenomai test logs before
 moving a downstream CI workflow to the image. The RunsOn installation's
 60-minute runner lifetime is separate from the GitHub-hosted image build job.
 
+Run the shared acceptance command as `runner` on that instance:
+
+```bash
+bash execution/xenomai/test.sh
+```
+
+It requires the image's recorded source revision to match the checkout,
+validates the preinstalled stack, then rebuilds the locked Orocos sources into
+a separate prefix. RTT core, OPC UA, HTTP, and the Xenomai task-lifetime
+regression must pass. Logs are written under `execution/.local/xenomai`.
+The command uses the development dependencies already installed in the image.
+To test a specific older image against a newer test checkout, pass its full
+source revision as the first argument; the default requires an exact match.
+
 ## Upstream Implementation
 
 The image builder, publisher and Cobalt baseline were adapted from
