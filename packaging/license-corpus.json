@@ -128,7 +128,7 @@
     {
       "name": "rtt_http",
       "source_lock_name": "rtt_http",
-      "revision": "b1f7f6c3d8eb6c9d72d5b2fadf7f2f1a631b4323",
+      "revision": "d2a3a917f667c89d18ad91c03d68ab00b73cd858",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_http",
