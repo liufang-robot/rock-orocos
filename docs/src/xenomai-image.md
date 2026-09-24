@@ -29,7 +29,8 @@ deployer-xenomai --version
 The `runner` account has UID 1001 and belongs to the `xenomai` group, GID
 4242. Boot arguments, device permissions, PAM limits and systemd limits give
 that account Cobalt access, unlimited locked memory, and real-time priority
-up to 99. Validation runs as this account.
+up to 99. The device rules include `/dev/rtp*` for XDDP's ordinary Linux
+endpoints. Validation runs as this account.
 
 EtherLab is built with its real userspace library enabled and kernel modules,
 fake userspace library, and service installation disabled. This supplies the

@@ -33,6 +33,8 @@ done
     -DXENOMAI_ROOT=/usr/xenomai
 /usr/bin/cmake --build "$directory/build"
 timeout 20s "$directory/build/cobalt"
+# XDDP's ordinary Linux endpoint follows the registry link to /dev/rtpN.
+test -r /dev/rtp0 && test -w /dev/rtp0
 smokey_tests=(arith posix_cond posix_mutex xddp iddp bufp)
 smokey_selection=$(IFS=,; printf '%s' "${smokey_tests[*]}")
 timeout 180s /usr/xenomai/bin/smokey --vm --run="$smokey_selection" \

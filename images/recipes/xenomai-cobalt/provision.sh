@@ -19,6 +19,7 @@ mkdir -p /etc/udev/rules.d
 cat > /etc/udev/rules.d/99-xenomai.rules <<'EOF'
 KERNEL=="memdev-private", GROUP="xenomai", MODE="0660"
 KERNEL=="memdev-shared", GROUP="xenomai", MODE="0660"
+SUBSYSTEM=="rtpipe", KERNEL=="rtp[0-9]*", GROUP="xenomai", MODE="0660"
 EOF
 # RunsOn starts its runner from a system service, which need not open a PAM session.
 # These defaults take effect on the new AMI's first boot and cover that ancestry.
