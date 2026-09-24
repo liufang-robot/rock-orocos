@@ -26,6 +26,11 @@ xeno-config --version
 deployer-xenomai --version
 ```
 
+Standalone C++ consumers include `<rtt/os/main.h>` and use `ORO_main` as
+their entrypoint, or explicitly pair `__os_init` with `__os_exit`. RTT must
+initialize the calling thread before the application creates `TaskContext`
+objects or starts its HTTP server.
+
 The `runner` account has UID 1001 and belongs to the `xenomai` group, GID
 4242. Boot arguments, device permissions, PAM limits and systemd limits give
 that account Cobalt access, unlimited locked memory, and real-time priority

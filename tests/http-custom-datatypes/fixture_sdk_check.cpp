@@ -2,6 +2,7 @@
 #include <rtt/http/reflected_codec.hpp>
 #include <rtt/InputPort.hpp>
 #include <rtt/PropertyBag.hpp>
+#include <rtt/os/main.h>
 #include <rtt/plugin/PluginLoader.hpp>
 #include <rtt/typekit/RealTimeTypekit.hpp>
 #include <rtt/types/Types.hpp>
@@ -21,7 +22,7 @@ boost::json::value read(const TypeCodec &codec, const DataSourcePtr &source) {
   require(codec.toJson(source, &result, context, nullptr), "encode reflected component value");
   return result;
 }
-int main(int argc, char **argv) {
+int ORO_main(int argc, char **argv) {
   try {
     require(argc == 3, "expected ordinary typekit and HTTP transport paths");
     RTT::types::RealTimeTypekitPlugin().loadTypes();

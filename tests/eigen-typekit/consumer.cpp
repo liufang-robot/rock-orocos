@@ -1,6 +1,7 @@
 #include <rtt/OperationCaller.hpp>
 #include <rtt/Port.hpp>
 #include <rtt/TaskContext.hpp>
+#include <rtt/os/main.h>
 #include <rtt/marsh/PropertyLoader.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
 #include <rtt/typekit/RealTimeTypekit.hpp>
@@ -160,7 +161,7 @@ void checkMqueue(const T& expected) {
 #endif
 }
 
-int main(int argc, char** argv) {
+int ORO_main(int argc, char** argv) {
     try {
         require(argc == 2, "expected the installed Eigen plugin directory");
         require(RTT::types::RealTimeTypekitPlugin().loadTypes(), "could not load RTT built-in types");

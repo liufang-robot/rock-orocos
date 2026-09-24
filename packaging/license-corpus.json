@@ -128,7 +128,7 @@
     {
       "name": "rtt_http",
       "source_lock_name": "rtt_http",
-      "revision": "d5be57f35efe457459ab0269ad8c1019ec18f934",
+      "revision": "b1f7f6c3d8eb6c9d72d5b2fadf7f2f1a631b4323",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_http",
@@ -400,7 +400,7 @@
     {
       "name": "rtt_opcua",
       "source_lock_name": "rtt_opcua",
-      "revision": "2989c4f41b98035c7aa3165f3724d64481467d9a",
+      "revision": "505f27ff42dcef8e79fb04750ef865bc4ef477a4",
       "license": "LGPL-2.1-or-later",
       "checkouts": {
         "linux": "toolchain/tools/rtt_opcua",
