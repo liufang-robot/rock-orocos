@@ -1,0 +1,27 @@
+#!/bin/bash
+BUILD_ONLY_PACKAGES=(
+  autoconf
+  automake
+  autotools-dev
+  bc
+  bison
+  flex
+  libelf-dev
+  libltdl-dev
+  libtool-bin
+  m4
+  pkgconf
+)
+LINUX_REPOSITORY=https://gitlab.com/Xenomai/linux-dovetail.git
+LINUX_REF=v6.12.85-cip22-dovetail3-rebase
+LINUX_REVISION=4ee2a3e14885adcb41c428dd42d16f6cbb0224e0
+SOURCE_URL="https://gitlab.com/api/v4/projects/xenomai%2Flinux-dovetail/repository/archive.tar.gz?sha=$LINUX_REVISION"
+SOURCE_SHA256=04db3dfe42d66b9d362164032ec2f62f1d6ffefe53239593cc2de670aaad571a
+XENOMAI_REPOSITORY=https://github.com/liufang-robot/xenomai.git
+XENOMAI_REF=stable/v3.3.x
+XENOMAI_REVISION=97192f0deea20b0f0a15359e3cd0a4499e2b9d40
+XENOMAI_URL="https://codeload.github.com/liufang-robot/xenomai/tar.gz/$XENOMAI_REVISION"
+XENOMAI_SHA256=3347ada3471876623cd650c39a2e058e7ebb471251420e2e629f9b5818234f4b
+KERNEL_CONFIG_SHA256=1b124bff0bcb03a1d7fa2060f4fe6d986ee2685a2777bf77e460ee8454369ca4
+XENOMAI_PREFIX=/usr/xenomai
+XENOMAI_GID=4242

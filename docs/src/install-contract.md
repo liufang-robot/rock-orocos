@@ -271,5 +271,10 @@ contamination.
 
 ## Relationship To Downstream Projects
 
+The [Debian 13 Xenomai image](xenomai-image.md) installs this contract at
+`/opt/orocos`, with `OROCOS_TARGET=xenomai` and the Xenomai SDK at
+`/usr/xenomai`. Its separate EtherLab userspace prefix is `/opt/etherlab`.
+These image paths are independent of the runner user's home directory.
+
 Downstream projects should consume `orocos-rock` exactly like a third-party
 dependency prefix.

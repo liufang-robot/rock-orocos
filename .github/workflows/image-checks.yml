@@ -1,0 +1,39 @@
+name: Xenomai Image Checks
+
+on:
+  pull_request:
+    paths: ["images/**", "execution/cobalt/**", ".github/workflows/image-*.yml"]
+  push:
+    branches: [main]
+    paths: ["images/**", "execution/cobalt/**", ".github/workflows/image-*.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-packer@v3.4.0
+        with:
+          version: 1.16.0
+      - name: Check committed input staging and publication retention
+        working-directory: images
+        run: |
+          python3 -m unittest discover -s build/tests -v
+          python3 -m unittest discover -s publish/tests -v
+          packer fmt -check build/image.pkr.hcl
+          packer validate -syntax-only build/image.pkr.hcl
+      - name: Check shell syntax
+        run: |
+          find images -name '*.sh' -type f -print0 | xargs -0 -n1 bash -n
+      - name: Lint image workflows
+        uses: raven-actions/actionlint@v2.2.0
+        with:
+          shellcheck: false
+          files: .github/workflows/image-build.yml,.github/workflows/image-checks.yml
