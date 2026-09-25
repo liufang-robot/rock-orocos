@@ -25,6 +25,8 @@ manifest = {
     'sources': sources,
     'base_image': json.loads((pathlib.Path(sys.argv[1]) / 'recipe.json').read_text())['source_image'],
     'kernel_release': release,
+    'xenomai_supported_cpus': os.environ['XENOMAI_SUPPORTED_CPUS'],
+    'xenomai_rtdm_test_module': True,
     'cpu_profile': {
         'online': '0-3',
         'housekeeping': os.environ['XENOMAI_HOUSEKEEPING_CPUS'],

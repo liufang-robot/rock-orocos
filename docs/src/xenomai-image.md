@@ -106,10 +106,12 @@ digests are fixed in `images/recipes/runner-inputs.sh`.
 `images/recipes/xenomai-cobalt/kernel.config` preserves the supplied kernel
 configuration with SHA-256
 `1b124bff0bcb03a1d7fa2060f4fe6d986ee2685a2777bf77e460ee8454369ca4`.
-The recipe integrates the pinned Cobalt source, runs `olddefconfig` with
-Debian's GCC 14, and saves the effective configuration under `/boot`. Required
-Dovetail, Xenomai and RTIPC options must remain enabled. Modular NVMe, ext4,
-virtio and ENA support is included in the initramfs.
+The recipe integrates the pinned Cobalt source and enables
+`CONFIG_XENO_DRIVERS_RTDMTEST=m` on top of that input before running
+`olddefconfig` with Debian's GCC 14. The effective configuration is saved
+under `/boot`; the supplied input file and its checksum stay unchanged.
+Dovetail, Xenomai, CPU isolation, RTIPC and the RTDM test module must remain
+enabled. Modular NVMe, ext4, virtio and ENA support is included in the initramfs.
 
 Orocos uses the current committed root checkout and
 `packaging/source-lock.json`. The builder stages these with `git archive`;
@@ -171,12 +173,20 @@ initramfs modules, Cobalt primary-mode execution, and the installed Orocos
 prefix through `tools/validate-install.sh --target xenomai`. It also compiles
 and executes a consumer of the real EtherLab library's version API without
 opening a master. No source tree or build output from provisioning is present.
-Maintained Smokey cases cover arithmetic, POSIX clocks, condition variables,
-mutexes, XDDP, IDDP and BUFP. Each must print an explicit success result;
-Smokey's successful exit status alone does not accept skipped cases.
+Maintained Smokey cases cover `arith`, `posix_clock`, `posix_cond`,
+`posix_mutex`, `xddp`, `iddp`, `bufp`, `cpu_affinity`, `posix_fork`,
+`posix_select`, `timerfd` and `tsc`, including MetaNC's nine-case set.
+Every case must print an explicit success result; skipped tests or
+subchecks fail acceptance. The CPU-affinity case must also log a successful
+kernel-thread migration. CPUs 1 and 2 are outside Cobalt's mask, providing
+the non-RT starting CPU this test requires.
+
 The POSIX clock case runs through `sudo` because it changes the system clock
-and needs `CAP_SYS_TIME`. The other Smokey cases, the Cobalt primary-mode sample,
-and installed-prefix consumers run as the unprivileged `runner` account.
+and needs `CAP_SYS_TIME`. The CPU-affinity case uses `sudo` to load, access
+and unload `xeno_rtdmtest` from a non-RT CPU. The module must not already be
+loaded, since its creation is part of the migration test. Other Smokey cases,
+the Cobalt primary-mode sample, and installed-prefix consumers run as the
+unprivileged `runner` account.
 
 Run the fast checks without a VM or AWS credentials:
 
