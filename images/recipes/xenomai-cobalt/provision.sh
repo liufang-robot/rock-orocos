@@ -23,10 +23,11 @@ SUBSYSTEM=="rtpipe", KERNEL=="rtp[0-9]*", GROUP="xenomai", MODE="0660"
 EOF
 # RunsOn starts its runner from a system service, which need not open a PAM session.
 # These defaults take effect on the new AMI's first boot and cover that ancestry.
-cat > /etc/systemd/system.conf.d/99-xenomai.conf <<'EOF'
+cat > /etc/systemd/system.conf.d/99-xenomai.conf <<EOF
 [Manager]
 DefaultLimitMEMLOCK=infinity
 DefaultLimitRTPRIO=99
+CPUAffinity=$XENOMAI_HOUSEKEEPING_CPUS
 EOF
 bash "$recipe_dir/build-kernel.sh"
 # Keep the application toolchain; remove tools used only to build the image and

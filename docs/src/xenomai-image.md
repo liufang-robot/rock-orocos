@@ -42,6 +42,54 @@ fake userspace library, and service installation disabled. This supplies the
 software backend for consumers whose tests disable hardware access. Physical
 EtherCAT and HIL qualification remain separate from image acceptance.
 
+## CPU Isolation On RunsOn
+
+The image targets four online logical CPUs (`0-3`). The measured
+`m7i.xlarge` topology has two physical cores: CPUs `0,2` share one core and
+CPUs `1,3` share the other. The instance size is selected by the consumer's
+RunsOn workflow; it is not a property of the AMI.
+
+| Work | Logical CPUs |
+|---|---|
+| Linux services, runner, builds and default interrupts | `0,2` |
+| Reserved core | `1,3` |
+| Application real-time task and latency measurement | `3` |
+| Cobalt-supported CPUs | `0,3` (`0x9`) |
+
+The GRUB drop-in preserves the base image's console arguments and adds:
+
+```text
+nowatchdog irqaffinity=0,2 isolcpus=managed_irq,domain,1,3 nohz_full=1,3 rcu_nocbs=1,3 xenomai.supported_cpus=0x9 xenomai.allowed_group=4242
+```
+
+Systemd's default CPU affinity is `0,2`. Applications must explicitly set
+their RT task affinity to CPU 3; isolation does not move an application
+there. The Cobalt example uses `rt_task_set_affinity` when `XENOMAI_RT_CPU`
+is set, and checks both primary mode and the CPU reported by Cobalt. CPU 1
+is reserved so ordinary work does not compete on CPU 3's hardware sibling.
+The pinned Cobalt kernel requires CPU 0 in its supported mask.
+
+> [!IMPORTANT]
+> CPU numbering is a machine contract. Acceptance checks the online CPUs,
+> SMT siblings, boot arguments, scheduler/tick isolation, default IRQ mask,
+> systemd/runner affinity and Cobalt group/mask against `manifest.json`.
+> A topology that shares the RT core with housekeeping fails acceptance.
+> Choose a new profile before using a different instance topology.
+
+The supplied kernel disables `CONFIG_CPU_IDLE` and `CONFIG_ACPI_PROCESSOR`.
+The image does not add `intel_idle.max_cstate`, `processor.max_cstate`,
+`idle=poll` or `pcie_aspm=off`. The latter two require separate hardware
+measurements. `nowatchdog` disables Linux lockup detectors; the configured
+Cobalt watchdog remains enabled. Managed IRQ avoidance is best effort, so
+this profile is not a guarantee that every interrupt has been removed.
+
+RunsOn acceptance records two 60-second Xenomai `latency` measurements at
+a 1 ms period and priority 80: first with no added load, then with SHA-256
+workers on both housekeeping CPUs. Logs preserve the minimum, average,
+maximum, overruns and mode switches. They are observations, not a hard
+real-time qualification or an invented latency threshold. Physical-machine
+and EtherCAT/HIL qualification remain separate.
+
 ## Recipe Inputs
 
 | Component | Source reference | Fixed commit |
@@ -102,7 +150,7 @@ packer init build/image.pkr.hcl
 python3 -m build.image --recipe recipes --output .local/build \
   --cpus 4 --memory-mib 8192
 python3 -m validate.image --image .local/build/disk.raw \
-  --output .local/validation --cpus 2 --memory-mib 4096 --timeout-seconds 1200
+  --output .local/validation --cpus 4 --memory-mib 4096 --timeout-seconds 1200
 ```
 
 Use a new build output directory for each attempt. Progress is in
@@ -136,6 +184,7 @@ Run the fast checks without a VM or AWS credentials:
 cd images
 python3 -m unittest discover -s build/tests -v
 python3 -m unittest discover -s publish/tests -v
+python3 -m unittest discover -s validate/tests -v
 packer fmt -check build/image.pkr.hcl
 ```
 

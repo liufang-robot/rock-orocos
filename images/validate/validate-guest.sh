@@ -18,6 +18,10 @@ assert platform.release() == manifest['kernel_release'], 'Wrong running kernel'
 config = pathlib.Path('/boot/config-' + platform.release()).read_bytes()
 assert hashlib.sha256(config).hexdigest() == manifest['kernel_effective_config_sha256']
 PY
+python3 "$(dirname -- "${BASH_SOURCE[0]}")/check-cpus.py" \
+    | tee "$directory/cpu-profile.log"
+export XENOMAI_RT_CPU
+XENOMAI_RT_CPU=$(jq -r '.cpu_profile.realtime_cpu' "$manifest")
 test -r /proc/xenomai/version
 cat /proc/xenomai/version
 /usr/xenomai/bin/xeno-config --version

@@ -18,6 +18,13 @@ is used on the next boot; no Cobalt runtime test runs in the build VM.
 
 The `xenomai` group has GID 4242. The runner receives kernel access through
 `xenomai.allowed_group`, device permissions, and PAM/systemd resource limits.
+
+The four-vCPU profile reserves CPUs 1 and 3, which share a physical core on
+the measured m7i.xlarge. Linux and the runner use CPUs 0 and 2; RT tasks
+explicitly select CPU 3. Cobalt supports CPUs 0 and 3 (`0x9`). The image
+manifest records this profile, and fresh-boot validation rejects a CPU
+topology or boot setting that violates it. See the maintained image guide
+for the boot arguments and latency measurements.
 Large kernel source and debug build trees are removed from the disposable
 build disk after installation.
 

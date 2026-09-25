@@ -99,6 +99,7 @@ def run_guest(ssh: list[str], temporary: Path, deadline: float, log, expected_re
         for name in ("CMakeLists.txt", "main.c"):
             stream.add(ROOT / "execution/cobalt" / name, arcname=f"cobalt/{name}")
         stream.add(Path(__file__).resolve().parent / "validate-guest.sh", arcname="validate-guest.sh")
+        stream.add(Path(__file__).resolve().parent / "check-cpus.py", arcname="check-cpus.py")
         # These are installed-prefix consumers. No dependency checkouts or
         # build trees from the image builder are available in this VM.
         paths = subprocess.check_output([
@@ -150,7 +151,7 @@ def main():
     parser.add_argument("--image", type=Path, required=True, help="Raw disk to boot and validate")
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--accelerator", choices=("kvm", "tcg"), default="kvm")
-    parser.add_argument("--cpus", type=int, default=2)
+    parser.add_argument("--cpus", type=int, default=4)
     parser.add_argument("--memory-mib", type=int, default=2048)
     parser.add_argument("--timeout-seconds", type=int, default=300)
     parser.add_argument("--image-revision", help="Expected source revision of an existing disk; defaults to this checkout's HEAD")
