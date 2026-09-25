@@ -24,7 +24,10 @@ tar -xzf "$archive" --strip-components=1 -C "$xenomai_dir"
 cd "$source_dir"
 kernel_make=(make CC=gcc-14 HOSTCC=gcc-14)
 cp "$recipe_dir/kernel.config" .config
+# Preserve the supplied input while enabling the affinity test's RTDM actor.
+scripts/config --module XENO_DRIVERS_RTDMTEST
 "${kernel_make[@]}" olddefconfig
+grep -qx 'CONFIG_XENO_DRIVERS_RTDMTEST=m' .config
 for option in CONFIG_DOVETAIL CONFIG_XENOMAI CONFIG_CPU_ISOLATION CONFIG_NO_HZ_FULL CONFIG_RCU_NOCB_CPU \
     CONFIG_XENO_DRIVERS_RTIPC \
     CONFIG_XENO_DRIVERS_RTIPC_XDDP CONFIG_XENO_DRIVERS_RTIPC_IDDP CONFIG_XENO_DRIVERS_RTIPC_BUFP; do

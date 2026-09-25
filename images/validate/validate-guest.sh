@@ -17,6 +17,8 @@ assert manifest['orocos']['revision'] == sys.argv[2], 'Image source revision mis
 assert platform.release() == manifest['kernel_release'], 'Wrong running kernel'
 config = pathlib.Path('/boot/config-' + platform.release()).read_bytes()
 assert hashlib.sha256(config).hexdigest() == manifest['kernel_effective_config_sha256']
+assert int(pathlib.Path('/sys/module/xenomai/parameters/supported_cpus').read_text(), 0) == int(manifest['xenomai_supported_cpus'], 0)
+assert b'CONFIG_XENO_DRIVERS_RTDMTEST=m\n' in config
 PY
 python3 "$(dirname -- "${BASH_SOURCE[0]}")/check-cpus.py" \
     | tee "$directory/cpu-profile.log"
@@ -39,7 +41,7 @@ done
 timeout 20s "$directory/build/cobalt"
 # XDDP's ordinary Linux endpoint follows the registry link to /dev/rtpN.
 test -r /dev/rtp0 && test -w /dev/rtp0
-smokey_tests=(arith posix_cond posix_mutex xddp iddp bufp)
+smokey_tests=(arith posix_cond posix_mutex xddp iddp bufp posix_fork posix_select timerfd tsc)
 smokey_selection=$(IFS=,; printf '%s' "${smokey_tests[*]}")
 timeout 180s /usr/xenomai/bin/smokey --vm --run="$smokey_selection" \
     2>&1 | tee "$directory/smokey.log"
@@ -47,9 +49,21 @@ timeout 180s /usr/xenomai/bin/smokey --vm --run="$smokey_selection" \
 # Cobalt group access. Keep the other cases and application checks unprivileged.
 sudo -n timeout 180s /usr/xenomai/bin/smokey --vm --run=posix_clock \
     2>&1 | tee -a "$directory/smokey.log"
+# Load the RTDM actor from a non-RT CPU as part of the migration test.
+# Preloading it would invalidate that premise; root handles module/device access.
+modinfo xeno_rtdmtest >/dev/null
+test ! -d /sys/module/xeno_rtdmtest
+sudo -n timeout 180s /usr/xenomai/bin/smokey --vm --verbose=2 --run=cpu_affinity \
+    2>&1 | tee "$directory/smokey-cpu-affinity.log"
+cat "$directory/smokey-cpu-affinity.log" >> "$directory/smokey.log"
+grep -Eq 'kernel thread pinned to CPU[0-9]+, fine' "$directory/smokey-cpu-affinity.log"
+if grep -Eq 'skip(ped|ping)' "$directory/smokey.log"; then
+    printf 'Smokey skipped a required test or subcheck\n' >&2
+    exit 1
+fi
 # Smokey returns success for unsupported tests. Require explicit success for
 # every maintained case so a skipped test cannot satisfy image acceptance.
-for name in "${smokey_tests[@]}" posix_clock; do
+for name in "${smokey_tests[@]}" posix_clock cpu_affinity; do
     grep -Fx "$name OK" "$directory/smokey.log"
 done
 bash "$directory/orocos/tools/validate-install.sh" --prefix /opt/orocos --target xenomai
