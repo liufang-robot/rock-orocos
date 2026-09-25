@@ -21,6 +21,7 @@ ln -s "$root/execution/cobalt" "$work/installed/cobalt"
 ln -s "$root" "$work/installed/orocos"
 bash images/validate/validate-guest.sh "$work/installed" "$expected_revision" \
     2>&1 | tee "$work/installed.log"
+bash execution/xenomai/latency.sh "$work"
 
 # Keep the AMI's installed prefix intact while testing a clean source build.
 export OROCOS_PREFIX="$work/prefix" OROCOS_TARGET=xenomai

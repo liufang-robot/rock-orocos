@@ -27,6 +27,7 @@ jobs:
         run: |
           python3 -m unittest discover -s build/tests -v
           python3 -m unittest discover -s publish/tests -v
+          python3 -m unittest discover -s validate/tests -v
           packer fmt -check build/image.pkr.hcl
           packer validate -syntax-only build/image.pkr.hcl
       - name: Check shell syntax

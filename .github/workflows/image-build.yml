@@ -131,7 +131,7 @@ jobs:
       - name: Validate the image in a fresh VM
         run: |
           python3 -m validate.image --image .local/build/disk.raw \
-            --output .local/validation --cpus 2 --memory-mib 4096 --timeout-seconds 1200
+            --output .local/validation --cpus 4 --memory-mib 4096 --timeout-seconds 1200
       - name: Upload VM validation logs
         if: always()
         uses: actions/upload-artifact@v7.0.1

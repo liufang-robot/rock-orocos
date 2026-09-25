@@ -24,8 +24,12 @@ tar -xzf "$archive" --strip-components=1 -C "$xenomai_dir"
 cd "$source_dir"
 kernel_make=(make CC=gcc-14 HOSTCC=gcc-14)
 cp "$recipe_dir/kernel.config" .config
+# Preserve the supplied input while enabling the affinity test's RTDM actor.
+scripts/config --module XENO_DRIVERS_RTDMTEST
 "${kernel_make[@]}" olddefconfig
-for option in CONFIG_DOVETAIL CONFIG_XENOMAI CONFIG_XENO_DRIVERS_RTIPC \
+grep -qx 'CONFIG_XENO_DRIVERS_RTDMTEST=m' .config
+for option in CONFIG_DOVETAIL CONFIG_XENOMAI CONFIG_CPU_ISOLATION CONFIG_NO_HZ_FULL CONFIG_RCU_NOCB_CPU \
+    CONFIG_XENO_DRIVERS_RTIPC \
     CONFIG_XENO_DRIVERS_RTIPC_XDDP CONFIG_XENO_DRIVERS_RTIPC_IDDP CONFIG_XENO_DRIVERS_RTIPC_BUFP; do
     grep -qx "$option=y" .config || { printf 'Required kernel option missing: %s\n' "$option" >&2; exit 1; }
 done
@@ -53,9 +57,10 @@ make -j"$(nproc)"
 make install-strip
 printf '%s/lib\n' "$XENOMAI_PREFIX" > /etc/ld.so.conf.d/xenomai.conf
 ldconfig
-# The stock kernels are removed; the remaining kernel needs Cobalt group access.
+# Reserve an entire core on the measured four-vCPU m7i.xlarge topology.
+# CPU 0 must stay in Cobalt's mask; applications explicitly select the RT CPU.
 cat > /etc/default/grub.d/99-rock-orocos.cfg <<EOF
-GRUB_CMDLINE_LINUX="\${GRUB_CMDLINE_LINUX:-} xenomai.allowed_group=$XENOMAI_GID"
+GRUB_CMDLINE_LINUX="\${GRUB_CMDLINE_LINUX:-} nowatchdog irqaffinity=$XENOMAI_HOUSEKEEPING_CPUS isolcpus=managed_irq,domain,$XENOMAI_ISOLATED_CPUS nohz_full=$XENOMAI_ISOLATED_CPUS rcu_nocbs=$XENOMAI_ISOLATED_CPUS xenomai.supported_cpus=$XENOMAI_SUPPORTED_CPUS xenomai.allowed_group=$XENOMAI_GID"
 EOF
 # Installed modules are stripped; the large debug build belongs only to the
 # disposable build disk. Reclaim its blocks before building the Orocos stack.
