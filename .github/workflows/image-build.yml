@@ -1,0 +1,257 @@
+name: Xenomai Image
+
+on:
+  pull_request:
+    paths:
+      - images/**
+      - execution/cobalt/**
+      - .github/workflows/image-build.yml
+      - .github/workflows/image-checks.yml
+      - autoproj/**
+      - packaging/source-lock.json
+      - packaging/native-boost.json
+      - tools/**
+      - tests/**
+  push:
+    branches: [main]
+    paths:
+      - images/**
+      - execution/cobalt/**
+      - .github/workflows/image-build.yml
+      - .github/workflows/image-checks.yml
+      - autoproj/**
+      - packaging/source-lock.json
+      - packaging/native-boost.json
+      - tools/**
+      - tests/**
+  schedule:
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      publish_image:
+        description: Publish the validated disk as an AMI
+        type: boolean
+        default: false
+      environment:
+        description: GitHub environment authorized by the publishing target
+        type: string
+        default: image-publish
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_image)) && 'rock-orocos-xenomai-publication' || format('{0}-{1}', github.workflow, github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+    working-directory: images
+
+jobs:
+  build:
+    # The AWS/RunsOn installation belongs to OptimalCNC. Canonical PRs and
+    # pushes still build and boot-test the same recipe without AWS credentials.
+    if: github.event_name != 'schedule' || github.repository == 'OptimalCNC/rock-orocos'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: hashicorp/setup-packer@v3.4.0
+        with:
+          version: 1.16.0
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            qemu-system-x86 qemu-utils ovmf cloud-image-utils xorriso openssh-client
+          packer init build/image.pkr.hcl
+      - name: Reclaim disposable hosted-runner SDK space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h .
+      - name: Enable KVM access
+        run: sudo chmod 0666 /dev/kvm
+      - name: Build disk
+        run: python3 -m build.image --recipe recipes --output .local/build --cpus 4 --memory-mib 8192
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: image-build-reports-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            images/.local/build/packer.log
+            images/.local/build/serial.log
+            images/.local/build/source.json
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Bundle the built disk
+        run: |
+          tar --sparse --gzip --create --file .local/image.tar.gz \
+            --directory .local/build disk.raw
+      - name: Upload the built disk for validation and publication
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: image-${{ github.run_id }}-${{ github.run_attempt }}
+          path: images/.local/image.tar.gz
+          include-hidden-files: true
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 1
+
+  validate:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install VM validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends \
+            qemu-system-x86 qemu-utils ovmf cloud-image-utils openssh-client
+      - name: Enable KVM access
+        run: sudo chmod 0666 /dev/kvm
+      - name: Download the built disk
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: image-${{ github.run_id }}-${{ github.run_attempt }}
+          path: images/.local
+      - name: Extract the built disk
+        run: |
+          mkdir -p .local/build
+          tar --extract --gzip --sparse --file .local/image.tar.gz --directory .local/build
+          rm .local/image.tar.gz
+      - name: Validate the image in a fresh VM
+        run: |
+          python3 -m validate.image --image .local/build/disk.raw \
+            --output .local/validation --cpus 2 --memory-mib 4096 --timeout-seconds 1200
+      - name: Upload VM validation logs
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: image-validation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: images/.local/validation/*.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 7
+
+  publish:
+    if: >-
+      github.repository == 'OptimalCNC/rock-orocos' && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_image))
+    needs: [build, validate]
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment || 'image-publish' }}
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install publishing tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends build-essential cmake pkg-config
+          rustup toolchain install 1.98.1 --profile minimal
+      - name: Install coldsnap
+        uses: baptiste0928/cargo-install@v3.5.0
+        env:
+          RUSTUP_TOOLCHAIN: 1.98.1
+        with:
+          crate: coldsnap
+          version: 0.12.0
+      - name: Download the validated disk
+        uses: actions/download-artifact@v8.0.1
+        with:
+          name: image-${{ github.run_id }}-${{ github.run_attempt }}
+          path: images/.local
+      - name: Extract the validated disk
+        run: |
+          mkdir -p .local/build
+          tar --extract --gzip --sparse --file .local/image.tar.gz --directory .local/build
+          rm .local/image.tar.gz
+      - name: Write the publishing configuration
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          IMAGE_TAGS: ${{ vars.IMAGE_TAGS || '{}' }}
+        run: |
+          jq -n \
+            --arg name rock-orocos-xenomai \
+            --arg account_id "$AWS_ACCOUNT_ID" \
+            --arg region "$AWS_REGION" \
+            --argjson tags "$IMAGE_TAGS" \
+            '{name: $name, account_id: $account_id, region: $region, tags: $tags}' \
+            > .local/publishing.json
+      - name: Authenticate for publishing
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.PUBLISHING_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: image-${{ github.run_id }}-${{ github.run_attempt }}
+          role-duration-seconds: 7200
+      - name: Publish the validated image
+        timeout-minutes: 85
+        run: |
+          python3 -m publish.publish --config .local/publishing.json \
+            --image .local/build/disk.raw --output .local/publication
+      - name: Upload publication record and log
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: image-publication-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            images/.local/publication/published-image.json
+            images/.local/publication/upload.log
+          include-hidden-files: true
+          if-no-files-found: warn
+          retention-days: 90
+
+  clean:
+    if: >-
+      always() && github.repository == 'OptimalCNC/rock-orocos' &&
+      github.ref == 'refs/heads/main' && needs.publish.result != 'skipped' &&
+      (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.publish_image))
+    needs: publish
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment || 'image-publish' }}
+    permissions:
+      contents: read
+      id-token: write
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Write the publishing configuration
+        env:
+          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          IMAGE_TAGS: ${{ vars.IMAGE_TAGS || '{}' }}
+        run: |
+          mkdir -p .local
+          jq -n \
+            --arg name rock-orocos-xenomai \
+            --arg account_id "$AWS_ACCOUNT_ID" \
+            --arg region "$AWS_REGION" \
+            --argjson tags "$IMAGE_TAGS" \
+            '{name: $name, account_id: $account_id, region: $region, tags: $tags}' \
+            > .local/publishing.json
+      - name: Authenticate for publishing
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: ${{ vars.PUBLISHING_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: image-clean-${{ github.run_id }}-${{ github.run_attempt }}
+      - name: Clean old publications
+        run: |
+          python3 -m publish.prune --config .local/publishing.json

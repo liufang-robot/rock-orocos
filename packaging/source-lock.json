@@ -34,12 +34,12 @@
     {
       "name": "rtt_opcua",
       "repository": "https://github.com/liufang-robot/rtt_opcua.git",
-      "revision": "2989c4f41b98035c7aa3165f3724d64481467d9a"
+      "revision": "505f27ff42dcef8e79fb04750ef865bc4ef477a4"
     },
     {
       "name": "ocl",
       "repository": "https://github.com/liufang-robot/ocl.git",
-      "revision": "8fdcb8f9d3fd4b087fa407efac3db5d124de4ce7"
+      "revision": "0d43fbcf92876095779f18933d202d561b7c44c4"
     },
     {
       "name": "cpp-httplib",
@@ -49,7 +49,7 @@
     {
       "name": "rtt_http",
       "repository": "https://github.com/liufang-robot/rtt_http.git",
-      "revision": "d5be57f35efe457459ab0269ad8c1019ec18f934"
+      "revision": "d2a3a917f667c89d18ad91c03d68ab00b73cd858"
     },
     {
       "name": "utilmm",

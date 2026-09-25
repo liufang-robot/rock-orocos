@@ -4,15 +4,22 @@
 #include <rtt/types/TypekitPlugin.hpp>
 #include <rtt/types/Types.hpp>
 
+#include <iostream>
+
 namespace fixture {
 using namespace orocos::opcua::fixture;
 using namespace RTT::http;
 
 template <typename T> bool registerReflected(std::string_view name) {
   auto *type = RTT::types::Types()->type(std::string(name));
+  std::string error;
   auto protocol = makeReflectedTypeProtocol<T>(type,
-      {"orocos.http.fixture", "1", std::string(name), "1", {}, {}, {}});
-  return protocol && registerTypeProtocol(type, std::move(protocol));
+      {"orocos.http.fixture", "1", std::string(name), "1", {}, {}, {}}, &error);
+  if (!protocol || !registerTypeProtocol(type, std::move(protocol), &error)) {
+    std::cerr << "HTTP fixture codec " << name << ": " << error << '\n';
+    return false;
+  }
+  return true;
 }
 
 class HttpTransport final : public RTT::types::TransportPlugin {
@@ -38,12 +45,19 @@ RTT_EXPORT bool loadRTTPlugin(RTT::TaskContext *owner) {
   RTT::types::TypekitRepository::Import(new fixture::HttpTransport());
   try {
     using namespace orocos::opcua::fixture;
-    if (!RTT::http::registerCanonicalTypeProtocols()) { return true; }
+    std::string error;
+    if (!RTT::http::registerCanonicalTypeProtocols(&error)) {
+      std::cerr << "HTTP fixture dependencies: " << error << '\n';
+      return true;
+    }
     if (!fixture::registerReflected<Point>(kPointTypeName)) { return true; }
     if (!fixture::registerReflected<Envelope>(kEnvelopeTypeName)) { return true; }
     fixture::registerReflected<PointArray>(kPointArrayTypeName);
+  } catch (const std::exception &error) {
+    std::cerr << "HTTP fixture registration: " << error.what() << '\n';
   } catch (...) {
     // Registered codec implementations must remain loaded until RTT teardown.
+    std::cerr << "HTTP fixture registration: unknown exception\n";
   }
   return true;
 }

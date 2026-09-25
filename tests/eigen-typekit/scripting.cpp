@@ -1,4 +1,5 @@
 #include <rtt/TaskContext.hpp>
+#include <rtt/os/main.h>
 #include <rtt/internal/DataSources.hpp>
 #include <rtt/plugin/PluginLoader.hpp>
 #include <rtt/scripting/Parser.hpp>
@@ -257,7 +258,7 @@ void checkPrograms() {
 }
 } // namespace
 
-int main(int argc, char** argv) {
+int ORO_main(int argc, char** argv) {
     try {
         require(argc == 2, "expected Eigen plugin directory");
         RTT::types::TypekitRepository::Import(new RTT::types::RealTimeTypekitPlugin);

@@ -31,13 +31,15 @@ target_link_libraries(http-fixture-transport PRIVATE rtt_http::rtt_http)
 foreach(target http-fixture-types http-fixture-transport)
   # RTT classifies an explicit library path by its immediate parent directory.
   # Keep the same types/ layout that consumers use in an installed prefix.
+  # Nest it so RTT startup does not discover these fixtures through its
+  # default '.' search path before the test loads them in dependency order.
   set_target_properties(${target} PROPERTIES OUTPUT_NAME ${target}-${OROCOS_TARGET}
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/types"
-    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/types")
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/fixture/types"
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/fixture/types")
   foreach(config DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
     set_target_properties(${target} PROPERTIES
-      LIBRARY_OUTPUT_DIRECTORY_${config} "${CMAKE_CURRENT_BINARY_DIR}/types"
-      RUNTIME_OUTPUT_DIRECTORY_${config} "${CMAKE_CURRENT_BINARY_DIR}/types")
+      LIBRARY_OUTPUT_DIRECTORY_${config} "${CMAKE_CURRENT_BINARY_DIR}/fixture/types"
+      RUNTIME_OUTPUT_DIRECTORY_${config} "${CMAKE_CURRENT_BINARY_DIR}/fixture/types")
   endforeach()
 endforeach()
 

@@ -36,3 +36,9 @@ docs/superpowers/
 .tb_history
 *.swp
 *~
+
+# Disposable image disks, source bundles, and validation output
+!/images/build/
+/images/.local/
+/execution/.local/
+__pycache__/

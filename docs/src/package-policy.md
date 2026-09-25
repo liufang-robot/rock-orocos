@@ -41,6 +41,10 @@ prefix.
 
 ## Good Candidates
 
+The [Xenomai image recipe](xenomai-image.md) additionally provisions its pinned
+Linux/Dovetail kernel, Xenomai SDK and EtherLab userspace library. Those are
+image platform inputs; they do not extend the ordinary Autoproj package set.
+
 | Package | Why it may help | Source policy |
 |---|---|---|
 | `base/cmake` | build helper layer if a package truly needs it | Upstream |

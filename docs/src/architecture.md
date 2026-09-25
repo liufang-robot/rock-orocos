@@ -54,6 +54,8 @@ flowchart LR
 - install a usable runtime prefix
 - install a usable development environment
 - document upgrade and validation workflow
+- build and validate the [Debian 13 Xenomai image](xenomai-image.md), including
+  its kernel, SDK, runner integration and EtherLab userspace dependency
 
 ## Downstream Responsibilities
 

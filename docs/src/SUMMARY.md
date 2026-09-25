@@ -19,6 +19,7 @@
 
 - [Bootstrap Workflow](./bootstrap-workflow.md)
 - [Xenomai 3 Integration](./xenomai3-integration.md)
+- [Debian 13 Xenomai Image](./xenomai-image.md)
 - [Package Verification Matrix](./package-test-results.md)
 - [Planned Work / TODO](./todo/index.md)
   - [OPC UA PKI And Authorization](./todo/opcua-security-prd.md)
