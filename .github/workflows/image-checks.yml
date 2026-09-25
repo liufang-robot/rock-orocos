@@ -1,40 +1,62 @@
-name: Xenomai Image Checks
-
+name: Xenomai CPU Profile Preflight
 on:
-  pull_request:
-    paths: ["images/**", "execution/**", ".github/workflows/image-*.yml"]
-  push:
-    branches: [main]
-    paths: ["images/**", "execution/**", ".github/workflows/image-*.yml"]
   workflow_dispatch:
-
 permissions:
   contents: read
-
+  actions: read
 jobs:
-  checks:
+  boot:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.1
         with:
-          persist-credentials: false
-      - uses: hashicorp/setup-packer@v3.4.0
-        with:
-          version: 1.16.0
-      - name: Check committed input staging and publication retention
+          name: image-36079876926-1
+          run-id: 36079876926
+          github-token: ${{ github.token }}
+          path: images/.local
+      - name: Install VM tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils ovmf cloud-image-utils openssh-client
+          sudo chmod 0666 /dev/kvm
+      - name: Apply candidate boot policy to an existing validated kernel
+        shell: bash
+        run: |
+          mkdir -p images/.local/build /tmp/cpu-image
+          tar --extract --gzip --sparse --file images/.local/image.tar.gz --directory images/.local/build
+          loop_device=$(sudo losetup --find --show --partscan images/.local/build/disk.raw)
+          cleanup() {
+            sudo umount /tmp/cpu-image/dev /tmp/cpu-image/proc /tmp/cpu-image/sys 2>/dev/null || true
+            sudo umount /tmp/cpu-image 2>/dev/null || true
+            sudo losetup --detach "$loop_device"
+          }
+          trap cleanup EXIT
+          sudo mount "${loop_device}p1" /tmp/cpu-image
+          for path in dev proc sys; do
+            sudo mount --bind "/$path" "/tmp/cpu-image/$path"
+          done
+          sudo python3 - <<'PY'
+          import json, pathlib
+          root = pathlib.Path('/tmp/cpu-image')
+          manifest = root / 'usr/local/share/rock-orocos-image/manifest.json'
+          data = json.loads(manifest.read_text())
+          data['cpu_profile'] = dict(online='0-3', housekeeping='0,2', isolated='1,3', realtime_cpu=3, supported_cpus='0x9', allowed_group=4242)
+          manifest.write_text(json.dumps(data, indent=2) + '\n')
+          (root / 'etc/default/grub.d/99-rock-orocos.cfg').write_text('GRUB_CMDLINE_LINUX="${GRUB_CMDLINE_LINUX:-} nowatchdog irqaffinity=0,2 isolcpus=managed_irq,domain,1,3 nohz_full=1,3 rcu_nocbs=1,3 xenomai.supported_cpus=0x9 xenomai.allowed_group=4242"\n')
+          (root / 'etc/systemd/system.conf.d/99-xenomai.conf').write_text('[Manager]\nDefaultLimitMEMLOCK=infinity\nDefaultLimitRTPRIO=99\nCPUAffinity=0,2\n')
+          PY
+          sudo chroot /tmp/cpu-image update-grub
+      - name: Boot and validate the candidate CPU policy
         working-directory: images
         run: |
-          python3 -m unittest discover -s build/tests -v
-          python3 -m unittest discover -s publish/tests -v
-          python3 -m unittest discover -s validate/tests -v
-          packer fmt -check build/image.pkr.hcl
-          packer validate -syntax-only build/image.pkr.hcl
-      - name: Check shell syntax
-        run: |
-          find images execution -name '*.sh' -type f -print0 | xargs -0 -n1 bash -n
-      - name: Lint image workflows
-        uses: raven-actions/actionlint@v2.2.0
+          python3 -m validate.image --image .local/build/disk.raw --output .local/validation \
+            --cpus 4 --memory-mib 4096 --timeout-seconds 1200 \
+            --image-revision 4e2d771f35f8174bdf196d2423a6bae8610a4e5f
+      - uses: actions/upload-artifact@v7.0.1
+        if: always()
         with:
-          shellcheck: false
-          files: .github/workflows/image-build.yml,.github/workflows/image-checks.yml
+          name: cpu-profile-preflight
+          path: images/.local/validation/*.log
+          include-hidden-files: true
