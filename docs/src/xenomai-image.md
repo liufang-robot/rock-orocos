@@ -37,6 +37,13 @@ that account Cobalt access, unlimited locked memory, and real-time priority
 up to 99. The device rules include `/dev/rtp*` for XDDP's ordinary Linux
 endpoints. Validation runs as this account.
 
+镜像通过 `xenomai.supported_cpus=0xfffffffffffffffd` 将 CPU 1 留在普通 Linux CPU 集合，
+CPU 0 和其余 CPU 可运行 Cobalt task。Cobalt 初始化要求 CPU 0 属于实时 CPU 集合；
+`cpu_affinity` 用例则需要至少一个非实时 CPU 来验证迁移，因此 guest 至少需要两个 vCPU。
+这个 mask 不限制普通 Linux 构建进程使用全部 vCPU。
+`CONFIG_XENO_DRIVERS_RTDMTEST=m` 提供 `xeno_rtdmtest`，使该用例同时验证用户线程和内核
+RTDM actor。测试自行加载、访问和卸载模块，需要 `sudo`；普通运行不会预加载该模块。
+
 EtherLab is built with its real userspace library enabled and kernel modules,
 fake userspace library, and service installation disabled. This supplies the
 software backend for consumers whose tests disable hardware access. Physical
@@ -55,13 +62,11 @@ is Debian 13 genericcloud amd64 build `20260914-2601`, verified against its
 published SHA-512 digest. Actions runner and RunsOn bootstrap versions and
 digests are fixed in `images/recipes/runner-inputs.sh`.
 
-`images/recipes/xenomai-cobalt/kernel.config` preserves the supplied kernel
-configuration with SHA-256
+`images/recipes/xenomai-cobalt/kernel.config` 保留提供的内核基础配置，SHA-256 为
 `1b124bff0bcb03a1d7fa2060f4fe6d986ee2685a2777bf77e460ee8454369ca4`.
-The recipe integrates the pinned Cobalt source, runs `olddefconfig` with
-Debian's GCC 14, and saves the effective configuration under `/boot`. Required
-Dovetail, Xenomai and RTIPC options must remain enabled. Modular NVMe, ext4,
-virtio and ENA support is included in the initramfs.
+Recipe 集成固定的 Cobalt 源码，在基础配置上启用 RTDM 测试模块，再用 Debian GCC 14
+运行 `olddefconfig`；最终配置保存在 `/boot`，基础配置文件及其 checksum 保持原样。
+Dovetail、Xenomai 和 RTIPC 必须保持启用；initramfs 包含 NVMe、ext4、virtio 和 ENA 模块。
 
 Orocos uses the current committed root checkout and
 `packaging/source-lock.json`. The builder stages these with `git archive`;
@@ -123,12 +128,13 @@ initramfs modules, Cobalt primary-mode execution, and the installed Orocos
 prefix through `tools/validate-install.sh --target xenomai`. It also compiles
 and executes a consumer of the real EtherLab library's version API without
 opening a master. No source tree or build output from provisioning is present.
-Maintained Smokey cases cover arithmetic, POSIX clocks, condition variables,
-mutexes, XDDP, IDDP and BUFP. Each must print an explicit success result;
-Smokey's successful exit status alone does not accept skipped cases.
-The POSIX clock case runs through `sudo` because it changes the system clock
-and needs `CAP_SYS_TIME`. The other Smokey cases, the Cobalt primary-mode sample,
-and installed-prefix consumers run as the unprivileged `runner` account.
+Smokey 验收覆盖 `arith`、`posix_clock`、`posix_cond`、`posix_mutex`、`xddp`、`iddp`、
+`bufp`、`cpu_affinity`、`posix_fork`、`posix_select`、`timerfd` 和 `tsc`；包含 MetaNC 维护的
+完整九项集合。每项必须输出 `OK`，退出码为 0 不能代替实际执行；跳过测试或子检查都失败。
+`cpu_affinity` 另外要求内核线程迁移的明确日志，避免仅通过用户线程检查。
+`posix_clock` 使用 `sudo` 获得 `CAP_SYS_TIME`；`cpu_affinity` 使用 `sudo` 管理 RTDM 测试
+模块和设备。其余 Smokey、Cobalt primary-mode sample 以及 installed-prefix consumers 均以
+普通 `runner` 用户运行。
 
 Run the fast checks without a VM or AWS credentials:
 

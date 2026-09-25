@@ -7,6 +7,7 @@ source "$recipe_dir/runner-inputs.sh"
 export ACTIONS_RUNNER_VERSION RUNS_ON_BOOTSTRAP_VERSION
 export LINUX_REPOSITORY LINUX_REF LINUX_REVISION SOURCE_SHA256
 export XENOMAI_REPOSITORY XENOMAI_REF XENOMAI_REVISION XENOMAI_SHA256 KERNEL_CONFIG_SHA256
+export XENOMAI_SUPPORTED_CPUS
 export ETHERLAB_REPOSITORY ETHERLAB_REF ETHERLAB_REVISION ETHERLAB_SHA256
 python3 - "$recipe_dir" <<'PY'
 import hashlib, json, os, pathlib, subprocess, sys
@@ -24,6 +25,8 @@ manifest = {
     'sources': sources,
     'base_image': json.loads((pathlib.Path(sys.argv[1]) / 'recipe.json').read_text())['source_image'],
     'kernel_release': release,
+    'xenomai_supported_cpus': os.environ['XENOMAI_SUPPORTED_CPUS'],
+    'xenomai_rtdm_test_module': True,
     'kernel_input_config_sha256': os.environ['KERNEL_CONFIG_SHA256'],
     'kernel_effective_config_sha256': hashlib.sha256(pathlib.Path(f'/boot/config-{release}').read_bytes()).hexdigest(),
     'orocos_source_lock_sha256': hashlib.sha256((directory / 'source-lock.json').read_bytes()).hexdigest(),
